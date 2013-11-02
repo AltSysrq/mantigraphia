@@ -189,10 +189,11 @@ static inline signed zo_scale(signed input, zo_scaling_factor factor) {
   return (signed)value;
 }
 
-extern const zo_scaling_factor zo_cosine[256];
+#define ZO_COSINE_COUNT 256
+extern const zo_scaling_factor zo_cosine[ZO_COSINE_COUNT];
 
 static inline zo_scaling_factor zo_cos(angle ang) {
-  return zo_cosine[(ang >> 8) & 0xFF];
+  return zo_cosine[(ang >> 8) & (ZO_COSINE_COUNT-1)];
 }
 
 static inline zo_scaling_factor zo_sin(angle ang) {

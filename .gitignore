@@ -16,3 +16,5 @@ depcomp
 aclocal.m4
 autom4te.cache
 stamp-h1
+gentrigtab
+trigtab.c
