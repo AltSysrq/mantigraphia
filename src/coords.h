@@ -1,0 +1,231 @@
+/*
+  Copyright (c) 2013 Jason Lingle
+  All rights reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+  1. Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+  3. Neither the name of the author nor the names of its contributors
+     may be used to endorse or promote products derived from this software
+     without specific prior written permission.
+
+     THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+     ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+     IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+     ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
+     FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+     DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+     OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+     HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+     LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+     OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+     SUCH DAMAGE.
+*/
+#ifndef COORDS_H_
+#define COORDS_H_
+
+#include <stdlib.h>
+
+/**
+ * @file
+ * Defines types, units, and common functions for manipulating Mantigraphia's
+ * integer-based coordinate system, including angle and time.
+ *
+ * Using integer-based coordinates is important for a number of
+ * reasons. Scalar integer operations are generally faster on most processors
+ * than floating-point operations. Fixed-point representations maintain an
+ * equal and known precision across the whole space. Finally, we can be fully
+ * certain that identical calculations involving them will have exactly equal
+ * results across all compilers, optimisation levels, and architectures, and
+ * that commutative operations really are commutative.
+ */
+
+/**
+ * Spacial coordinates are represented by 32-bit integers, where the high word
+ * is metres and the low word is 65536ths of a metre. A "millimetre" is
+ * 1/1024th of a metre.
+ *
+ * Space is torroidal at some offset for the X and Z axes, so a signed 32-bit
+ * integer is sufficient to represent the offset between any two points on
+ * those axes. The Y axis is expected to be capped at some reasonable point
+ * below 32 km.
+ *
+ * Coordinates and offsets may be converted to OpenGL floating-point
+ * coordinates, but may not be converted back. Floating-point units are based
+ * on metres.
+ */
+typedef unsigned coord;
+typedef signed coord_offset;
+#define METRE      ((coord)0x00010000)
+#define MILLIMETRE ((coord)0x00000040)
+
+typedef coord vc3[3];
+typedef coord_offset vo3[3];
+typedef float vf4[4];
+
+static inline float c2f(coord c) {
+  return c / (float)METRE;
+}
+
+static inline float o2f(coord_offset c) {
+  return c / (float)METRE;
+}
+
+static inline void c2fv4(vf4 dst, const vc3 src) {
+  dst[0] = c2f(src[0]);
+  dst[1] = c2f(src[1]);
+  dst[2] = c2f(src[2]);
+  dst[3] = 1.0f;
+}
+
+static inline void o2fv4(vf4 dst, const vo3 src) {
+  dst[0] = c2f(src[0]);
+  dst[1] = c2f(src[1]);
+  dst[2] = c2f(src[2]);
+  dst[3] = 1.0f;
+}
+
+static inline coord_offset torus_dist(coord_offset base_off, coord wrap_point) {
+  /* By definition, abs(base_off) < wrap_point. If abs(base_off) <=
+   * wrap_point/2, wrapping would not result in a shorter distance, so base_off
+   * is the correct distance. Otherwise, wrapping will produce a shorter
+   * distance.
+   *
+   * The wrapped value will always be of opposite sign as the unwrapped offset,
+   * since they naturally must point in opposite directions around the torus.
+   */
+  if (abs(base_off) <= wrap_point / 2)
+    return base_off;
+  else if (base_off < 0)
+    /* Want positive. wrap_point > abs(base_off), so wrap_point + negative
+     * base_off is always positive.
+     */
+    return wrap_point + /*negative*/ base_off;
+  else
+    /* Want negative. base_off is positive, but less than wrap_point */
+    return base_off - wrap_point;
+}
+
+static inline void vc3dist(vo3 dst, const vc3 a, const vc3 b,
+                           coord wrap_point) {
+  dst[0] = torus_dist(a[0] - b[0], wrap_point);
+  dst[1] = a[1] - b[1];
+  dst[2] = torus_dist(a[2] - b[2], wrap_point);
+}
+
+static inline unsigned clampu(unsigned min, unsigned x, unsigned max) {
+  if (min > x) return min;
+  if (max < x) return max;
+  else         return x;
+}
+
+static inline signed clamps(signed min, signed x, signed max) {
+  if (min > x) return min;
+  if (max < x) return max;
+  else         return x;
+}
+
+/**
+ * Time is tracked in terms of chronons, there being 64 chronons in one wall
+ * second. A 32-bit integer is sufficient for about 2 years of simulation at
+ * this rate.
+ */
+typedef unsigned chronon;
+#define SECOND     ((chronon)0x00000040)
+
+/**
+ * Velocity is expressed as space quanta per chronon. The minimum expressable
+ * speed is 1 millimetre per second.
+ */
+typedef coord_offset velocity;
+#define METRES_PER_SECOND ((velocity)(METRE / SECOND))
+#define MM_PER_SECOND     ((velocity)1)
+
+/**
+ * Acceleration is expressed as velocity quanta per chronon. The minimum
+ * expressable acceleration is 64 mm/s/s.
+ *
+ * Gravity is negative acceleration along the Y axis. It is about 9.81 m/s/s
+ * (actually 9m+768mm / s / s).
+ */
+typedef coord_offset acceleration;
+#define METRES_PER_SS ((acceleration)(METRE / SECOND / SECOND))
+#define GRAVITY ((acceleration)-((9*METRE + 810*MILLIMETRE) / SECOND / SECOND))
+
+/**
+ * Angle is expressed in units of 1/65536th of a circle. Most calculations care
+ * only about the upper byte (1/256th of a circle), however. The lower byte
+ * only exists to support rotational speeds below 360 deg/sec.
+ */
+typedef unsigned short angle;
+#define DEG_90  ((angle)0x4000)
+#define DEG_180 ((angle)0x8000)
+#define DEG_270 ((angle)0xC000)
+
+/**
+ * Angular velocity is expressed in terms of angular quanta per chronon.
+ */
+typedef signed short angular_velocity;
+
+/**
+ * A zo_scaling_factor is a 15-bit signed integer which can be used to scale a
+ * coordinate or offset by a logical value between 0 and 1, inclusive. In order
+ * to support +1.0, the legal range of this type is -16384 to +16384 instead of
+ * the more expected -32768 to +32767.
+ */
+typedef signed short zo_scaling_factor;
+#define ZO_SCALING_FACTOR_MAX ((zo_scaling_factor)0x4000)
+
+static inline signed zo_scale(signed input, zo_scaling_factor factor) {
+  signed long long value = input;
+  value *= factor;
+  value /= ZO_SCALING_FACTOR_MAX;
+
+  return (signed)value;
+}
+
+extern const zo_scaling_factor zo_cosine[256];
+
+static inline zo_scaling_factor zo_cos(angle ang) {
+  return zo_cosine[(ang >> 8) & 0xFF];
+}
+
+static inline zo_scaling_factor zo_sin(angle ang) {
+  return zo_cos(ang + DEG_90);
+}
+
+static inline signed zo_cosms(angle ang, signed value) {
+  return zo_scale(value, zo_cos(ang));
+}
+
+static inline signed zo_sinms(angle ang, signed value) {
+  return zo_scale(value, zo_sin(ang));
+}
+
+static inline void cossinms(signed* x, signed* y, angle ang, signed dist) {
+  *x = zo_cosms(ang, dist);
+  *y = zo_sinms(ang, dist);
+}
+
+unsigned isqrt(unsigned long long);
+
+static inline unsigned cmagnitude(const vc3 coords) {
+  return isqrt(
+    ((unsigned long long)coords[0])*coords[0] +
+    ((unsigned long long)coords[1])*coords[1] +
+    ((unsigned long long)coords[2])*coords[2]);
+}
+
+static inline unsigned omagnitude(const vo3 coords) {
+  return isqrt(
+    ((signed long long)coords[0])*coords[0] +
+    ((signed long long)coords[1])*coords[1] +
+    ((signed long long)coords[2])*coords[2]);
+}
+
+#endif /* COORDS_H_ */

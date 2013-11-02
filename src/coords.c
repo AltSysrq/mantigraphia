@@ -30,9 +30,18 @@
 #include <config.h>
 #endif
 
-#include <SDL_opengl.h>
-#include <SDL.h>
+#include <stdlib.h>
 
-int main(void) {
-  return 0;
+#include "coords.h"
+
+unsigned isqrt(unsigned long long n) {
+  unsigned long long x0, x1 = n;
+  if (!n) return 0;
+
+  do {
+    x0 = x1;
+    x1 = (x0 + n/x0) / 2;
+  } while (llabs(x0 - x1) > 1);
+
+  return x1;
 }
