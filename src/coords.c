@@ -35,13 +35,14 @@
 #include "coords.h"
 
 unsigned isqrt(unsigned long long n) {
-  unsigned long long x0, x1 = n;
+  unsigned long long x0, x1 = n, delta;
   if (!n) return 0;
 
   do {
     x0 = x1;
     x1 = (x0 + n/x0) / 2;
-  } while (llabs(x0 - x1) > 1);
+    delta = x0 - x1;
+  } while (delta && ~delta && delta-1);
 
   return x1;
 }
