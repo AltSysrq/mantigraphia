@@ -21,7 +21,8 @@ PKG_CHECK_MODULES([SDLIMG], [SDL2_image])
 # Headers
 AC_CHECK_HEADERS([arpa/inet.h inttypes.h malloc.h netinet/in.h stdint.h dnl
                   stdlib.h string.h sys/socket.h sys/time.h unistd.h])
-AC_CHECK_HEADERS([sys/queue.h bsd/sys/queue.h err.h bsd/err.h sysexits.h bsd/sysexits.h])
+AC_CHECK_HEADERS([sys/queue.h bsd/sys/queue.h sys/tree.h bsd/sys/tree.h dnl
+                  err.h bsd/err.h sysexits.h bsd/sysexits.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
