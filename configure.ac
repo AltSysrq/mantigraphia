@@ -9,23 +9,14 @@ AM_SILENT_RULES(yes)
 AM_CONFIG_HEADER([config.h])
 PKG_PROG_PKG_CONFIG()
 
-AC_ARG_WITH([glew], AS_HELP_STRING([--with-glew], [Use GLEW to access GL extensions.]))
-AS_IF([test "x$with_glew" = "xyes"], [
-  PKG_CHECK_MODULES([GLEW], [glew])
-], [
-  GLEW_CFLAGS=-DGL_GLEXT_PROTOTYPES
-  GLEW_LIBS=
-])
-
 # Checks for programs.
 AC_PROG_CC
 
 # Checks for libraries.
 AC_SEARCH_LIBS([errc], [c bsd])
 AC_SEARCH_LIBS([sin], [c m])
-PKG_CHECK_MODULES([SDL], [sdl])
-PKG_CHECK_MODULES([SDLIMG], [SDL_image])
-PKG_CHECK_MODULES([GL], [gl])
+PKG_CHECK_MODULES([SDL], [sdl2])
+PKG_CHECK_MODULES([SDLIMG], [SDL2_image])
 
 # Headers
 AC_CHECK_HEADERS([arpa/inet.h inttypes.h malloc.h netinet/in.h stdint.h dnl
