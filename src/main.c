@@ -39,16 +39,15 @@
 
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
+#include "graphics/pencil.h"
 
-static void draw_stuff(SDL_Renderer*, SDL_Texture*,
-                       Uint32*, unsigned, unsigned);
+static void draw_stuff(canvas*);
 
 int main(void) {
-  unsigned ww, wh, i;
+  unsigned ww, wh;
   SDL_Window* screen;
   SDL_Renderer* renderer;
   SDL_Texture* texture;
-  Uint32* buff;
   const int image_types = IMG_INIT_JPG | IMG_INIT_PNG;
   parchment* parch;
   canvas* canv;
@@ -93,35 +92,36 @@ int main(void) {
   if (!texture)
     errx(EX_UNAVAILABLE, "Unable to create screen texture: %s", SDL_GetError());
 
+  canvas_clear(canv);
   parchment_draw(canv, parch);
+  draw_stuff(canv);
   canvas_blit(texture, canv);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
-  SDL_Delay(2048);
-
-  buff = malloc(sizeof(Uint32) * ww * wh);
-
-  for (i = 0; i < 50; ++i) {
-    draw_stuff(renderer, texture, buff, ww, wh);
-    SDL_Delay(100);
-  }
+  SDL_Delay(5000);
 
   return 0;
 }
 
-static void draw_stuff(SDL_Renderer* renderer,
-                       SDL_Texture* texture,
-                       Uint32* buff,
-                       unsigned ww, unsigned wh) {
-  unsigned i, v;
+static void draw_stuff(canvas* dst) {
+  pencil_spec pencil;
+  vo3 a, b;
 
-  for (i = 0; i < ww*wh; ++i) {
-    v = rand() & 0xFF;
-    buff[i] = 0xFF000000 | (v << 16) | (v << 8) | v;
-  }
+  pencil_init(&pencil);
+  pencil.colour = argb(0, 0, 0, 32);
+  pencil.thickness = ZO_SCALING_FACTOR_MAX / 64;
 
-  SDL_UpdateTexture(texture, NULL, buff, ww*sizeof(Uint32));
-  SDL_RenderClear(renderer);
-  SDL_RenderCopy(renderer, texture, NULL, NULL);
-  SDL_RenderPresent(renderer);
+  a[0] = 32;
+  a[1] = 32;
+  a[2] = 1;
+  pencil_draw_point(dst, &pencil, a, ZO_SCALING_FACTOR_MAX);
+
+  a[0] = 64;
+  a[1] = 64;
+  b[0] = 128;
+  b[1] = 256;
+  b[2] = 1;
+  pencil_draw_line(dst, &pencil,
+                   a, ZO_SCALING_FACTOR_MAX,
+                   b, ZO_SCALING_FACTOR_MAX / 2);
 }

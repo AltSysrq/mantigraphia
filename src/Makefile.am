@@ -13,7 +13,8 @@ main.c \
 coords.c \
 trigtab.c \
 graphics/canvas.c \
-graphics/parchment.c
+graphics/parchment.c \
+graphics/pencil.c
 
 trigtab.c: gentrigtab
 	./gentrigtab >trigtab.c

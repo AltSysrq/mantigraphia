@@ -126,6 +126,16 @@ static inline void canvas_write(canvas* dst, unsigned x, unsigned y,
 }
 
 /**
+ * Like canvas_write(), but is safe to call with out-of-bounds values, even
+ * negative ones (other than depth).
+ */
+static inline void canvas_write_c(canvas* dst, unsigned x, unsigned y,
+                                  canvas_pixel px, canvas_depth depth) {
+  if (x < dst->w && y < dst->h)
+    canvas_write(dst, x, y, px, depth);
+}
+
+/**
  * Masks and shifts for colour components within canvas_pixels.
  */
 #define AMASK 0xFF000000
