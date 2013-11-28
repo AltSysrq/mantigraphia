@@ -66,29 +66,6 @@ typedef signed coord_offset;
 
 typedef coord vc3[3];
 typedef coord_offset vo3[3];
-typedef float vf4[4];
-
-static inline float c2f(coord c) {
-  return c / (float)METRE;
-}
-
-static inline float o2f(coord_offset c) {
-  return c / (float)METRE;
-}
-
-static inline void c2fv4(vf4 dst, const vc3 src) {
-  dst[0] = c2f(src[0]);
-  dst[1] = c2f(src[1]);
-  dst[2] = c2f(src[2]);
-  dst[3] = 1.0f;
-}
-
-static inline void o2fv4(vf4 dst, const vo3 src) {
-  dst[0] = c2f(src[0]);
-  dst[1] = c2f(src[1]);
-  dst[2] = c2f(src[2]);
-  dst[3] = 1.0f;
-}
 
 static inline coord_offset torus_dist(coord_offset base_off, coord wrap_point) {
   /* By definition, abs(base_off) < wrap_point. If abs(base_off) <=
