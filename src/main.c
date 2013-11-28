@@ -31,10 +31,14 @@
 #endif
 
 #include <SDL.h>
+#include <SDL_image.h>
 
 #include <stdlib.h>
 
 #include "bsd.h"
+
+#include "graphics/canvas.h"
+#include "graphics/parchment.h"
 
 static void draw_stuff(SDL_Renderer*, SDL_Texture*,
                        Uint32*, unsigned, unsigned);
@@ -45,6 +49,9 @@ int main(void) {
   SDL_Renderer* renderer;
   SDL_Texture* texture;
   Uint32* buff;
+  const int image_types = IMG_INIT_JPG | IMG_INIT_PNG;
+  parchment* parch;
+  canvas* canv;
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
     errx(EX_SOFTWARE, "Unable to initialise SDL: %s", SDL_GetError());
@@ -64,12 +71,19 @@ int main(void) {
   if (!renderer)
     errx(EX_SOFTWARE, "Unable to create SDL renderer: %s", SDL_GetError());
 
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-  SDL_RenderClear(renderer);
-  SDL_RenderPresent(renderer);
-  SDL_Delay(258);
+  if (image_types != (image_types & IMG_Init(image_types)))
+    errx(EX_SOFTWARE, "Unable to init SDLIMG: %s", IMG_GetError());
+
+  screen_pixel_format = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
+  if (!screen_pixel_format)
+    errx(EX_UNAVAILABLE, "Unable to get ARGB8888 pixel format: %s",
+         SDL_GetError());
 
   SDL_GetWindowSize(screen, (int*)&ww, (int*)&wh);
+
+  parchment_init();
+  canv = canvas_new(ww, wh);
+  parch = parchment_new();
 
   texture = SDL_CreateTexture(renderer,
                               /* TODO: Use native format */
@@ -78,6 +92,12 @@ int main(void) {
                               ww, wh);
   if (!texture)
     errx(EX_UNAVAILABLE, "Unable to create screen texture: %s", SDL_GetError());
+
+  parchment_draw(canv, parch);
+  canvas_blit(texture, canv);
+  SDL_RenderCopy(renderer, texture, NULL, NULL);
+  SDL_RenderPresent(renderer);
+  SDL_Delay(2048);
 
   buff = malloc(sizeof(Uint32) * ww * wh);
 

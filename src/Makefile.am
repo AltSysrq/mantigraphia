@@ -12,7 +12,8 @@ mantigraphia_SOURCES = \
 main.c \
 coords.c \
 trigtab.c \
-graphics/canvas.c
+graphics/canvas.c \
+graphics/parchment.c
 
 trigtab.c: gentrigtab
 	./gentrigtab >trigtab.c

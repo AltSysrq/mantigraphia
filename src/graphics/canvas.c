@@ -39,6 +39,8 @@
 #include "../alloc.h"
 #include "canvas.h"
 
+SDL_PixelFormat* screen_pixel_format;
+
 canvas* canvas_new(unsigned width, unsigned height) {
   canvas* this = xmalloc(
     sizeof(canvas) +

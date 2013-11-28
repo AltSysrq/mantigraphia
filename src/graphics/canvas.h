@@ -32,6 +32,11 @@
 #include <SDL.h>
 
 /**
+ * The SDL pixel format used by the screen texture.
+ */
+extern SDL_PixelFormat* screen_pixel_format;
+
+/**
  * Type for storing pixel data for rendering. It can be broken into
  * colour_components with the get_*() functions defined below.
  */
