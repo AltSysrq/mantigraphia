@@ -33,7 +33,7 @@
 #include "canvas.h"
 #include "abstract.h"
 
-#define MAX_BRUSH_BRISTLES 64
+#define MAX_BRUSH_BRISTLES 32
 
 /**
  * The brush drawing method simulates a brush applying paint or sumi (ink) to
@@ -104,7 +104,7 @@ y   */
    * colours. The middle bristle is always at (MAX_BRUSH_BRISTLES/2),
    * regardless of the actual number of bristles.
    */
-  unsigned char init_bristles[MAX_BRUSH_BRISTLES];
+  unsigned short init_bristles[MAX_BRUSH_BRISTLES];
 } brush_spec;
 
 /**

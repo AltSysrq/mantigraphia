@@ -50,7 +50,7 @@ void brush_init(brush_spec* spec) {
   spec->outer_weakening_chance = 4000;
   spec->noise = 0x1;
   spec->size = ZO_SCALING_FACTOR_MAX / 32;
-  spec->step = ZO_SCALING_FACTOR_MAX / 1024;
+  spec->step = ZO_SCALING_FACTOR_MAX / 512;
   memset(spec->init_bristles, 0, sizeof(spec->init_bristles));
 }
 
@@ -102,15 +102,13 @@ static void advance_step(brush_accum* accum, const brush_spec* spec) {
                   id*spec->inner_strengthening_chance) * 2 / MAX_BRUSH_BRISTLES;
 
     if (rnda <= weaken) {
-      if (accum->bristles[i] < 255)
-        ++accum->bristles[i];
+      ++accum->bristles[i];
     } else if (rnda <= weaken+strengthen) {
       if (accum->bristles[i])
         --accum->bristles[i];
     }
     if (rndb <= weaken) {
-      if (accum->bristles[ii] < 255)
-        ++accum->bristles[ii];
+      ++accum->bristles[ii];
     } else if (rndb <= weaken+strengthen) {
       if (accum->bristles[ii])
         --accum->bristles[ii];
