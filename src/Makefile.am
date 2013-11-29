@@ -14,7 +14,8 @@ coords.c \
 trigtab.c \
 graphics/canvas.c \
 graphics/parchment.c \
-graphics/pencil.c
+graphics/pencil.c \
+graphics/brush.c
 
 trigtab.c: gentrigtab
 	./gentrigtab >trigtab.c
