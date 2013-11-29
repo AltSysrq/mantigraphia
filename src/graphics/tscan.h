@@ -43,46 +43,43 @@ typedef void (*triangle_shader)(void* userdata,
                                 const coord_offset* interps);
 
 /**
- * Shades an above-axis-aligned triangle using the given shader. The triangle
- * must have an axis-alinged base, the third point lying at or above the
- * base. (y0,xt) is the third point; (y1,xb0) and (y1,xb1) are the base
- * points. xb0 must be less than or equal to xb1.
+ * Defines a function named <name> which shades an above-axis-aligned triangle
+ * using the given shader. The triangle must have an axis-alinged base, the
+ * third point lying at or above the base. (y0,xt) is the third point; (y1,xb0)
+ * and (y1,xb1) are the base points. xb0 must be less than or equal to xb1.
  *
  * Values in each z array are linearly interpolated (according to screen space)
  * between the vertices. The length of these arrays is given by nz.
  */
-static
-#ifndef PROFILE
-inline
-#endif
-void shade_uaxis_triangle(canvas*restrict dst,
-                          coord_offset y0, coord_offset y1,
-                          coord_offset xt, coord_offset xb0, coord_offset xb1,
-                          unsigned nz,
-                          const coord_offset*restrict zt,
-                          const coord_offset*restrict zb0,
-                          const coord_offset*restrict zb1,
-                          triangle_shader shader, void* userdata) {
-  coord_offset x, xl, xh, dx, xo, y, dy, yo, z[nz], zl[nz], zh[nz];
-  unsigned i;
-
-  dy = y1 - y0;
-  for (y = (y0 > 0? y0 : 0); y < y1 && y < dst->h; ++y) {
-    yo = y - y0;
-    xl = ((dy-yo)*xt + yo*xb0)/dy;
-    xh = ((dy-yo)*xt + yo*xb1)/dy;
-    for (i = 0; i < nz; ++i) {
-      zl[i] = ((dy-yo)*zt[i] + yo*zb0[i])/dy;
-      zh[i] = ((dy-yo)*zt[i] + yo*zb1[i])/dy;
-    }
-    dx = xh-xl;
-    for (x = (xl > 0? xl : 0); x < xh && x < dst->w; ++x) {
-      xo = x-xl;
-      for (i = 0; i < nz; ++i)
-        z[i] = ((dx-xo)*zl[i] + xo*zh[i])/dx;
-      (*shader)(userdata, x, y, z);
-    }
+#define SHADE_UAXIS_TRIANGLE(name, shader, nz)                          \
+  static void name(canvas*restrict dst,                                 \
+                   coord_offset y0, coord_offset y1,                    \
+                   coord_offset xt,                                     \
+                   coord_offset xb0, coord_offset xb1,                  \
+                   const coord_offset*restrict zt,                      \
+                   const coord_offset*restrict zb0,                     \
+                   const coord_offset*restrict zb1,                     \
+                   void* userdata) {                                    \
+    coord_offset x, xl, xh, dx, xo, y, dy, yo, z[nz], zl[nz], zh[nz];   \
+    unsigned i;                                                         \
+                                                                        \
+    dy = y1 - y0;                                                       \
+    for (y = (y0 > 0? y0 : 0); y < y1 && y < dst->h; ++y) {             \
+      yo = y - y0;                                                      \
+      xl = ((dy-yo)*xt + yo*xb0)/dy;                                    \
+      xh = ((dy-yo)*xt + yo*xb1)/dy;                                    \
+      for (i = 0; i < nz; ++i) {                                        \
+        zl[i] = ((dy-yo)*zt[i] + yo*zb0[i])/dy;                         \
+        zh[i] = ((dy-yo)*zt[i] + yo*zb1[i])/dy;                         \
+      }                                                                 \
+      dx = xh-xl;                                                       \
+      for (x = (xl > 0? xl : 0); x < xh && x < dst->w; ++x) {           \
+        xo = x-xl;                                                      \
+        for (i = 0; i < nz; ++i)                                        \
+          z[i] = ((dx-xo)*zl[i] + xo*zh[i])/dx;                         \
+        shader(userdata, x, y, z);                                      \
+      }                                                                 \
+    }                                                                   \
   }
-}
 
 #endif /* GRAPHICS_TSCAN_H_ */
