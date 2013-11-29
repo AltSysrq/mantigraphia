@@ -126,6 +126,17 @@ static const canvas_pixel brush_red_colours[8] = {
   argb(0, 144, 80, 40),
 };
 
+static const canvas_pixel brush_green_colours[8] = {
+  argb(0, 0, 32, 0),
+  argb(0, 8, 48, 0),
+  argb(0, 12, 64, 0),
+  argb(0, 16, 80, 8),
+  argb(0, 32, 96, 16),
+  argb(0, 48, 112, 24),
+  argb(0, 64, 128, 32),
+  argb(0, 80, 144, 40),
+};
+
 static void draw_stuff(canvas* dst) {
   pencil_spec pencil;
   brush_spec brush;
@@ -176,6 +187,20 @@ static void draw_stuff(canvas* dst) {
     cossinms(b+0, b+1, (i+1) * (65536/64), 128);
     b[0] += 256;
     b[1] += 768;
+    brush_draw_line(&baccum, &brush,
+                    a, ZO_SCALING_FACTOR_MAX,
+                    b, ZO_SCALING_FACTOR_MAX);
+  }
+  brush_flush(&baccum, &brush);
+
+  brush.colours = brush_green_colours;
+  brush.inner_strengthening_chance = 3860;
+  a[2] = b[2] = 3;
+  for (i = 0; i < 1280; i += 5) {
+    a[0] = i;
+    b[0] = i+5;
+    a[1] = zo_cosms(a[0]*256, 128) + 150;
+    b[1] = zo_cosms(b[0]*256, 128) + 150;
     brush_draw_line(&baccum, &brush,
                     a, ZO_SCALING_FACTOR_MAX,
                     b, ZO_SCALING_FACTOR_MAX);
