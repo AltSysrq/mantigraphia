@@ -57,7 +57,7 @@ typedef struct {
    * Colours at the beginning are said to be "strong", whilst those at the end
    * are "weak".
    */
-  const canvas_pixel* colours;
+  const canvas_pixel*restrict colours;
   unsigned num_colours;
 
   /**
@@ -141,13 +141,13 @@ void brush_prep(brush_accum*, const brush_spec*, canvas*,
                 unsigned random_seed);
 
 void brush_draw_point(
-  brush_accum*,
-  const brush_spec*,
+  brush_accum*restrict,
+  const brush_spec*restrict,
   const vo3, zo_scaling_factor);
 
 void brush_draw_line(
-  brush_accum*,
-  const brush_spec*,
+  brush_accum*restrict,
+  const brush_spec*restrict,
   const vo3, zo_scaling_factor,
   const vo3, zo_scaling_factor);
 

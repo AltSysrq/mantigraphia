@@ -96,12 +96,14 @@ static void advance_step(brush_accum* accum, const brush_spec* spec) {
   }
 }
 
-void brush_draw_point(brush_accum* accum, const brush_spec* spec,
+void brush_draw_point(brush_accum*restrict accum,
+                      const brush_spec*restrict spec,
                       const vo3 where, zo_scaling_factor weight) {
   /* TODO */
 }
 
-void brush_draw_line(brush_accum* accum, const brush_spec* spec,
+void brush_draw_line(brush_accum*restrict accum,
+                     const brush_spec*restrict spec,
                      const vo3 from, zo_scaling_factor from_weight,
                      const vo3 to, zo_scaling_factor to_weight) {
   coord_offset lx, ly, px, py, dist, i, t, x, y, z, bx, by, thick;
