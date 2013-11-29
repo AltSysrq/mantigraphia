@@ -86,22 +86,27 @@ typedef void (*triangle_shader)(void* userdata,
                    const coord_offset*restrict zb1,                     \
                    void* userdata) {                                    \
     coord_offset x, xl, xh, dx, xo, y, dy, yo, z[nz], zl[nz], zh[nz];   \
+    coord_offset idy16, idx16;                                          \
     unsigned i;                                                         \
                                                                         \
     dy = y1 - y0;                                                       \
+    if (!dy) return; /* degenerate */                                   \
+    idy16 = 65536 / dy;                                                 \
     for (y = (y0 > 0? y0 : 0); y < y1 && y < dst->h; ++y) {             \
       yo = y - y0;                                                      \
-      xl = ((dy-yo)*xt + yo*xb0)/dy;                                    \
-      xh = ((dy-yo)*xt + yo*xb1)/dy;                                    \
+      xl = ((dy-yo)*xt + yo*xb0) * idy16 >> 16;                         \
+      xh = ((dy-yo)*xt + yo*xb1) * idy16 >> 16;                         \
       for (i = 0; i < nz; ++i) {                                        \
-        zl[i] = ((dy-yo)*zt[i] + yo*zb0[i])/dy;                         \
-        zh[i] = ((dy-yo)*zt[i] + yo*zb1[i])/dy;                         \
+        zl[i] = ((dy-yo)*zt[i] + yo*zb0[i]) * idy16 >> 16;              \
+        zh[i] = ((dy-yo)*zt[i] + yo*zb1[i]) * idy16 >> 16;              \
       }                                                                 \
       dx = xh-xl;                                                       \
+      if (!dx) continue; /* nothing to draw */                          \
+      idx16 = 65536 / dx;                                               \
       for (x = (xl > 0? xl : 0); x < xh && x < dst->w; ++x) {           \
         xo = x-xl;                                                      \
         for (i = 0; i < nz; ++i)                                        \
-          z[i] = ((dx-xo)*zl[i] + xo*zh[i])/dx;                         \
+          z[i] = ((dx-xo)*zl[i] + xo*zh[i]) * idx16 >> 16;              \
         shader(userdata, x, y, z);                                      \
       }                                                                 \
     }                                                                   \
@@ -120,22 +125,27 @@ typedef void (*triangle_shader)(void* userdata,
                    const coord_offset*restrict zb1,                     \
                    void* userdata) {                                    \
     coord_offset x, xl, xh, dx, xo, y, dy, yo, z[nz], zl[nz], zh[nz];   \
+    coord_offset idy16, idx16;                                          \
     unsigned i;                                                         \
                                                                         \
     dy = y0 - y1;                                                       \
+    if (!dy) return; /* degenerate */                                   \
+    idy16 = 65536 / dy;                                                 \
     for (y = (y1 > 0? y1 : 0); y < y0 && y < dst->h; ++y) {             \
       yo = y - y1;                                                      \
-      xl = ((dy-yo)*xb0 + yo*xt)/dy;                                    \
-      xh = ((dy-yo)*xb1 + yo*xt)/dy;                                    \
+      xl = ((dy-yo)*xb0 + yo*xt) * idy16 >> 16;                         \
+      xh = ((dy-yo)*xb1 + yo*xt) * idy16 >> 16;                         \
       for (i = 0; i < nz; ++i) {                                        \
-        zl[i] = ((dy-yo)*zb0[i] + yo*zt[i])/dy;                         \
-        zh[i] = ((dy-yo)*zb1[i] + yo*zt[i])/dy;                         \
+        zl[i] = ((dy-yo)*zb0[i] + yo*zt[i]) * idy16 >> 16;              \
+        zh[i] = ((dy-yo)*zb1[i] + yo*zt[i]) * idy16 >> 16;              \
       }                                                                 \
       dx = xh-xl;                                                       \
+      if (!dx) continue; /* nothing to draw here */                     \
+      idx16 = 65536 / dx;                                               \
       for (x = (xl > 0? xl : 0); x < xh && x < dst->w; ++x) {           \
         xo = x-xl;                                                      \
         for (i = 0; i < nz; ++i)                                        \
-          z[i] = ((dx-xo)*zl[i] + xo*zh[i])/dx;                         \
+          z[i] = ((dx-xo)*zl[i] + xo*zh[i]) * idx16 >> 16;              \
         shader(userdata, x, y, z);                                      \
       }                                                                 \
     }                                                                   \
