@@ -66,32 +66,54 @@ void brush_prep(brush_accum* accum, const brush_spec* spec,
   accum->step_size = ZO_SCALING_FACTOR_MAX / px_per_step;
 }
 
-static inline unsigned short accrand(brush_accum* accum) {
+#ifdef PROFILE
+static unsigned short accrand(brush_accum*)
+__attribute__((noinline));
+#endif
+static
+#ifndef PROFILE
+inline
+#endif
+unsigned short accrand(brush_accum* accum) {
   /* Same LCG as glibc, probably a good choice */
   accum->random_state = accum->random_state * 1103515245 + 12345;
   return accum->random_state >> 16;
 }
 
-static void advance_step(brush_accum* accum, const brush_spec* spec) {
-  unsigned i, di, id, weaken, strengthen;
-  unsigned short rnd;
+#ifdef PROFILE
+static void advance_step(brush_accum*, const brush_spec*)
+__attribute__((noinline));
+#endif
 
-  for (i = 0; i < MAX_BRUSH_BRISTLES; ++i) {
-    di = abs(i - MAX_BRUSH_BRISTLES/2);
-    id = MAX_BRUSH_BRISTLES/2 - di;
-    rnd = accrand(accum);
+static void advance_step(brush_accum* accum, const brush_spec* spec) {
+  unsigned i, ii, di, id, weaken, strengthen;
+  unsigned short rnda, rndb;
+
+  for (i = 0; i < MAX_BRUSH_BRISTLES/2; ++i) {
+    id = i;
+    di = MAX_BRUSH_BRISTLES/2 - id;
+    ii = MAX_BRUSH_BRISTLES-1 - i;
+    rnda = accrand(accum);
+    rndb = accrand(accum);
 
     weaken = (di*spec->outer_weakening_chance +
               id*spec->inner_weakening_chance) * 2 / MAX_BRUSH_BRISTLES;
     strengthen = (di*spec->outer_strengthening_chance +
                   id*spec->inner_strengthening_chance) * 2 / MAX_BRUSH_BRISTLES;
 
-    if (rnd <= weaken) {
+    if (rnda <= weaken) {
       if (accum->bristles[i] < 255)
         ++accum->bristles[i];
-    } else if (rnd <= weaken+strengthen) {
+    } else if (rnda <= weaken+strengthen) {
       if (accum->bristles[i])
         --accum->bristles[i];
+    }
+    if (rndb <= weaken) {
+      if (accum->bristles[ii] < 255)
+        ++accum->bristles[ii];
+    } else if (rndb <= weaken+strengthen) {
+      if (accum->bristles[ii])
+        --accum->bristles[ii];
     }
   }
 }
