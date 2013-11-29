@@ -98,13 +98,13 @@ int main(void) {
   canvas_clear(canv);
   parchment_draw(canv, parch);
   start = clock();
-  for (i = 0; i < 100; ++i)
+  for (i = 0; i < 1000; ++i)
     draw_stuff(canv);
   end = clock();
   canvas_blit(texture, canv);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
-  printf("Rendering took %f sec\n", (end-start)/(double)CLOCKS_PER_SEC/100.0);
+  printf("Rendering took %f sec\n", (end-start)/(double)CLOCKS_PER_SEC/1000.0);
   SDL_Delay(15000);
 
   return 0;
@@ -207,6 +207,18 @@ static void draw_stuff(canvas* dst) {
     b[0] = i+5;
     a[1] = zo_cosms(a[0]*256, 128) + 150;
     b[1] = zo_cosms(b[0]*256, 128) + 150;
+    brush_draw_line(&baccum, &brush,
+                    a, ZO_SCALING_FACTOR_MAX,
+                    b, ZO_SCALING_FACTOR_MAX);
+  }
+  brush_flush(&baccum, &brush);
+
+  a[0] = 0;
+  b[0] = 1280;
+  a[2] = b[2] = 5;
+  brush.inner_weakening_chance = 0;
+  for (i = 0; i < 32; ++i) {
+    a[1] = b[1] = 16 + i*1024/32;
     brush_draw_line(&baccum, &brush,
                     a, ZO_SCALING_FACTOR_MAX,
                     b, ZO_SCALING_FACTOR_MAX);

@@ -20,3 +20,5 @@ gentrigtab
 trigtab.c
 .dirstamp
 share/extern
+*.gmon
+profile
