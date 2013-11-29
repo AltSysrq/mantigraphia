@@ -42,6 +42,7 @@
 #include "graphics/parchment.h"
 #include "graphics/pencil.h"
 #include "graphics/brush.h"
+#include "graphics/tscan.h"
 
 static void draw_stuff(canvas*);
 
@@ -143,6 +144,11 @@ static const canvas_pixel brush_green_colours[8] = {
   argb(0, 80, 144, 40),
 };
 
+static void gradient(void* dst,
+                     coord_offset x, coord_offset y, coord_offset z) {
+  canvas_write(dst, x, y, argb(0, x&0xFF, y&0xFF, z*16), z);
+}
+
 static void draw_stuff(canvas* dst) {
   pencil_spec pencil;
   brush_spec brush;
@@ -213,15 +219,9 @@ static void draw_stuff(canvas* dst) {
   }
   brush_flush(&baccum, &brush);
 
-  a[0] = 0;
-  b[0] = 1280;
-  a[2] = b[2] = 5;
-  brush.inner_weakening_chance = 0;
-  for (i = 0; i < 32; ++i) {
-    a[1] = b[1] = 16 + i*1024/32;
-    brush_draw_line(&baccum, &brush,
-                    a, ZO_SCALING_FACTOR_MAX,
-                    b, ZO_SCALING_FACTOR_MAX);
-  }
-  brush_flush(&baccum, &brush);
+  shade_uaxis_triangle(dst,
+                       0, 1024,
+                       0, 512, 1280,
+                       0, 2, 4,
+                       gradient, dst);
 }

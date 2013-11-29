@@ -179,10 +179,10 @@ static inline colour_component get_blue(canvas_pixel px) {
 }
 
 /* This is a marco so it can be used in constexprs */
-#define argb(a,r,g,b)             \
-  ((((canvas_pixel)a) << ASHFT) | \
-   (((canvas_pixel)r) << RSHFT) | \
-   (((canvas_pixel)g) << GSHFT) | \
-   (((canvas_pixel)b) << BSHFT))
+#define argb(a,r,g,b)                           \
+  ((((canvas_pixel)(a)) << ASHFT) |             \
+   (((canvas_pixel)(r)) << RSHFT) |             \
+   (((canvas_pixel)(g)) << GSHFT) |             \
+   (((canvas_pixel)(b)) << BSHFT))
 
 #endif /* GRAPHICS_CANVAS_H_ */
