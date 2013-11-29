@@ -15,7 +15,8 @@ trigtab.c \
 graphics/canvas.c \
 graphics/parchment.c \
 graphics/pencil.c \
-graphics/brush.c
+graphics/brush.c \
+graphics/tscan.c
 
 trigtab.c: gentrigtab
 	./gentrigtab >trigtab.c

@@ -150,7 +150,11 @@ static void gradient(void* dst,
   canvas_write(dst, x, y, argb(0, x&0xFF, y&0xFF, *z*16), *z);
 }
 
-SHADE_LAXIS_TRIANGLE(shade_laxis_gradient, gradient, 1)
+SHADE_TRIANGLE(shade_gradient, gradient, 1)
+static const coord_offset
+  tb[2] = { 42, 64 },
+  tc[2] = { 128, 256 },
+  ta[2] = { 1024, 1024 };
 
 static void draw_stuff(canvas* dst) {
   pencil_spec pencil;
@@ -223,9 +227,5 @@ static void draw_stuff(canvas* dst) {
   }
   brush_flush(&baccum, &brush);
 
-  shade_laxis_gradient(dst,
-                       1024, 0,
-                       0, 512, 1280,
-                       zs+0, zs+1, zs+2,
-                       dst);
+  shade_gradient(dst, ta, zs+0, tb, zs+1, tc, zs+2, dst);
 }

@@ -31,6 +31,7 @@
 
 #include "../coords.h"
 #include "canvas.h"
+#include "../defs.h"
 
 /**
  * A triangle-shader is a function applied to every pixel of a triangle being
@@ -41,6 +42,30 @@
 typedef void (*triangle_shader)(void* userdata,
                                 coord_offset x, coord_offset y,
                                 const coord_offset* interps);
+
+/**
+ * Defines a function named <name> which can be used to shade arbitrary
+ * triangles. The function <shader> will be called for each pixel. nz
+ * coord_offsets will be interpolated linearly between vertices.
+ *
+ * a, b, and c are the vertices of the triangle, and must be at least two
+ * elements long. za, zb, and zc are the attributes to be interpolated.
+ */
+#define SHADE_TRIANGLE(name, shader, nz)                                \
+  SHADE_UAXIS_TRIANGLE(_GLUE(name,_uaxis), shader, nz)                  \
+  SHADE_LAXIS_TRIANGLE(_GLUE(name,_laxis), shader, nz)                  \
+  static void name(canvas*restrict dst,                                 \
+                   const coord_offset*restrict a,                       \
+                   const coord_offset*restrict za,                      \
+                   const coord_offset*restrict b,                       \
+                   const coord_offset*restrict zb,                      \
+                   const coord_offset*restrict c,                       \
+                   const coord_offset*restrict zc,                      \
+                   void* userdata) {                                    \
+    shade_triangle(dst, a, za, b, zb, c, zc, nz,                        \
+                   _GLUE(name,_uaxis), _GLUE(name,_laxis),              \
+                   userdata);                                           \
+  }
 
 /**
  * Defines a function named <name> which shades an above-axis-aligned triangle
@@ -115,5 +140,26 @@ typedef void (*triangle_shader)(void* userdata,
       }                                                                 \
     }                                                                   \
   }
+
+typedef void (*partial_triangle_shader)(
+  canvas*restrict,
+  coord_offset, coord_offset,
+  coord_offset, coord_offset, coord_offset,
+  const coord_offset*restrict,
+  const coord_offset*restrict,
+  const coord_offset*restrict,
+  void*);
+
+void shade_triangle(canvas*restrict,
+                    const coord_offset*restrict,
+                    const coord_offset*restrict,
+                    const coord_offset*restrict,
+                    const coord_offset*restrict,
+                    const coord_offset*restrict,
+                    const coord_offset*restrict,
+                    unsigned nz,
+                    partial_triangle_shader upper,
+                    partial_triangle_shader lower,
+                    void* userdata);
 
 #endif /* GRAPHICS_TSCAN_H_ */
