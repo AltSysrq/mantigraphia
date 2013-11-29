@@ -41,7 +41,7 @@
 #include "canvas.h"
 #include "parchment.h"
 
-#define PARCHMENT_DIM 4096
+#define PARCHMENT_DIM 2048
 #define PARCHMENT_MASK (PARCHMENT_DIM-1)
 #define PARCHMENT_FILE "share/extern/canvas.jpg"
 
@@ -96,8 +96,7 @@ void parchment_draw(canvas* dst, const parchment* this) {
       if (xo + cnt > dst->w)
         cnt = dst->w - xo;
 
-      off = ((xo + this->tx) & PARCHMENT_MASK) +
-        sizeof(canvas_pixel) * y * PARCHMENT_DIM;
+      off = ((xo + this->tx) & PARCHMENT_MASK) + y * PARCHMENT_DIM;
 
       memcpy(dst->px + canvas_offset(dst, xo, yo),
              texture + off,
