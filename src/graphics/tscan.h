@@ -82,4 +82,38 @@ typedef void (*triangle_shader)(void* userdata,
     }                                                                   \
   }
 
+/**
+ * Like SHADE_UAXIS_TRIANGLE, but the tip must be at or below the base.
+ */
+#define SHADE_LAXIS_TRIANGLE(name, shader, nz)                          \
+  static void name(canvas*restrict dst,                                 \
+                   coord_offset y0, coord_offset y1,                    \
+                   coord_offset xt,                                     \
+                   coord_offset xb0, coord_offset xb1,                  \
+                   const coord_offset*restrict zt,                      \
+                   const coord_offset*restrict zb0,                     \
+                   const coord_offset*restrict zb1,                     \
+                   void* userdata) {                                    \
+    coord_offset x, xl, xh, dx, xo, y, dy, yo, z[nz], zl[nz], zh[nz];   \
+    unsigned i;                                                         \
+                                                                        \
+    dy = y0 - y1;                                                       \
+    for (y = (y1 > 0? y1 : 0); y < y0 && y < dst->h; ++y) {             \
+      yo = y - y1;                                                      \
+      xl = ((dy-yo)*xb0 + yo*xt)/dy;                                    \
+      xh = ((dy-yo)*xb1 + yo*xt)/dy;                                    \
+      for (i = 0; i < nz; ++i) {                                        \
+        zl[i] = ((dy-yo)*zb0[i] + yo*zt[i])/dy;                         \
+        zh[i] = ((dy-yo)*zb1[i] + yo*zt[i])/dy;                         \
+      }                                                                 \
+      dx = xh-xl;                                                       \
+      for (x = (xl > 0? xl : 0); x < xh && x < dst->w; ++x) {           \
+        xo = x-xl;                                                      \
+        for (i = 0; i < nz; ++i)                                        \
+          z[i] = ((dx-xo)*zl[i] + xo*zh[i])/dx;                         \
+        shader(userdata, x, y, z);                                      \
+      }                                                                 \
+    }                                                                   \
+  }
+
 #endif /* GRAPHICS_TSCAN_H_ */
