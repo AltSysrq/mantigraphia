@@ -132,6 +132,7 @@ void brush_draw_line(brush_accum*restrict accum,
   unsigned bix;
   signed colour;
   unsigned char thickness_to_bristle[accum->basic_size];
+  unsigned short noise;
 
   thickf = zo_scale(accum->basic_size, from_weight);
   thickt = zo_scale(accum->basic_size, to_weight);
@@ -161,12 +162,14 @@ void brush_draw_line(brush_accum*restrict accum,
     by = (i*to[1] + (dist-i)*from[1]) / dist;
     z  = (i*to[2] + (dist-i)*from[2]) / dist;
     thick = (i*thickt + (dist-i)*thickf) / dist;
+    noise = accrand(accum);
 
     for (t = 0; t < thick; ++t) {
       bix = thickness_to_bristle[t + (accum->basic_size - thick)/2];
 
       colour = (unsigned /* zero extend */) accum->bristles[bix];
-      colour += accrand(accum) & spec->noise;
+      colour += noise & spec->noise;
+      noise = (noise >> 1) | (noise << 15);
       if (colour < spec->num_colours) {
         x = bx - ((t-thick/2) * lyd16 >> 16);
         y = by + ((t-thick/2) * lxd16 >> 16);
