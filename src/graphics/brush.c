@@ -126,6 +126,7 @@ void brush_draw_line(brush_accum*restrict accum,
   lx = from[0] - to[0];
   ly = from[1] - to[1];
   dist = isqrt(lx*lx + ly*ly);
+  if (!dist) dist = 1;
   lxd16 = 65536 * lx / dist;
   lyd16 = 65536 * ly / dist;
 
