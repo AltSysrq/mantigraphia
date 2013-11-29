@@ -115,11 +115,23 @@ static const canvas_pixel brush_colours[8] = {
   argb(0,40,60,80),
 };
 
+static const canvas_pixel brush_red_colours[8] = {
+  argb(0, 32, 0, 0),
+  argb(0, 48, 0, 0),
+  argb(0, 64, 8, 0),
+  argb(0, 80, 16, 8),
+  argb(0, 96, 32, 16),
+  argb(0, 112, 48, 24),
+  argb(0, 128, 64, 32),
+  argb(0, 144, 80, 40),
+};
+
 static void draw_stuff(canvas* dst) {
   pencil_spec pencil;
   brush_spec brush;
   brush_accum baccum;
   vo3 a, b;
+  unsigned i;
 
   pencil_init(&pencil);
   pencil.colour = argb(0, 0, 0, 32);
@@ -142,6 +154,7 @@ static void draw_stuff(canvas* dst) {
   brush_init(&brush);
   brush.colours = brush_colours;
   brush.num_colours = 8;
+  brush.size = ZO_SCALING_FACTOR_MAX / 64;
   brush_prep(&baccum, &brush, dst, 5);
 
   a[0] = 0;
@@ -151,5 +164,21 @@ static void draw_stuff(canvas* dst) {
   brush_draw_line(&baccum, &brush,
                   a, ZO_SCALING_FACTOR_MAX,
                   b, ZO_SCALING_FACTOR_MAX);
+  brush_flush(&baccum, &brush);
+
+  brush.inner_weakening_chance = 3000;
+  brush.inner_strengthening_chance = 3000;
+  brush.colours = brush_red_colours;
+  for (i = 0; i < 64; ++i) {
+    cossinms(a+0, a+1, i * (65536/64), 128);
+    a[0] += 256;
+    a[1] += 768;
+    cossinms(b+0, b+1, (i+1) * (65536/64), 128);
+    b[0] += 256;
+    b[1] += 768;
+    brush_draw_line(&baccum, &brush,
+                    a, ZO_SCALING_FACTOR_MAX,
+                    b, ZO_SCALING_FACTOR_MAX);
+  }
   brush_flush(&baccum, &brush);
 }
