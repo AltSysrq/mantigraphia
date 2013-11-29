@@ -145,8 +145,9 @@ static const canvas_pixel brush_green_colours[8] = {
 };
 
 static void gradient(void* dst,
-                     coord_offset x, coord_offset y, coord_offset z) {
-  canvas_write(dst, x, y, argb(0, x&0xFF, y&0xFF, z*16), z);
+                     coord_offset x, coord_offset y,
+                     const coord_offset* z) {
+  canvas_write(dst, x, y, argb(0, x&0xFF, y&0xFF, *z*16), *z);
 }
 
 static void draw_stuff(canvas* dst) {
@@ -155,6 +156,7 @@ static void draw_stuff(canvas* dst) {
   brush_accum baccum;
   vo3 a, b;
   unsigned i;
+  coord_offset zs[3] = { 0, 4, 16 };
 
   pencil_init(&pencil);
   pencil.colour = argb(0, 0, 0, 32);
@@ -222,6 +224,6 @@ static void draw_stuff(canvas* dst) {
   shade_uaxis_triangle(dst,
                        0, 1024,
                        0, 512, 1280,
-                       0, 2, 4,
+                       1, zs+0, zs+1, zs+2,
                        gradient, dst);
 }
