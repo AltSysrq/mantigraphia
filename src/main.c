@@ -34,6 +34,7 @@
 #include <SDL_image.h>
 
 #include <stdlib.h>
+#include <time.h>
 
 #include "bsd.h"
 
@@ -45,13 +46,14 @@
 static void draw_stuff(canvas*);
 
 int main(void) {
-  unsigned ww, wh;
+  unsigned ww, wh, i;
   SDL_Window* screen;
   SDL_Renderer* renderer;
   SDL_Texture* texture;
   const int image_types = IMG_INIT_JPG | IMG_INIT_PNG;
   parchment* parch;
   canvas* canv;
+  clock_t start, end;
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
     errx(EX_SOFTWARE, "Unable to initialise SDL: %s", SDL_GetError());
@@ -95,10 +97,14 @@ int main(void) {
 
   canvas_clear(canv);
   parchment_draw(canv, parch);
-  draw_stuff(canv);
+  start = clock();
+  for (i = 0; i < 100; ++i)
+    draw_stuff(canv);
+  end = clock();
   canvas_blit(texture, canv);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
+  printf("Rendering took %f sec\n", (end-start)/(double)CLOCKS_PER_SEC/100.0);
   SDL_Delay(15000);
 
   return 0;
