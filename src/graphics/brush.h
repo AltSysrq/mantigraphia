@@ -36,6 +36,21 @@
 #define MAX_BRUSH_BRISTLES 32
 
 /**
+ * Colour index type for brush bristles (see below).
+ *
+ * This is a short because that seems to be fastest. On the test image on an
+ * AMD64 system:
+ * - char  => 0.009164 sec/frame
+ * - short => 0.008891 sec/frame
+ * - int   => 0.009016 sec/frame
+ * - llong => 0.008867 sec/frame
+ *
+ * Error seems to be about +/- 0.000050, and shorts will be far faster than
+ * long longs on 32-bit systems.
+ */
+typedef unsigned short brush_bristle;
+
+/**
  * The brush drawing method simulates a brush applying paint or sumi (ink) to
  * the canvas. Weight on drawing affects the thickness of the stroke, but not
  * the visual fineness of the brush itself. "Paint" on the brush depletes as it
@@ -104,7 +119,7 @@ y   */
    * colours. The middle bristle is always at (MAX_BRUSH_BRISTLES/2),
    * regardless of the actual number of bristles.
    */
-  unsigned short init_bristles[MAX_BRUSH_BRISTLES];
+  brush_bristle init_bristles[MAX_BRUSH_BRISTLES];
 } brush_spec;
 
 /**
@@ -113,7 +128,7 @@ y   */
  */
 typedef struct {
   /* The current index of each bristle */
-  unsigned char bristles[MAX_BRUSH_BRISTLES];
+  brush_bristle bristles[MAX_BRUSH_BRISTLES];
   /* The target canvas */
   canvas* dst;
   /* The current state of the LCG */
