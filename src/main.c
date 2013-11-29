@@ -40,6 +40,7 @@
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
 #include "graphics/pencil.h"
+#include "graphics/brush.h"
 
 static void draw_stuff(canvas*);
 
@@ -103,8 +104,21 @@ int main(void) {
   return 0;
 }
 
+static const canvas_pixel brush_colours[8] = {
+  argb(0,0,0,0),
+  argb(0,0,0,16),
+  argb(0,0,8,32),
+  argb(0,8,16,32),
+  argb(0,10,20,40),
+  argb(0,20,40,60),
+  argb(0,30,50,70),
+  argb(0,40,60,80),
+};
+
 static void draw_stuff(canvas* dst) {
   pencil_spec pencil;
+  brush_spec brush;
+  brush_accum baccum;
   vo3 a, b;
 
   pencil_init(&pencil);
@@ -124,4 +138,18 @@ static void draw_stuff(canvas* dst) {
   pencil_draw_line(dst, &pencil,
                    a, ZO_SCALING_FACTOR_MAX,
                    b, ZO_SCALING_FACTOR_MAX / 2);
+
+  brush_init(&brush);
+  brush.colours = brush_colours;
+  brush.num_colours = 8;
+  brush_prep(&baccum, &brush, dst, 5);
+
+  a[0] = 0;
+  a[1] = 0;
+  b[0] = 1280;
+  b[1] = 1024;
+  brush_draw_line(&baccum, &brush,
+                  a, ZO_SCALING_FACTOR_MAX,
+                  b, ZO_SCALING_FACTOR_MAX/2);
+  brush_flush(&baccum, &brush);
 }
