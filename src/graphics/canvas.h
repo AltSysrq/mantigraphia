@@ -106,12 +106,23 @@ static inline unsigned canvas_offset(const canvas* c, unsigned x, unsigned y) {
   return y * c->w + x;
 }
 
+#ifdef PROFILE
+static void canvas_write(canvas*,unsigned,unsigned,canvas_pixel,canvas_depth)
+__attribute__((noinline));
+static void canvas_write_c(canvas*,unsigned,unsigned,canvas_pixel,canvas_depth)
+__attribute__((noinline));
+#endif
+
 /**
  * Writes the given pixel and depth information into the canvas at the given
  * coordinate, if the new depth is nearer than the old depth.
  */
-static inline void canvas_write(canvas* dst, unsigned x, unsigned y,
-                                canvas_pixel px, canvas_depth depth) {
+static
+#ifndef PROFILE
+inline
+#endif
+void canvas_write(canvas* dst, unsigned x, unsigned y,
+                  canvas_pixel px, canvas_depth depth) {
   unsigned off = canvas_offset(dst, x, y);
   /* This method involves one poorly-predictable branch and three possible memory
    * accesses. It is possible to do this without a branch, but experimental
@@ -129,8 +140,12 @@ static inline void canvas_write(canvas* dst, unsigned x, unsigned y,
  * Like canvas_write(), but is safe to call with out-of-bounds values, even
  * negative ones (other than depth).
  */
-static inline void canvas_write_c(canvas* dst, unsigned x, unsigned y,
-                                  canvas_pixel px, canvas_depth depth) {
+static
+#ifndef PROFILE
+inline
+#endif
+void canvas_write_c(canvas* dst, unsigned x, unsigned y,
+                    canvas_pixel px, canvas_depth depth) {
   if (x < dst->w && y < dst->h)
     canvas_write(dst, x, y, px, depth);
 }
