@@ -101,7 +101,7 @@ typedef struct {
    * The "noise mask" for the brush. For every pixel, a random value is chosen
    * and ANDed with this value, which is treated as an unsigned char and added
    * to the colour index that would be drawn.
-y   */
+   */
   unsigned char noise;
   /**
    * The basic size of the brush, relative to the width of the screen. This
