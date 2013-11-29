@@ -43,14 +43,14 @@ void brush_init(brush_spec* spec) {
   spec->meth.draw_line = (drawing_method_draw_line_t)brush_draw_line;
   spec->meth.flush = (drawing_method_flush_t)brush_flush;
 
-  spec->bristles = 16;
-  spec->inner_strengthening_chance = 2560;
-  spec->outer_strengthening_chance = 1280;
-  spec->inner_weakening_chance = 3680;
+  spec->bristles = 32;
+  spec->inner_strengthening_chance = 3680;
+  spec->outer_strengthening_chance = 0;
+  spec->inner_weakening_chance = 0;
   spec->outer_weakening_chance = 4000;
   spec->noise = 0x1;
   spec->size = ZO_SCALING_FACTOR_MAX / 32;
-  spec->step = ZO_SCALING_FACTOR_MAX / 128;
+  spec->step = ZO_SCALING_FACTOR_MAX / 1024;
   memset(spec->init_bristles, 0, sizeof(spec->init_bristles));
 }
 

@@ -99,7 +99,7 @@ int main(void) {
   canvas_blit(texture, canv);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
-  SDL_Delay(5000);
+  SDL_Delay(15000);
 
   return 0;
 }
@@ -150,6 +150,6 @@ static void draw_stuff(canvas* dst) {
   b[1] = 1024;
   brush_draw_line(&baccum, &brush,
                   a, ZO_SCALING_FACTOR_MAX,
-                  b, ZO_SCALING_FACTOR_MAX/2);
+                  b, ZO_SCALING_FACTOR_MAX);
   brush_flush(&baccum, &brush);
 }
