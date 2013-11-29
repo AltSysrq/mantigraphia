@@ -104,7 +104,7 @@ void brush_draw_point(brush_accum* accum, const brush_spec* spec,
 void brush_draw_line(brush_accum* accum, const brush_spec* spec,
                      const vo3 from, zo_scaling_factor from_weight,
                      const vo3 to, zo_scaling_factor to_weight) {
-  coord_offset lx, ly, px, py, dist, i, t, x, y, z, thick;
+  coord_offset lx, ly, px, py, dist, i, t, x, y, z, bx, by, thick;
   unsigned this_step = 0, prev_step = 0, thickf, thickt;
   unsigned bix;
   signed colour;
@@ -133,7 +133,9 @@ void brush_draw_line(brush_accum* accum, const brush_spec* spec,
       advance_step(accum, spec);
     }
 
-    z = (i*to[2] + (dist-i)*from[2]) / dist;
+    bx = (i*to[0] + (dist-i)*from[0]) / dist;
+    by = (i*to[1] + (dist-i)*from[1]) / dist;
+    z  = (i*to[2] + (dist-i)*from[2]) / dist;
     thick = (i*thickt + (dist-i)*thickf) / dist;
 
     for (t = 0; t < thick; ++t) {
@@ -143,12 +145,9 @@ void brush_draw_line(brush_accum* accum, const brush_spec* spec,
 
       colour = (unsigned /* zero extend */) accum->bristles[bix];
       colour += accrand(accum) & spec->noise;
-      if (colour < 0) colour = 0;
       if (colour < spec->num_colours) {
-        x = (i*to[0] + (dist-i)*from[0])/dist -
-            (t-thick/2)*ly/dist;
-        y = (i*to[1] + (dist-i)*from[1])/dist +
-            (t-thick/2)*lx/dist;
+        x = bx - (t-thick/2)*ly/dist;
+        y = by + (t-thick/2)*lx/dist;
 
         canvas_write_c(accum->dst, x, y, spec->colours[colour], z);
         canvas_write_c(accum->dst, x+px, y+py, spec->colours[colour], z);
