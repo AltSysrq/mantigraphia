@@ -82,6 +82,13 @@ void perspective_init(perspective*,
 
 
 /**
+ * Translates the given vector according to the perspective, without projecting
+ * it into screen space. Thus, dst is set to the coordinates *relative* to the
+ * camera. This always succeeds.
+ */
+void perspective_xlate(vo3 dst, const vc3 src, const perspective*);
+
+/**
  * Projects src (world coordinates) into dst (orthogonal screen coordinates)
  * according to the given perspective.
  *
