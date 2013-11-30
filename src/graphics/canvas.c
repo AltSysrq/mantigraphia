@@ -59,7 +59,6 @@ void canvas_delete(canvas* this) {
 }
 
 void canvas_clear(canvas* this) {
-  memset(this->px, 0, sizeof(canvas_pixel) * this->w * this->h);
   memset(this->depth, ~0, sizeof(canvas_depth) * this->w * this->h);
 }
 

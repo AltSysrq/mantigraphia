@@ -84,8 +84,9 @@ canvas* canvas_new(unsigned width, unsigned height);
 void canvas_delete(canvas*);
 
 /**
- * Clears the given canvas. This resets all pixels to black and depth
- * information to ~0.
+ * Clears the given canvas. This resets all depth information to ~0. It leaves
+ * the pixels unchanged, as typically another background will replace them
+ * anyway.
  */
 void canvas_clear(canvas*);
 /**
