@@ -43,6 +43,16 @@
 #include "graphics/pencil.h"
 #include "graphics/brush.h"
 #include "graphics/tscan.h"
+#include "graphics/linear-paint-tile.h"
+#include "graphics/tiled-texture.h"
+
+static canvas_pixel water_tex[64*64];
+static const canvas_pixel water_pallet[4] = {
+  argb(255,0,0,0),
+  argb(255,0,0,32),
+  argb(255,0,0,48),
+  argb(255,8,16,56),
+};
 
 static void draw_stuff(canvas*);
 
@@ -55,6 +65,8 @@ int main(void) {
   parchment* parch;
   canvas* canv;
   clock_t start, end;
+
+  linear_paint_tile_render(water_tex, 64, 64, 8, 1, water_pallet, 4);
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
     errx(EX_SOFTWARE, "Unable to initialise SDL: %s", SDL_GetError());
@@ -144,17 +156,10 @@ static const canvas_pixel brush_green_colours[8] = {
   argb(0, 80, 144, 40),
 };
 
-static void gradient(void* dst,
-                     coord_offset x, coord_offset y,
-                     const coord_offset* z) {
-  canvas_write(dst, x, y, argb(0, x&0xFF, y&0xFF, *z*16), *z);
-}
-
-SHADE_TRIANGLE(shade_gradient, gradient, 1)
 static const coord_offset
-  tb[2] = { 42, 64 },
-  tc[2] = { 128, 256 },
-  ta[2] = { 1024, 1024 };
+  tb[3] = { 42, 64, 0 },
+  tc[3] = { 128, 256, 4 },
+  ta[3] = { 1024, 1024, 8 };
 
 static void draw_stuff(canvas* dst) {
   pencil_spec pencil;
@@ -162,7 +167,7 @@ static void draw_stuff(canvas* dst) {
   brush_accum baccum;
   vo3 a, b;
   unsigned i;
-  coord_offset zs[3] = { 0, 4, 16 };
+  tiled_texture water;
 
   pencil_init(&pencil);
   pencil.colour = argb(0, 0, 0, 32);
@@ -227,5 +232,12 @@ static void draw_stuff(canvas* dst) {
   }
   brush_flush(&baccum, &brush);
 
-  shade_gradient(dst, ta, zs+0, tb, zs+1, tc, zs+2, dst);
+  water.texture = water_tex;
+  water.w_mask = water.h_mask = 63;
+  water.pitch = 64;
+  water.x_off = water.y_off = 0;
+  water.rot_cos = zo_cos(0x2300);
+  water.rot_sin = zo_cos(0x2300);
+  water.nominal_resolution = 1280;
+  tiled_texture_fill(dst, &water, ta, tb, tc);
 }
