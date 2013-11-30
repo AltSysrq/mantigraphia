@@ -50,10 +50,10 @@ typedef struct {
   /**
    * The cosine and sine of the rotation of the camera about the Z axis.
    */
-  zo_scaling_factor zrot_cos, zrot_sin;
+  zo_scaling_factor yrot_cos, yrot_sin;
   /**
    * The cosine and sine of the rotation of the camera about its *relative* X
-   * axis (ie, after Z rotation is taken into account).
+   * axis (ie, after Y rotation is taken into account).
    */
   zo_scaling_factor rxrot_cos, rxrot_sin;
   /**

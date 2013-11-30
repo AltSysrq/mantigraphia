@@ -76,7 +76,7 @@ static inline coord_offset torus_dist(coord_offset base_off, coord wrap_point) {
    * The wrapped value will always be of opposite sign as the unwrapped offset,
    * since they naturally must point in opposite directions around the torus.
    */
-  if (abs(base_off) <= wrap_point / 2)
+  if (((unsigned)abs(base_off)) <= wrap_point / 2)
     return base_off;
   else if (base_off < 0)
     /* Want positive. wrap_point > abs(base_off), so wrap_point + negative
@@ -174,7 +174,7 @@ static inline zo_scaling_factor zo_cos(angle ang) {
 }
 
 static inline zo_scaling_factor zo_sin(angle ang) {
-  return zo_cos(ang + DEG_90);
+  return zo_cos(ang - DEG_90);
 }
 
 static inline signed zo_cosms(angle ang, signed value) {

@@ -45,6 +45,7 @@
 #include "graphics/tscan.h"
 #include "graphics/linear-paint-tile.h"
 #include "graphics/tiled-texture.h"
+#include "graphics/perspective.h"
 
 static canvas_pixel water_tex[64*64];
 static const canvas_pixel water_pallet[4] = {
@@ -168,8 +169,10 @@ static void draw_stuff(canvas* dst) {
   brush_spec brush;
   brush_accum baccum;
   vo3 a, b;
+  vc3 ac, bc;
   unsigned i;
   tiled_texture water;
+  perspective proj;
 
   pencil_init(&pencil);
   pencil.colour = argb(0, 0, 0, 32);
@@ -247,4 +250,29 @@ static void draw_stuff(canvas* dst) {
   water.rot_sin = zo_cos(0x2300);
   water.nominal_resolution = 1280;
   tiled_texture_fill(dst, &water, ta, tb, tc);
+
+  perspective_init(&proj, dst, DEG_90);
+  proj.camera[0] = 100 * METRE;
+  proj.camera[1] = 0;
+  proj.camera[2] = 0;
+  proj.torus_w = proj.torus_h = (1 << 30);
+  proj.yrot_cos = -ZO_SCALING_FACTOR_MAX;
+  proj.yrot_sin = 0;
+  proj.rxrot_cos = ZO_SCALING_FACTOR_MAX;
+  proj.rxrot_sin = 0;
+  proj.near_clipping_plane = 1;
+  for (i = 0; i < 32*10; ++i) {
+    ac[0] = 100 * METRE + zo_cosms(i * 65536/32, 10 * METRE);
+    ac[1] = i * METRE / 15;
+    ac[2] = 100*METRE + zo_sinms(i * 65536/32, 10 * METRE);
+    bc[0] = 100 * METRE + zo_cosms((i+1) * 65536/32, 10 * METRE);
+    bc[1] = (i+1) * METRE / 15;
+    bc[2] = 100*METRE + zo_sinms((i+1) * 65536/32, 10 * METRE);
+
+    perspective_proj(a, ac, &proj);
+    perspective_proj(b, bc, &proj);
+    brush_draw_line(&baccum, &brush,
+                    a, ZO_SCALING_FACTOR_MAX, b, ZO_SCALING_FACTOR_MAX);
+  }
+  brush_flush(&baccum, &brush);
 }

@@ -42,31 +42,34 @@ void perspective_init(perspective* this,
   this->sxo = screen->w / 2;
   this->syo = screen->h / 2;
 
-  fcos = zo_cos(fov);
-  fsin = zo_sin(fov);
+  fcos = zo_cos(fov/2);
+  fsin = zo_sin(fov/2);
   /* Asume square pixels. Need to multiply numerator by ZO_SCALING_FACTOR_MAX
-   * because the one implicit in fcos is cancelled out by fsin.
+   * because the one implicit in fcos is cancelled out by fsin, and we need to
+   * account for the screen division as well.
    */
-  this->zscale = fcos * ZO_SCALING_FACTOR_MAX / fsin / screen->w;
+  this->zscale = fcos
+               * ZO_SCALING_FACTOR_MAX / fsin
+               / screen->w;
 }
 
 int perspective_proj(vo3 dst,
                      const vc3 src,
                      const perspective* this) {
-  vo3 tx, rtz, rtx;
+  vo3 tx, rty, rtx;
 
   /* Translate */
   vc3dist(tx, src, this->camera, this->torus_w, this->torus_h);
-  /* Rotate Z */
-  rtz[0] = zo_scale(tx[0], this->zrot_cos) - zo_scale(tx[2], this->zrot_sin);
-  rtz[1] = tx[1];
-  rtz[2] = zo_scale(tx[2], this->zrot_cos) + zo_scale(tx[0], this->zrot_sin);
+  /* Rotate Y */
+  rty[0] = zo_scale(tx[0], this->yrot_cos) - zo_scale(tx[2], this->yrot_sin);
+  rty[1] = tx[1];
+  rty[2] = zo_scale(tx[2], this->yrot_cos) + zo_scale(tx[0], this->yrot_sin);
   /* Rotate X */
-  rtx[0] = rtz[0];
-  rtx[1] = zo_scale(rtz[1], this->zrot_cos) - zo_scale(rtz[2], this->zrot_sin);
-  rtx[2] = zo_scale(rtz[2], this->zrot_cos) + zo_scale(rtz[1], this->zrot_sin);
+  rtx[0] = rty[0];
+  rtx[1] = zo_scale(rty[1], this->rxrot_cos) - zo_scale(rty[2], this->rxrot_sin);
+  rtx[2] = zo_scale(rty[2], this->rxrot_cos) + zo_scale(rty[1], this->rxrot_sin);
   /* Scale Z for FOV and screen, invert Z axis to match screen coords */
-  rtx[2] = -zo_scale(rtz[2], this->zscale);
+  rtx[2] = -zo_scale(rtx[2], this->zscale);
   /* Discard if in front of the near clipping plane */
   if (rtx[2] <= this->near_clipping_plane) return 0;
 
