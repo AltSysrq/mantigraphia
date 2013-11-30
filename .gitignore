@@ -22,3 +22,4 @@ trigtab.c
 share/extern
 *.gmon
 profile
+*.core
