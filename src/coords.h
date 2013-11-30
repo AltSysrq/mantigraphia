@@ -89,10 +89,10 @@ static inline coord_offset torus_dist(coord_offset base_off, coord wrap_point) {
 }
 
 static inline void vc3dist(vo3 dst, const vc3 a, const vc3 b,
-                           coord wrap_point) {
-  dst[0] = torus_dist(a[0] - b[0], wrap_point);
+                           coord x_wrap_point, coord z_wrap_point) {
+  dst[0] = torus_dist(a[0] - b[0], x_wrap_point);
   dst[1] = a[1] - b[1];
-  dst[2] = torus_dist(a[2] - b[2], wrap_point);
+  dst[2] = torus_dist(a[2] - b[2], z_wrap_point);
 }
 
 static inline unsigned clampu(unsigned min, unsigned x, unsigned max) {
