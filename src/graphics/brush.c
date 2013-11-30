@@ -38,6 +38,73 @@
 #include "abstract.h"
 #include "brush.h"
 
+#define SPLOTCH_DIM 64
+#define NUM_SPLOTCHES 32
+
+unsigned char splotches[NUM_SPLOTCHES][SPLOTCH_DIM*SPLOTCH_DIM];
+
+static void generate_splotch(unsigned char splotch[SPLOTCH_DIM*SPLOTCH_DIM]) {
+  unsigned char tmp[SPLOTCH_DIM*SPLOTCH_DIM];
+  unsigned bristle, x, y, rad, which;
+  signed px, py;
+  angle ang;
+  int done = 0;
+
+  /* Initialise to empty */
+  memset(splotch, ~0, sizeof(tmp));
+
+  /* Seed each bristle randomly, with a radius proportional to the bristle's
+   * distance from the centre.
+   */
+  for (bristle = 0; bristle < MAX_BRUSH_BRISTLES; ++bristle) {
+    rad = 6 + abs(bristle - MAX_BRUSH_BRISTLES/2);
+    do {
+      /* Call rand twice to account for 15-bit PRNGs */
+      ang = rand() ^ (rand() << 15);
+      cossinms(&px, &py, ang, rad);
+      px += SPLOTCH_DIM / 2;
+      py += SPLOTCH_DIM / 2;
+    } while (255 != splotch[px + py*SPLOTCH_DIM]);
+
+    splotch[px + py*SPLOTCH_DIM] = bristle;
+  }
+
+  /* Each iteration, every pixel with no bristle has a 50% chance of taking a
+   * value from one of its neighbours. If it does so, it chooses from one of
+   * its neighbours at random. The iterations cease once any of the edge pixels
+   * obtain a bristle.
+   */
+  do {
+    memcpy(tmp, splotch, sizeof(tmp));
+
+    for (y = 0; y < SPLOTCH_DIM; ++y) {
+      for (x = 0; x < SPLOTCH_DIM; ++x) {
+        if (255 == splotch[x + y*SPLOTCH_DIM] && !(rand()&1)) {
+          which = rand() % 8;
+          if (which >= 4) ++which; /* Skip self */
+          px = x + which%3 - 1;
+          py = y + which/3 - 1;
+
+          if (px >= 0 && px < SPLOTCH_DIM &&
+              py >= 0 && py < SPLOTCH_DIM) {
+            splotch[x + y*SPLOTCH_DIM] = tmp[px + py*SPLOTCH_DIM];
+            if ((0 == x || 0 == y || SPLOTCH_DIM == x+1 || SPLOTCH_DIM == y+1) &&
+                255 != splotch[x + y*SPLOTCH_DIM])
+              done = 1;
+          }
+        }
+      }
+    }
+  } while (!done);
+}
+
+void brush_load(void) {
+  unsigned splotch;
+
+  for (splotch = 0; splotch < NUM_SPLOTCHES; ++splotch)
+    generate_splotch(splotches[splotch]);
+}
+
 void brush_init(brush_spec* spec) {
   spec->meth.draw_point = (drawing_method_draw_point_t)brush_draw_point;
   spec->meth.draw_line = (drawing_method_draw_line_t)brush_draw_line;
@@ -116,10 +183,56 @@ static void advance_step(brush_accum* accum, const brush_spec* spec) {
   }
 }
 
+static void draw_splotch(brush_accum*restrict accum,
+                         const brush_spec*restrict spec,
+                         const vo3 where,
+                         zo_scaling_factor rot_cos,
+                         zo_scaling_factor rot_sin,
+                         signed xdiam,
+                         signed ydiam,
+                         unsigned max_bristle) {
+  const unsigned char* splotch = splotches[accrand(accum) % NUM_SPLOTCHES];
+  unsigned bristle, colour;
+  signed ixdiam16 = SPLOTCH_DIM * 65536 / xdiam;
+  signed iydiam16 = SPLOTCH_DIM * 65536 / ydiam;
+  coord_offset x, y, cx, cy, tx, ty, sx, sy;
+
+  for (y = 0; y < ydiam; ++y) {
+    sy = y * iydiam16 >> 16;
+    for (x = 0; x < xdiam; ++x) {
+      sx = x * ixdiam16 >> 16;
+
+      bristle = splotch[sx + sy*SPLOTCH_DIM];
+      if (bristle >= max_bristle) continue; /* no bristle */
+
+      colour = accum->bristles[bristle];
+      if (colour > spec->num_colours) continue; /* dead bristle */
+
+      colour += accrand(accum) & spec->noise;
+      if (colour > spec->num_colours) continue; /* dead bristle (noise) */
+
+      cx = (x - xdiam/2);
+      cy = (y - ydiam/2);
+
+      tx = zo_scale(cx, rot_cos) - zo_scale(cy, rot_sin);
+      ty = zo_scale(cy, rot_cos) + zo_scale(cx, rot_sin);
+      tx += where[0];
+      ty += where[1];
+
+      canvas_write_c(accum->dst, tx, ty,
+                     spec->colours[colour], where[2]);
+    }
+  }
+}
+
 void brush_draw_point(brush_accum*restrict accum,
                       const brush_spec*restrict spec,
                       const vo3 where, zo_scaling_factor weight) {
-  /* TODO */
+  draw_splotch(accum, spec, where,
+               ZO_SCALING_FACTOR_MAX, 0,
+               accum->basic_size, accum->basic_size,
+               zo_scale(spec->bristles, weight));
+  advance_step(accum, spec);
 }
 
 void brush_draw_line(brush_accum*restrict accum,

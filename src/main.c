@@ -97,6 +97,8 @@ int main(void) {
   SDL_GetWindowSize(screen, (int*)&ww, (int*)&wh);
 
   parchment_init();
+  brush_load();
+
   canv = canvas_new(ww, wh);
   parch = parchment_new();
 
@@ -216,7 +218,12 @@ static void draw_stuff(canvas* dst) {
                     a, ZO_SCALING_FACTOR_MAX,
                     b, ZO_SCALING_FACTOR_MAX);
   }
+  a[0] = 256 - 48;
+  a[1] = 768;
+  brush_draw_point(&baccum, &brush, a, ZO_SCALING_FACTOR_MAX);
   brush_flush(&baccum, &brush);
+  a[0] = 256 + 48;
+  brush_draw_point(&baccum, &brush, a, ZO_SCALING_FACTOR_MAX);
 
   brush.colours = brush_green_colours;
   brush.inner_strengthening_chance = 3860;

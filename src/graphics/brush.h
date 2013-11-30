@@ -140,10 +140,19 @@ typedef struct {
 } brush_accum;
 
 /**
+ * Generates resources needed for drawing brushes. This must be called exactly
+ * once, and must be called before any other brush functions are called.
+ *
+ * This always succeeds.
+ */
+void brush_load(void);
+
+/**
  * Configures the initial values for the brush drawing method in the given
  * spec. Note that colours and num_colours is not modified.
  */
 void brush_init(brush_spec*);
+
 /**
  * Preps the given accumulator to be used by the given brush.
  *
