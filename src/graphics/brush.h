@@ -123,6 +123,16 @@ typedef struct {
 } brush_spec;
 
 /**
+ * For internal use only.
+ */
+typedef struct {
+  vo3 where;
+  coord_offset dx, dy;
+  coord_offset thickness;
+  unsigned num_bristles;
+} brush_accum_point;
+
+/**
  * Accumulator for the brush drawing method. Clients should treat it as
  * opaque. It is declared here so it can be used as an immediate.
  */
@@ -137,6 +147,11 @@ typedef struct {
   unsigned basic_size;
   /* The steps (less than one) per pixel. */
   zo_scaling_factor step_size;
+
+  /* Whether the trailing points is relevant */
+  int has_endpoint;
+  /* The last end point drawn on any line */
+  brush_accum_point prev_endpoint;
 } brush_accum;
 
 /**

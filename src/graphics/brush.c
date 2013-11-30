@@ -131,6 +131,7 @@ void brush_prep(brush_accum* accum, const brush_spec* spec,
   accum->basic_size = zo_scale(dst->w, spec->size);
   if (!px_per_step) px_per_step = 1;
   accum->step_size = ZO_SCALING_FACTOR_MAX / px_per_step;
+  accum->has_endpoint = 0;
 }
 
 #ifdef PROFILE
@@ -235,6 +236,19 @@ void brush_draw_point(brush_accum*restrict accum,
   advance_step(accum, spec);
 }
 
+static void draw_line_endpoint(brush_accum*restrict accum,
+                               const brush_spec*restrict spec,
+                               const brush_accum_point* point) {
+  signed dist = isqrt(point->dx * point->dx + point->dy * point->dy);
+  zo_scaling_factor cos = ZO_SCALING_FACTOR_MAX * point->dx / dist;
+  zo_scaling_factor sin = ZO_SCALING_FACTOR_MAX * point->dy / dist;
+
+  draw_splotch(accum, spec, point->where,
+               cos, sin,
+               point->thickness / 3, point->thickness,
+               point->num_bristles);
+}
+
 void brush_draw_line(brush_accum*restrict accum,
                      const brush_spec*restrict spec,
                      const vo3 from, zo_scaling_factor from_weight,
@@ -246,6 +260,7 @@ void brush_draw_line(brush_accum*restrict accum,
   signed colour;
   unsigned char thickness_to_bristle[accum->basic_size];
   unsigned short noise;
+  brush_accum_point startpoint;
 
   thickf = zo_scale(accum->basic_size, from_weight);
   thickt = zo_scale(accum->basic_size, to_weight);
@@ -260,11 +275,36 @@ void brush_draw_line(brush_accum*restrict accum,
   lx = from[0] - to[0];
   ly = from[1] - to[1];
   dist = isqrt(lx*lx + ly*ly);
-  if (!dist) dist = 1;
+  if (!dist) return; /* nothing to draw */
   lxd16 = 65536 * lx / dist;
   lyd16 = 65536 * ly / dist;
 
-  if (dist) for (i = 0; i <= dist; ++i) {
+  /* If there is no previous endpoint, or it did not start here, draw it now */
+  if (accum->has_endpoint &&
+      memcmp(accum->prev_endpoint.where, from, sizeof(vo3))) {
+    draw_line_endpoint(accum, spec, &accum->prev_endpoint);
+    accum->has_endpoint = 0;
+  }
+
+  /* If we are not connecting another endpoint, start with a splotch */
+  if (!accum->has_endpoint) {
+    memcpy(startpoint.where, from, sizeof(vo3));
+    startpoint.dx = to[0] - from[0];
+    startpoint.dy = to[1] - from[1];
+    startpoint.thickness = thickf;
+    startpoint.num_bristles = zo_scale(spec->bristles, from_weight);
+    draw_line_endpoint(accum, spec, &startpoint);
+  }
+
+  /* Record our endpoint */
+  memcpy(accum->prev_endpoint.where, to, sizeof(vo3));
+  accum->prev_endpoint.dx = from[0] - to[0];
+  accum->prev_endpoint.dy = from[1] - to[1];
+  accum->prev_endpoint.thickness = thickt;
+  accum->prev_endpoint.num_bristles = zo_scale(spec->bristles, to_weight);
+  accum->has_endpoint = 1;
+
+  for (i = 0; i <= dist; ++i) {
     this_step = zo_scale(i, accum->step_size);
     if (this_step != prev_step) {
       prev_step = this_step;
@@ -295,5 +335,9 @@ void brush_draw_line(brush_accum*restrict accum,
 }
 
 void brush_flush(brush_accum* accum, const brush_spec* spec) {
+  if (accum->has_endpoint)
+    draw_line_endpoint(accum, spec, &accum->prev_endpoint);
+
   memcpy(accum->bristles, spec->init_bristles, sizeof(accum->bristles));
+  accum->has_endpoint = 0;
 }
