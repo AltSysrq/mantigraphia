@@ -34,15 +34,27 @@
 #include "../defs.h"
 
 /**
- * A triangle-shader is a function applied to every pixel of a triangle being
+ * A pixel-shader is a function applied to every pixel of a triangle being
  * scanned onto a canvas. It is only called for pixels within the
  * canvas. Interps contains the interpolated values requested by the caller of
  * the shading fucntion.
  */
-typedef void (*triangle_shader)(void* userdata,
-                                coord_offset x, coord_offset y,
-                                const coord_offset* interps);
+typedef void (*pixel_shader)(void* userdata,
+                             coord_offset x, coord_offset y,
+                             const coord_offset* interps);
 
+/**
+ * A triangle-shader is a function which shades triangles. They are usually
+ * defined with the SHADE_TRIANGLE macro.
+ */
+typedef void (*triangle_shader)(canvas*restrict,
+                                const coord_offset*restrict,
+                                const coord_offset*restrict,
+                                const coord_offset*restrict,
+                                const coord_offset*restrict,
+                                const coord_offset*restrict,
+                                const coord_offset*restrict,
+                                void* userdata);
 /**
  * Defines a function named <name> which can be used to shade arbitrary
  * triangles. The function <shader> will be called for each pixel. nz

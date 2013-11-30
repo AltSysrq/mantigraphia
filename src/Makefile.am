@@ -19,7 +19,8 @@ graphics/brush.c \
 graphics/tscan.c \
 graphics/tiled-texture.c \
 graphics/linear-paint-tile.c \
-graphics/perspective.c
+graphics/perspective.c \
+graphics/hull.c
 
 trigtab.c: gentrigtab
 	./gentrigtab >trigtab.c
