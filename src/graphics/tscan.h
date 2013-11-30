@@ -92,7 +92,7 @@ typedef void (*triangle_shader)(void* userdata,
     dy = y1 - y0;                                                       \
     if (!dy) return; /* degenerate */                                   \
     idy16 = 65536 / dy;                                                 \
-    for (y = (y0 > 0? y0 : 0); y < y1 && y < dst->h; ++y) {             \
+    for (y = (y0 > 0? y0 : 0); y < y1 && y < (signed)dst->h; ++y) {     \
       yo = y - y0;                                                      \
       xl = ((dy-yo)*xt + yo*xb0) * idy16 >> 16;                         \
       xh = ((dy-yo)*xt + yo*xb1) * idy16 >> 16;                         \
@@ -103,7 +103,7 @@ typedef void (*triangle_shader)(void* userdata,
       dx = xh-xl;                                                       \
       if (!dx) continue; /* nothing to draw */                          \
       idx16 = 65536 / dx;                                               \
-      for (x = (xl > 0? xl : 0); x < xh && x < dst->w; ++x) {           \
+      for (x = (xl > 0? xl : 0); x < xh && x < (signed)dst->w; ++x) {   \
         xo = x-xl;                                                      \
         for (i = 0; i < nz; ++i)                                        \
           z[i] = ((dx-xo)*zl[i] + xo*zh[i]) * idx16 >> 16;              \
@@ -131,7 +131,7 @@ typedef void (*triangle_shader)(void* userdata,
     dy = y0 - y1;                                                       \
     if (!dy) return; /* degenerate */                                   \
     idy16 = 65536 / dy;                                                 \
-    for (y = (y1 > 0? y1 : 0); y < y0 && y < dst->h; ++y) {             \
+    for (y = (y1 > 0? y1 : 0); y < y0 && y < (signed)dst->h; ++y) {     \
       yo = y - y1;                                                      \
       xl = ((dy-yo)*xb0 + yo*xt) * idy16 >> 16;                         \
       xh = ((dy-yo)*xb1 + yo*xt) * idy16 >> 16;                         \
@@ -142,7 +142,7 @@ typedef void (*triangle_shader)(void* userdata,
       dx = xh-xl;                                                       \
       if (!dx) continue; /* nothing to draw here */                     \
       idx16 = 65536 / dx;                                               \
-      for (x = (xl > 0? xl : 0); x < xh && x < dst->w; ++x) {           \
+      for (x = (xl > 0? xl : 0); x < xh && x < (signed)dst->w; ++x) {   \
         xo = x-xl;                                                      \
         for (i = 0; i < nz; ++i)                                        \
           z[i] = ((dx-xo)*zl[i] + xo*zh[i]) * idx16 >> 16;              \

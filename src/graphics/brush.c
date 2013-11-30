@@ -253,11 +253,11 @@ void brush_draw_line(brush_accum*restrict accum,
                      const brush_spec*restrict spec,
                      const vo3 from, zo_scaling_factor from_weight,
                      const vo3 to, zo_scaling_factor to_weight) {
-  coord_offset lx, ly, dist, i, t, x, y, z, bx, by, thick;
+  coord_offset lx, ly, dist, t, x, y, z, bx, by, thick;
   coord_offset lxd16, lyd16;
   unsigned this_step = 0, prev_step = 0, thickf, thickt;
-  unsigned bix;
-  signed colour;
+  unsigned i, bix;
+  unsigned colour;
   unsigned char thickness_to_bristle[accum->basic_size];
   unsigned short noise;
   brush_accum_point startpoint;
@@ -304,7 +304,7 @@ void brush_draw_line(brush_accum*restrict accum,
   accum->prev_endpoint.num_bristles = zo_scale(spec->bristles, to_weight);
   accum->has_endpoint = 1;
 
-  for (i = 0; i <= dist; ++i) {
+  for (i = 0; i <= (unsigned)dist; ++i) {
     this_step = zo_scale(i, accum->step_size);
     if (this_step != prev_step) {
       prev_step = this_step;

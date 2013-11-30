@@ -64,8 +64,8 @@ void pencil_draw_point(
   coord_offset x0, x1, y0, y1, x, y, dx, dy;
 
   if (1 == diam) {
-    if (where[0] >= 0 && where[0] < dst->w &&
-        where[1] >= 0 && where[1] < dst->h) {
+    if (where[0] >= 0 && where[0] < (signed)dst->w &&
+        where[1] >= 0 && where[1] < (signed)dst->h) {
       canvas_write(dst, where[0], where[1], spec->colour, where[2]);
     }
   } else {
@@ -78,9 +78,9 @@ void pencil_draw_point(
     y1 = y0 + diam + 1;
 
     x0 = (x0 >= 0? x0 : 0);
-    x1 = (x1 < dst->w? x1 : dst->w);
+    x1 = (x1 < (signed)dst->w? x1 : (signed)dst->w);
     y0 = (y0 >= 0? y0 : 0);
-    y1 = (y1 < dst->h? y1 : dst->h);
+    y1 = (y1 < (signed)dst->h? y1 : (signed)dst->h);
 
     for (x = x0; x < x1; ++x) {
       dx = abs(x-where[0]);

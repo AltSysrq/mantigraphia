@@ -71,7 +71,9 @@ void tiled_texture_fill(
   const tiled_texture*restrict tex,
   const vo3 a, const vo3 b, const vo3 c
 ) {
-  tt_info info = { tex, dst };
-  info.resscale16 = 65536 * dst->w / tex->nominal_resolution;
+  tt_info info = {
+    tex, dst,
+    65536 * dst->w / tex->nominal_resolution
+  };
   shade_tiled_texture(dst, a, a+2, b, b+2, c, c+2, &info);
 }
