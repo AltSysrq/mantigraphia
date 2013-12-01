@@ -20,7 +20,8 @@ graphics/tscan.c \
 graphics/tiled-texture.c \
 graphics/linear-paint-tile.c \
 graphics/perspective.c \
-graphics/hull.c
+graphics/hull.c \
+flower-pot.c
 
 trigtab.c: gentrigtab
 	./gentrigtab >trigtab.c

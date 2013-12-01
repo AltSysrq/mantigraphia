@@ -40,35 +40,22 @@
 
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
-#include "graphics/pencil.h"
 #include "graphics/brush.h"
-#include "graphics/tscan.h"
-#include "graphics/linear-paint-tile.h"
-#include "graphics/tiled-texture.h"
-#include "graphics/perspective.h"
-#include "graphics/hull.h"
+#include "game-state.h"
+#include "flower-pot.h"
 
-static canvas_pixel water_tex[64*64];
-static const canvas_pixel water_pallet[4] = {
-  argb(255,0,0,0),
-  argb(255,0,0,32),
-  argb(255,0,0,48),
-  argb(255,8,16,56),
-};
-
-static void draw_stuff(canvas*);
+static game_state* update(game_state*);
+static void draw(canvas*, game_state*, SDL_Texture*, SDL_Renderer*);
+static int handle_input(game_state*);
 
 int main(void) {
-  unsigned ww, wh, i;
+  unsigned ww, wh;
   SDL_Window* screen;
   SDL_Renderer* renderer;
   SDL_Texture* texture;
   const int image_types = IMG_INIT_JPG | IMG_INIT_PNG;
-  parchment* parch;
   canvas* canv;
-  clock_t start, end;
-
-  linear_paint_tile_render(water_tex, 64, 64, 8, 1, water_pallet, 4);
+  game_state* state;
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
     errx(EX_SOFTWARE, "Unable to initialise SDL: %s", SDL_GetError());
@@ -102,7 +89,6 @@ int main(void) {
   brush_load();
 
   canv = canvas_new(ww, wh);
-  parch = parchment_new();
 
   texture = SDL_CreateTexture(renderer,
                               /* TODO: Use native format */
@@ -112,192 +98,90 @@ int main(void) {
   if (!texture)
     errx(EX_UNAVAILABLE, "Unable to create screen texture: %s", SDL_GetError());
 
-  canvas_clear(canv);
-  parchment_draw(canv, parch);
-  start = clock();
-  for (i = 0; i < 1000; ++i)
-    draw_stuff(canv);
-  end = clock();
-  canvas_blit(texture, canv);
-  SDL_RenderCopy(renderer, texture, NULL, NULL);
-  SDL_RenderPresent(renderer);
-  printf("Rendering took %f sec\n", (end-start)/(double)CLOCKS_PER_SEC/1000.0);
-  SDL_Delay(15000);
+  state = flower_pot_new();
+
+  do {
+    draw(canv, state, texture, renderer);
+    if (handle_input(state)) break; /* quit */
+    state = update(state);
+  } while (state);
 
   return 0;
 }
 
-static const canvas_pixel brush_colours[8] = {
-  argb(0,0,0,0),
-  argb(0,0,0,16),
-  argb(0,0,8,32),
-  argb(0,8,16,32),
-  argb(0,10,20,40),
-  argb(0,20,40,60),
-  argb(0,30,50,70),
-  argb(0,40,60,80),
-};
+static game_state* update(game_state* state) {
+  static chronon prev;
+  chronon now, elapsed;
+  unsigned long long now_tmp;
 
-static const canvas_pixel brush_red_colours[8] = {
-  argb(0, 32, 0, 0),
-  argb(0, 48, 0, 0),
-  argb(0, 64, 8, 0),
-  argb(0, 80, 16, 8),
-  argb(0, 96, 32, 16),
-  argb(0, 112, 48, 24),
-  argb(0, 128, 64, 32),
-  argb(0, 144, 80, 40),
-};
+  /* Busy-wait for the time to roll to the next chronon. Sleep for 1ms between
+   * attempts so we don't use the *whole* CPU doing nothing.
+   */
+  do {
+    /* Get current time in chronons */
+    now_tmp = SDL_GetTicks();
+    now_tmp *= SECOND;
+    now = now_tmp / 1000;
+    if (now == prev) SDL_Delay(1);
+  } while (now == prev);
 
-static const canvas_pixel brush_green_colours[8] = {
-  argb(0, 0, 32, 0),
-  argb(0, 8, 48, 0),
-  argb(0, 12, 64, 0),
-  argb(0, 16, 80, 8),
-  argb(0, 32, 96, 16),
-  argb(0, 48, 112, 24),
-  argb(0, 64, 128, 32),
-  argb(0, 80, 144, 40),
-};
+  elapsed = now - prev;
+  prev = now;
 
-static const hull_triangle tetrahedron_t[4] = {
-  { { 0, 1, 2 }, { 1, 2, 3 } },
-  { { 0, 3, 1 }, { 3, 2, 0 } },
-  { { 1, 3, 2 }, { 1, 3, 0 } },
-  { { 0, 2, 3 }, { 0, 2, 1 } },
-};
+  return (*state->update)(state, elapsed);
+}
 
-static const coord_offset tetrahedron_v[4*3] = {
-  +0 * METRE, -5 * METRE, -5 * METRE,
-  +5 * METRE, -5 * METRE, +5 * METRE,
-  -5 * METRE, -5 * METRE, +5 * METRE,
-  +0 * METRE, +5 * METRE, +0 * METRE,
-};
+static void draw(canvas* canv, game_state* state,
+                 SDL_Texture* texture, SDL_Renderer* renderer) {
+  canvas_clear(canv);
+  (*state->draw)(state, canv);
 
-static void draw_stuff(canvas* dst) {
-  pencil_spec pencil;
-  brush_spec brush;
-  brush_accum baccum;
-  vo3 a, b;
-  vc3 ac, bc;
-  unsigned i;
-  tiled_texture water;
-  perspective proj;
-  hull_render_scratch hull_scratch[4];
+  canvas_blit(texture, canv);
+  SDL_RenderCopy(renderer, texture, NULL, NULL);
+  SDL_RenderPresent(renderer);
+}
 
-  pencil_init(&pencil);
-  pencil.colour = argb(0, 0, 0, 32);
-  pencil.thickness = ZO_SCALING_FACTOR_MAX / 64;
+static int handle_input(game_state* state) {
+  SDL_Event evt;
 
-  a[0] = 32;
-  a[1] = 32;
-  a[2] = 1;
-  pencil_draw_point(dst, &pencil, a, ZO_SCALING_FACTOR_MAX);
+  while (SDL_PollEvent(&evt)) {
+    switch (evt.type) {
+    case SDL_QUIT: return 1;
+    case SDL_KEYDOWN:
+    case SDL_KEYUP:
+      if (state->key)
+        (*state->key)(state, &evt.key);
+      break;
 
-  a[0] = 64;
-  a[1] = 64;
-  b[0] = 128;
-  b[1] = 256;
-  b[2] = 1;
-  pencil_draw_line(dst, &pencil,
-                   a, ZO_SCALING_FACTOR_MAX,
-                   b, ZO_SCALING_FACTOR_MAX / 2);
+    case SDL_MOUSEMOTION:
+      if (state->mmotion)
+        (*state->mmotion)(state, &evt.motion);
+      break;
 
-  brush_init(&brush);
-  brush.colours = brush_colours;
-  brush.num_colours = 8;
-  brush.size = ZO_SCALING_FACTOR_MAX / 64;
-  brush_prep(&baccum, &brush, dst, 5);
+    case SDL_MOUSEBUTTONDOWN:
+    case SDL_MOUSEBUTTONUP:
+      if (state->mbutton)
+        (*state->mbutton)(state, &evt.button);
+      break;
 
-  a[0] = 0;
-  a[1] = 0;
-  b[0] = 1280;
-  b[1] = 1024;
-  brush_draw_line(&baccum, &brush,
-                  a, ZO_SCALING_FACTOR_MAX,
-                  b, ZO_SCALING_FACTOR_MAX);
-  brush_flush(&baccum, &brush);
+    case SDL_MOUSEWHEEL:
+      if (state->scroll)
+        (*state->scroll)(state, &evt.wheel);
+      break;
 
-  brush.inner_weakening_chance = 3000;
-  brush.inner_strengthening_chance = 3000;
-  brush.colours = brush_red_colours;
-  for (i = 0; i < 64; ++i) {
-    cossinms(a+0, a+1, i * (65536/64), 128);
-    a[0] += 256;
-    a[1] += 768;
-    cossinms(b+0, b+1, (i+1) * (65536/64), 128);
-    b[0] += 256;
-    b[1] += 768;
-    brush_draw_line(&baccum, &brush,
-                    a, ZO_SCALING_FACTOR_MAX,
-                    b, ZO_SCALING_FACTOR_MAX);
+    case SDL_TEXTEDITING:
+      if (state->txted)
+        (*state->txted)(state, &evt.edit);
+      break;
+
+    case SDL_TEXTINPUT:
+      if (state->txtin)
+        (*state->txtin)(state, &evt.text);
+      break;
+
+    default: /* ignore */ break;
+    }
   }
-  a[0] = 256 - 48;
-  a[1] = 768;
-  brush_draw_point(&baccum, &brush, a, ZO_SCALING_FACTOR_MAX);
-  brush_flush(&baccum, &brush);
-  a[0] = 256 + 48;
-  brush_draw_point(&baccum, &brush, a, ZO_SCALING_FACTOR_MAX);
 
-  brush.colours = brush_green_colours;
-  brush.inner_strengthening_chance = 3860;
-  a[2] = b[2] = 3;
-  for (i = 0; i < 1280; i += 5) {
-    a[0] = i;
-    b[0] = i+5;
-    a[1] = zo_cosms(a[0]*256, 128) + 150;
-    b[1] = zo_cosms(b[0]*256, 128) + 150;
-    brush_draw_line(&baccum, &brush,
-                    a, ZO_SCALING_FACTOR_MAX,
-                    b, ZO_SCALING_FACTOR_MAX);
-  }
-  brush_flush(&baccum, &brush);
-
-  perspective_init(&proj, dst, DEG_90);
-  proj.camera[0] = 100 * METRE;
-  proj.camera[1] = 0;
-  proj.camera[2] = 0;
-  proj.torus_w = proj.torus_h = (1 << 30);
-  proj.yrot_cos = -ZO_SCALING_FACTOR_MAX;
-  proj.yrot_sin = 0;
-  proj.rxrot_cos = ZO_SCALING_FACTOR_MAX;
-  proj.rxrot_sin = 0;
-  proj.near_clipping_plane = 1;
-
-  water.texture = water_tex;
-  water.w_mask = water.h_mask = 63;
-  water.pitch = 64;
-  water.x_off = water.y_off = 0;
-  water.rot_cos = zo_cos(0x2300);
-  water.rot_sin = zo_cos(0x2300);
-  water.nominal_resolution = 1280;
-  hull_render(dst, hull_scratch,
-              tetrahedron_t, 4,
-              tetrahedron_v, 3,
-              100 * METRE, 0 * METRE, 50 * METRE, 0,
-              tiled_texture_fill_a,
-              &water,
-              &proj);
-  pencil.colour = argb(0, 255, 0, 0);
-  hull_outline(dst, hull_scratch,
-               tetrahedron_t, 4,
-               tetrahedron_v, 3,
-               100 * METRE, 0 * METRE, 50 * METRE, 0,
-               (drawing_method*)&pencil, dst,
-               &proj);
-
-  for (i = 0; i < 32*10; ++i) {
-    ac[0] = 100 * METRE + zo_cosms(i * 65536/32, 10 * METRE);
-    ac[1] = i * METRE / 15;
-    ac[2] = 100*METRE + zo_sinms(i * 65536/32, 10 * METRE);
-    bc[0] = 100 * METRE + zo_cosms((i+1) * 65536/32, 10 * METRE);
-    bc[1] = (i+1) * METRE / 15;
-    bc[2] = 100*METRE + zo_sinms((i+1) * 65536/32, 10 * METRE);
-
-    perspective_proj(a, ac, &proj);
-    perspective_proj(b, bc, &proj);
-    brush_draw_line(&baccum, &brush,
-                    a, ZO_SCALING_FACTOR_MAX, b, ZO_SCALING_FACTOR_MAX);
-  }
-  brush_flush(&baccum, &brush);
+  return 0; /* continue running */
 }
