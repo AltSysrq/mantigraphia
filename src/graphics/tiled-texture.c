@@ -77,3 +77,19 @@ void tiled_texture_fill(
   };
   shade_tiled_texture(dst, a, a+2, b, b+2, c, c+2, &info);
 }
+
+void tiled_texture_fill_a(
+  canvas*restrict dst,
+  const coord_offset*restrict a,
+  const coord_offset*restrict za,
+  const coord_offset*restrict b,
+  const coord_offset*restrict zb,
+  const coord_offset*restrict c,
+  const coord_offset*restrict zc,
+  void* tex
+) {
+  vo3 va = { a[0], a[1], za[0] },
+      vb = { b[0], b[1], zb[0] },
+      vc = { c[0], c[1], zc[0] };
+  tiled_texture_fill(dst, tex, va, vb, vc);
+}

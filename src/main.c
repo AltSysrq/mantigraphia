@@ -46,6 +46,7 @@
 #include "graphics/linear-paint-tile.h"
 #include "graphics/tiled-texture.h"
 #include "graphics/perspective.h"
+#include "graphics/hull.h"
 
 static canvas_pixel water_tex[64*64];
 static const canvas_pixel water_pallet[4] = {
@@ -159,10 +160,19 @@ static const canvas_pixel brush_green_colours[8] = {
   argb(0, 80, 144, 40),
 };
 
-static const coord_offset
-  tb[3] = { 42, 64, 0 },
-  tc[3] = { 128, 256, 4 },
-  ta[3] = { 1024, 1024, 8 };
+static const hull_triangle tetrahedron_t[4] = {
+  { { 0, 1, 2 }, { 1, 2, 3 } },
+  { { 0, 3, 1 }, { 3, 2, 0 } },
+  { { 1, 3, 2 }, { 1, 3, 0 } },
+  { { 0, 2, 3 }, { 0, 2, 1 } },
+};
+
+static const coord_offset tetrahedron_v[4*3] = {
+  +0 * METRE, -5 * METRE, -5 * METRE,
+  +5 * METRE, -5 * METRE, +5 * METRE,
+  -5 * METRE, -5 * METRE, +5 * METRE,
+  +0 * METRE, +5 * METRE, +0 * METRE,
+};
 
 static void draw_stuff(canvas* dst) {
   pencil_spec pencil;
@@ -173,6 +183,7 @@ static void draw_stuff(canvas* dst) {
   unsigned i;
   tiled_texture water;
   perspective proj;
+  hull_render_scratch hull_scratch[4];
 
   pencil_init(&pencil);
   pencil.colour = argb(0, 0, 0, 32);
@@ -242,15 +253,6 @@ static void draw_stuff(canvas* dst) {
   }
   brush_flush(&baccum, &brush);
 
-  water.texture = water_tex;
-  water.w_mask = water.h_mask = 63;
-  water.pitch = 64;
-  water.x_off = water.y_off = 0;
-  water.rot_cos = zo_cos(0x2300);
-  water.rot_sin = zo_cos(0x2300);
-  water.nominal_resolution = 1280;
-  tiled_texture_fill(dst, &water, ta, tb, tc);
-
   perspective_init(&proj, dst, DEG_90);
   proj.camera[0] = 100 * METRE;
   proj.camera[1] = 0;
@@ -261,6 +263,29 @@ static void draw_stuff(canvas* dst) {
   proj.rxrot_cos = ZO_SCALING_FACTOR_MAX;
   proj.rxrot_sin = 0;
   proj.near_clipping_plane = 1;
+
+  water.texture = water_tex;
+  water.w_mask = water.h_mask = 63;
+  water.pitch = 64;
+  water.x_off = water.y_off = 0;
+  water.rot_cos = zo_cos(0x2300);
+  water.rot_sin = zo_cos(0x2300);
+  water.nominal_resolution = 1280;
+  hull_render(dst, hull_scratch,
+              tetrahedron_t, 4,
+              tetrahedron_v, 3,
+              100 * METRE, 0 * METRE, 50 * METRE, 0,
+              tiled_texture_fill_a,
+              &water,
+              &proj);
+  pencil.colour = argb(0, 255, 0, 0);
+  hull_outline(dst, hull_scratch,
+               tetrahedron_t, 4,
+               tetrahedron_v, 3,
+               100 * METRE, 0 * METRE, 50 * METRE, 0,
+               (drawing_method*)&pencil, dst,
+               &proj);
+
   for (i = 0; i < 32*10; ++i) {
     ac[0] = 100 * METRE + zo_cosms(i * 65536/32, 10 * METRE);
     ac[1] = i * METRE / 15;

@@ -84,4 +84,19 @@ void tiled_texture_fill(
   const tiled_texture*restrict,
   const vo3, const vo3, const vo3);
 
+/**
+ * Like tiled_texture_fill(), but is compatible with triangle_shader. It's
+ * interpolation arguments are just the Z coordinates. Userdata is the texture
+ * to tile.
+ */
+void tiled_texture_fill_a(
+  canvas*restrict,
+  const coord_offset*restrict,
+  const coord_offset*restrict,
+  const coord_offset*restrict,
+  const coord_offset*restrict,
+  const coord_offset*restrict,
+  const coord_offset*restrict,
+  void*);
+
 #endif /* GRAPHICS_TILED_TEXTURE_H_ */

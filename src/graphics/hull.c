@@ -59,12 +59,13 @@
 static void get_vertex(vc3 dst, const coord_offset*restrict vertices,
                        unsigned ix, unsigned stride,
                        coord_offset ox, coord_offset oy, coord_offset oz,
-                       zo_scaling_factor ycos, zo_scaling_factor ysin) {
+                       zo_scaling_factor ycos, zo_scaling_factor ysin,
+                       const perspective*restrict proj) {
   coord_offset rx, rz;
   vertices += ix*stride;
 
   rx = zo_scale(vertices[0], ycos) - zo_scale(vertices[2], ysin);
-  rz = zo_scale(vertices[2], ycos) + zo_scale(vertices[2], ysin);
+  rz = zo_scale(vertices[2], ycos) + zo_scale(vertices[0], ysin);
 
   dst[0] = rx + ox;
   dst[1] = vertices[1] + oy;
@@ -94,13 +95,13 @@ void hull_render(canvas*restrict dst,
   for (t = 0; t < num_triangles; ++t) {
     /* Read and project vertices */
     get_vertex(ca, vertices, triangles[t].vert[0], stride,
-               ox, oy, oz, ycos, ysin);
+               ox, oy, oz, ycos, ysin, proj);
     if (!perspective_proj(pa, ca, proj)) continue;
     get_vertex(cb, vertices, triangles[t].vert[1], stride,
-               ox, oy, oz, ycos, ysin);
+               ox, oy, oz, ycos, ysin, proj);
     if (!perspective_proj(pb, cb, proj)) continue;
     get_vertex(cc, vertices, triangles[t].vert[2], stride,
-               ox, oy, oz, ycos, ysin);
+               ox, oy, oz, ycos, ysin, proj);
     if (!perspective_proj(pc, cc, proj)) continue;
 
     /* Check if front-facing. Now in screen space, so front-facing will have a
@@ -151,9 +152,9 @@ void hull_outline(canvas*restrict dst,
             SCRATCH_BACK_FACING == scratch[triangles[t].adj[i]]) {
           /* adj i is an edge to draw */
           get_vertex(ca, vertices, triangles[t].vert[i], stride,
-                     ox, oy, oz, ycos, ysin);
+                     ox, oy, oz, ycos, ysin, proj);
           get_vertex(cb, vertices, triangles[t].vert[(i+1)%3], stride,
-                     ox, oy, oz, ycos, ysin);
+                     ox, oy, oz, ycos, ysin, proj);
           perspective_proj(pa, ca, proj);
           perspective_proj(pb, cb, proj);
           /* Bump Z forward */
