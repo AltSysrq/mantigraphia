@@ -42,4 +42,6 @@
 #define INLATTR
 #endif
 
+#define lenof(x) (sizeof(x) / sizeof(x[0]))
+
 #endif /* DEFS_H_ */

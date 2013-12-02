@@ -43,6 +43,7 @@
 #include "graphics/tiled-texture.h"
 #include "graphics/linear-paint-tile.h"
 #include "graphics/hull.h"
+#include "graphics/dm-proj.h"
 
 #include "flower-pot.h"
 
@@ -50,6 +51,7 @@ typedef struct {
   game_state vtab;
   int is_running;
   angle rotation;
+  parchment* bg;
 } flower_pot_state;
 
 static game_state* flower_pot_update(flower_pot_state*, chronon);
@@ -71,6 +73,7 @@ game_state* flower_pot_new(void) {
       0, 0,
     },
     1, 0,
+    parchment_new(),
   };
   flower_pot_state* this = xmalloc(sizeof(flower_pot_state));
   memcpy(this, &template, sizeof(flower_pot_state));
@@ -82,6 +85,7 @@ static game_state* flower_pot_update(flower_pot_state* this, chronon et) {
   if (this->is_running) {
     return (game_state*)this;
   } else {
+    parchment_delete(this->bg);
     free(this);
     return NULL;
   }
@@ -156,9 +160,149 @@ static const canvas_pixel petal_colours[4] = {
 };
 
 static void init_data(void) {
+  unsigned h, i, j;
+  angle theta;
 
+  linear_paint_tile_render(clay, TEXDIM, TEXDIM,
+                           2, 16, clay_pallet,
+                           sizeof(clay_pallet) / sizeof(clay_pallet[0]));
+  linear_paint_tile_render(soil, TEXDIM, TEXDIM,
+                           4, 4, soil_pallet,
+                           sizeof(soil_pallet) / sizeof(soil_pallet[0]));
+
+  soil_verts[0] = 0;
+  soil_verts[1] = 85 * MILLIMETRE;
+  soil_verts[2] = 0;
+
+  for (i = 0; i < ROTRES; ++i) {
+    j = (i+1) % ROTRES;
+    theta = i * (65536 / ROTRES);
+    h = (i? i-1 : ROTRES-1);
+
+    cossinms(pot_verts + i*6+0, pot_verts + i*6+2, theta,
+             80 * MILLIMETRE);
+    pot_verts[i*6+1] = 0;
+    pot_verts[i*6+3] = pot_verts[i*6+0];
+    pot_verts[i*6+4] = 100 * MILLIMETRE;
+    pot_verts[i*6+5] = pot_verts[i*6+2];
+    soil_verts[3 + i*3+0] = pot_verts[i*6+0];
+    soil_verts[3 + i*3+1] = 85 * MILLIMETRE;
+    soil_verts[3 + i*3+2] = pot_verts[i*6+2];
+
+    pot_mesh[i*4 + 0].vert[0] = i*2+0;
+    pot_mesh[i*4 + 0].vert[1] = j*2+0;
+    pot_mesh[i*4 + 0].vert[2] = i*2+1;
+    pot_mesh[i*4 + 1].vert[0] = j*2+0;
+    pot_mesh[i*4 + 1].vert[1] = j*2+1;
+    pot_mesh[i*4 + 1].vert[2] = i*2+1;
+    pot_mesh[i*4 + 2].vert[0] = i*2+1;
+    pot_mesh[i*4 + 2].vert[1] = j*2+1;
+    pot_mesh[i*4 + 2].vert[2] = j*2+0;
+    pot_mesh[i*4 + 3].vert[0] = i*2+1;
+    pot_mesh[i*4 + 3].vert[1] = j*2+0;
+    pot_mesh[i*4 + 3].vert[2] = i*2+0;
+
+    pot_mesh[i*4 + 0].adj[0] = i*4 + 3;
+    pot_mesh[i*4 + 0].adj[1] = i*4 + 1;
+    pot_mesh[i*4 + 0].adj[2] = h*4 + 1;
+    pot_mesh[i*4 + 1].adj[0] = j*4 + 0;
+    pot_mesh[i*4 + 1].adj[1] = i*4 + 2;
+    pot_mesh[i*4 + 1].adj[2] = i*4 + 0;
+    pot_mesh[i*4 + 2].adj[0] = i*4 + 1;
+    pot_mesh[i*4 + 2].adj[1] = j*4 + 3;
+    pot_mesh[i*4 + 2].adj[2] = i*4 + 3;
+    pot_mesh[i*4 + 3].adj[0] = i*4 + 2;
+    pot_mesh[i*4 + 3].adj[1] = i*4 + 0;
+    pot_mesh[i*4 + 3].adj[2] = h*4 + 2;
+
+    soil_mesh[i].vert[0] = 0;
+    soil_mesh[i].vert[1] = j+1;
+    soil_mesh[i].vert[2] = i+1;
+    soil_mesh[i].adj[0] = j;
+    soil_mesh[i].adj[1] = ~0;
+    soil_mesh[i].adj[2] = h;
+  }
 }
 
 static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
+  hull_render_scratch hrscratch[sizeof(pot_mesh)/sizeof(pot_mesh[0])];
+  brush_spec    brush;
+  pencil_spec   pencil;
+  dm_proj       brush_proj;
+  brush_accum   baccum;
+  perspective   proj;
+  tiled_texture pot_texture, soil_texture;
+  unsigned      i;
+  vc3           va, vb;
 
+  /* Configure drawing utinsils */
+  perspective_init(&proj, dst, DEG_90);
+  proj.camera[0] = METRE + zo_cosms(this->rotation, 1000 * MILLIMETRE);
+  proj.camera[1] = 500 * MILLIMETRE;
+  proj.camera[2] = METRE + zo_sinms(this->rotation, 1000 * MILLIMETRE);
+  proj.torus_w = proj.torus_h = 1024 * METRE;
+  proj.yrot_cos = zo_cos(this->rotation + DEG_90);
+  proj.yrot_sin = zo_sin(this->rotation + DEG_90);
+  proj.rxrot_cos = zo_cos(15 * 65536 / 360);
+  proj.rxrot_sin = zo_sin(15 * 65536 / 360);
+  proj.near_clipping_plane = 1;
+
+  brush_init(&brush);
+  for (i = 0; i < MAX_BRUSH_BRISTLES; ++i)
+    brush.init_bristles[i] = 1;
+
+  pencil_init(&pencil);
+  pencil.colour = 0;
+
+  dm_init(&brush_proj);
+  brush_proj.delegate = (drawing_method*)&brush;
+  brush_proj.proj = &proj;
+  brush_proj.near_clipping = 1;
+  brush_proj.near_max = 1;
+  brush_proj.far_max = 1;
+  brush_proj.far_clipping = 10 * METRE;
+
+  pot_texture.texture = clay;
+  pot_texture.w_mask = TEXDIM-1;
+  pot_texture.h_mask = TEXDIM-1;
+  pot_texture.pitch = TEXDIM;
+  pot_texture.x_off = 0;
+  pot_texture.y_off = 0;
+  pot_texture.rot_cos = ZO_SCALING_FACTOR_MAX;
+  pot_texture.rot_sin = 0;
+  pot_texture.nominal_resolution = 1024;
+  soil_texture.texture = soil;
+  soil_texture.w_mask = TEXDIM-1;
+  soil_texture.h_mask = TEXDIM-1;
+  soil_texture.pitch = TEXDIM;
+  soil_texture.x_off = 0;
+  soil_texture.y_off = 0;
+  soil_texture.rot_cos = ZO_SCALING_FACTOR_MAX;
+  soil_texture.rot_sin = 0;
+  soil_texture.nominal_resolution = 1024;
+
+  /* Draw background */
+  parchment_draw(dst, this->bg);
+
+  /* Draw pot and soil */
+  hull_render(dst, hrscratch,
+              pot_mesh, lenof(pot_mesh),
+              pot_verts, 3,
+              METRE, 0, METRE, 0,
+              tiled_texture_fill_a,
+              &pot_texture,
+              &proj);
+  hull_outline(dst, hrscratch,
+               pot_mesh, lenof(pot_mesh),
+               pot_verts, 3,
+               METRE, 0, METRE, 0,
+               (drawing_method*)&pencil, dst,
+               &proj);
+  hull_render(dst, hrscratch,
+              soil_mesh, lenof(soil_mesh),
+              soil_verts, 3,
+              METRE, 0, METRE, 0,
+              tiled_texture_fill_a,
+              &soil_texture,
+              &proj);
 }
