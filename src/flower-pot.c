@@ -97,8 +97,14 @@ static void flower_pot_key(flower_pot_state* this, SDL_KeyboardEvent* evt) {
          (int)evt->keysym.scancode, SDL_GetScancodeName(evt->keysym.scancode),
          (int)evt->keysym.sym, SDL_GetKeyName(evt->keysym.sym));
 
-  if (SDL_KEYDOWN == evt->type && SDLK_ESCAPE == evt->keysym.sym)
-    this->is_running = 0;
+  if (SDL_KEYDOWN == evt->type) {
+    if (SDLK_ESCAPE == evt->keysym.sym)
+      this->is_running = 0;
+    else if (SDLK_LEFT == evt->keysym.sym)
+      this->rotation += 256;
+    else if (SDLK_RIGHT == evt->keysym.sym)
+      this->rotation -= 256;
+  }
 }
 
 static void flower_pot_mbutton(flower_pot_state* this,
@@ -241,8 +247,8 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   proj.camera[1] = 500 * MILLIMETRE;
   proj.camera[2] = METRE + zo_sinms(this->rotation, 1000 * MILLIMETRE);
   proj.torus_w = proj.torus_h = 1024 * METRE;
-  proj.yrot_cos = zo_cos(this->rotation + DEG_90);
-  proj.yrot_sin = zo_sin(this->rotation + DEG_90);
+  proj.yrot_cos = zo_cos(65536 - (this->rotation - DEG_90));
+  proj.yrot_sin = zo_sin(65536 - (this->rotation - DEG_90));
   proj.rxrot_cos = zo_cos(15 * 65536 / 360);
   proj.rxrot_sin = zo_sin(15 * 65536 / 360);
   proj.near_clipping_plane = 1;
