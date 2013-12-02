@@ -177,7 +177,7 @@ static void init_data(void) {
                            sizeof(soil_pallet) / sizeof(soil_pallet[0]));
 
   soil_verts[0] = 0;
-  soil_verts[1] = 85 * MILLIMETRE;
+  soil_verts[1] = 85 * MILLIMETRE*10;
   soil_verts[2] = 0;
 
   for (i = 0; i < ROTRES; ++i) {
@@ -186,13 +186,13 @@ static void init_data(void) {
     h = (i? i-1 : ROTRES-1);
 
     cossinms(pot_verts + i*6+0, pot_verts + i*6+2, theta,
-             80 * MILLIMETRE);
+             80 * MILLIMETRE*10);
     pot_verts[i*6+1] = 0;
     pot_verts[i*6+3] = pot_verts[i*6+0];
-    pot_verts[i*6+4] = 100 * MILLIMETRE;
+    pot_verts[i*6+4] = 100 * MILLIMETRE*10;
     pot_verts[i*6+5] = pot_verts[i*6+2];
     soil_verts[3 + i*3+0] = pot_verts[i*6+0];
-    soil_verts[3 + i*3+1] = 85 * MILLIMETRE;
+    soil_verts[3 + i*3+1] = 85 * MILLIMETRE*10;
     soil_verts[3 + i*3+2] = pot_verts[i*6+2];
 
     pot_mesh[i*4 + 0].vert[0] = i*2+0;
@@ -243,9 +243,9 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
 
   /* Configure drawing utinsils */
   perspective_init(&proj, dst, DEG_90);
-  proj.camera[0] = METRE + zo_cosms(this->rotation, 1000 * MILLIMETRE);
-  proj.camera[1] = 500 * MILLIMETRE;
-  proj.camera[2] = METRE + zo_sinms(this->rotation, 1000 * MILLIMETRE);
+  proj.camera[0] = METRE + zo_cosms(this->rotation, 1000 * MILLIMETRE*10);
+  proj.camera[1] = 500 * MILLIMETRE*10;
+  proj.camera[2] = METRE + zo_sinms(this->rotation, 1000 * MILLIMETRE*10);
   proj.torus_w = proj.torus_h = 1024 * METRE;
   proj.yrot_cos = zo_cos(65536 - (this->rotation - DEG_90));
   proj.yrot_sin = zo_sin(65536 - (this->rotation - DEG_90));
