@@ -97,7 +97,8 @@ typedef void (*triangle_shader)(canvas*restrict,
                    const coord_offset*restrict zb0,                     \
                    const coord_offset*restrict zb1,                     \
                    void* userdata) {                                    \
-    coord_offset x, xl, xh, dx, xo, y, dy, yo, z[nz], zl[nz], zh[nz];   \
+    coord_offset x, xl, xh, dx, y, dy, z[nz], zl[nz], zh[nz];           \
+    signed long long xo, yo;                                            \
     coord_offset idy16, idx16;                                          \
     unsigned i;                                                         \
                                                                         \
@@ -136,7 +137,8 @@ typedef void (*triangle_shader)(canvas*restrict,
                    const coord_offset*restrict zb0,                     \
                    const coord_offset*restrict zb1,                     \
                    void* userdata) {                                    \
-    coord_offset x, xl, xh, dx, xo, y, dy, yo, z[nz], zl[nz], zh[nz];   \
+    coord_offset x, xl, xh, dx, y, dy, z[nz], zl[nz], zh[nz];           \
+    signed long long xo, yo;                                            \
     coord_offset idy16, idx16;                                          \
     unsigned i;                                                         \
                                                                         \
