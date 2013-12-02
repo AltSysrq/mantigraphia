@@ -21,6 +21,7 @@ graphics/tiled-texture.c \
 graphics/linear-paint-tile.c \
 graphics/perspective.c \
 graphics/hull.c \
+graphics/dm-proj.c \
 flower-pot.c
 
 trigtab.c: gentrigtab
