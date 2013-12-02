@@ -34,14 +34,26 @@
 
 #include "alloc.h"
 #include "coords.h"
+
+#include "graphics/canvas.h"
+#include "graphics/parchment.h"
+#include "graphics/perspective.h"
+#include "graphics/pencil.h"
+#include "graphics/brush.h"
+#include "graphics/tiled-texture.h"
+#include "graphics/linear-paint-tile.h"
+#include "graphics/hull.h"
+
 #include "flower-pot.h"
 
 typedef struct {
   game_state vtab;
   int is_running;
+  angle rotation;
 } flower_pot_state;
 
 static game_state* flower_pot_update(flower_pot_state*, chronon);
+static void init_data(void);
 static void flower_pot_draw(flower_pot_state*, canvas*);
 static void flower_pot_key(flower_pot_state*, SDL_KeyboardEvent*);
 static void flower_pot_mbutton(flower_pot_state*, SDL_MouseButtonEvent*);
@@ -58,10 +70,11 @@ game_state* flower_pot_new(void) {
       (game_state_scroll_t) flower_pot_scroll,
       0, 0,
     },
-    1,
+    1, 0,
   };
   flower_pot_state* this = xmalloc(sizeof(flower_pot_state));
   memcpy(this, &template, sizeof(flower_pot_state));
+  init_data();
   return (game_state*)this;
 }
 
@@ -72,10 +85,6 @@ static game_state* flower_pot_update(flower_pot_state* this, chronon et) {
     free(this);
     return NULL;
   }
-}
-
-static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
-  /* TODO */
 }
 
 static void flower_pot_key(flower_pot_state* this, SDL_KeyboardEvent* evt) {
@@ -104,4 +113,52 @@ static void flower_pot_mmotion(flower_pot_state* this,
 static void flower_pot_scroll(flower_pot_state* this,
                               SDL_MouseWheelEvent* evt) {
   printf("scroll: (%d,%d)\n", evt->x, evt->y);
+}
+
+/*****************************************************************************/
+
+#define TEXDIM 64
+#define ROTRES 32
+
+static canvas_pixel clay[TEXDIM*TEXDIM], soil[TEXDIM*TEXDIM];
+static const canvas_pixel clay_pallet[4] = {
+  argb(0, 0xFF, 0x66, 0x33),
+  argb(0, 0xFF, 0x66, 0x00),
+  argb(0, 0xCC, 0x66, 0x33),
+  argb(0, 0xCC, 0x66, 0x00),
+};
+static const canvas_pixel soil_pallet[6] = {
+  argb(0, 0x66, 0x33, 0x00),
+  argb(0, 0x33, 0x33, 0x00),
+  argb(0, 0x66, 0x33, 0x00),
+  argb(0, 0x33, 0x33, 0x00),
+  argb(0, 0x00, 0x00, 0x00),
+  argb(0, 0x99, 0x66, 0x00),
+};
+
+static hull_triangle pot_mesh[ROTRES*4], soil_mesh[ROTRES];
+static coord_offset pot_verts[ROTRES*2*3], soil_verts[3*(ROTRES+1)];
+
+static const canvas_pixel plant_colours[6] = {
+  argb(0, 48, 0, 0),
+  argb(0, 64, 0, 0),
+  argb(0, 64, 0, 0),
+  argb(0, 72, 8, 8),
+  argb(0, 85, 16, 16),
+  argb(0, 108, 32, 32),
+};
+
+static const canvas_pixel petal_colours[4] = {
+  argb(0, 220, 220, 64),
+  argb(0, 220, 64, 220),
+  argb(0, 240, 96, 240),
+  argb(0, 255, 128, 255),
+};
+
+static void init_data(void) {
+
+}
+
+static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
+
 }
