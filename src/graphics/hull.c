@@ -118,9 +118,9 @@ void hull_render(canvas*restrict dst,
     /* Copy interp data */
     for (i = 0; i < 3; ++i)
       memcpy(interp[i], vertices + triangles[t].vert[i]*stride + 3, stride - 3);
-    interp[0][stride-3] = pa[0];
-    interp[1][stride-3] = pb[0];
-    interp[2][stride-3] = pc[0];
+    interp[0][stride-3] = pa[2];
+    interp[1][stride-3] = pb[2];
+    interp[2][stride-3] = pc[2];
 
     (*shader)(dst, pa, interp[0], pb, interp[1], pc, interp[2], userdata);
   }

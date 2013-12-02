@@ -74,23 +74,24 @@ int perspective_proj(vo3 dst,
                      const vc3 src,
                      const perspective* this) {
   vo3 rtx;
+  coord_offset scaled_z;
 
   perspective_xlate(rtx, src, this);
 
   /* Scale Z for FOV and screen, invert Z axis to match screen coords */
-  rtx[2] = -zo_scale(rtx[2], this->zscale);
+  scaled_z = -zo_scale(rtx[2], this->zscale);
   /* Discard if in front of the near clipping plane */
-  if (rtx[2] <= this->near_clipping_plane) return 0;
+  if (scaled_z <= this->near_clipping_plane) return 0;
 
   /* Scale X and Y by Z */
-  rtx[0] /= rtx[2];
-  rtx[1] /= rtx[2];
+  rtx[0] /= scaled_z;
+  rtx[1] /= scaled_z;
 
   /* Translate into screen coordinates */
   dst[0] = this->sxo + rtx[0];
   /* Subtract to invert the Y axis for screen coords */
   dst[1] = this->syo - rtx[1];
-  dst[2] = rtx[2];
+  dst[2] = -rtx[2];
 
   return 1;
 }
