@@ -116,7 +116,7 @@ typedef void (*triangle_shader)(canvas*restrict,
       dx = xh-xl;                                                       \
       if (!dx) continue; /* nothing to draw */                          \
       idx16 = 65536 / dx;                                               \
-      for (x = (xl > 0? xl : 0); x <= xh && x < (signed)dst->w; ++x) {  \
+      for (x = (xl > 0? xl : 0); x <= xh+1 && x < (signed)dst->w; ++x) { \
         xo = x-xl;                                                      \
         for (i = 0; i < nz; ++i)                                        \
           z[i] = ((dx-xo)*zl[i] + xo*zh[i]) * idx16 >> 16;              \
@@ -156,7 +156,7 @@ typedef void (*triangle_shader)(canvas*restrict,
       dx = xh-xl;                                                       \
       if (!dx) continue; /* nothing to draw here */                     \
       idx16 = 65536 / dx;                                               \
-      for (x = (xl > 0? xl : 0); x <= xh && x < (signed)dst->w; ++x) {  \
+      for (x = (xl > 0? xl : 0); x <= xh+1 && x < (signed)dst->w; ++x) { \
         xo = x-xl;                                                      \
         for (i = 0; i < nz; ++i)                                        \
           z[i] = ((dx-xo)*zl[i] + xo*zh[i]) * idx16 >> 16;              \
