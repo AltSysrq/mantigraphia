@@ -148,7 +148,7 @@ void hull_outline(canvas*restrict dst,
   for (t = 0; t < num_triangles; ++t) {
     if (SCRATCH_FRONT_FACING == scratch[t]) {
       for (i = 0; i < 3; ++i) {
-        if ((0xFFFF ^ triangles[t].adj[i]) &&
+        if (0xFFFF != triangles[t].adj[i] &&
             SCRATCH_BACK_FACING == scratch[triangles[t].adj[i]]) {
           /* adj i is an edge to draw */
           get_vertex(ca, vertices, triangles[t].vert[i], stride,
