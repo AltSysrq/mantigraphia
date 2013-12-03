@@ -77,7 +77,7 @@ zo_scaling_factor dm_proj_calc_weight(const dm_proj* this,
   origin[2] = this->near_max;
 
   if (!perspective_proj(psample, sample, &proj)) abort();
-  if (!perspective_proj(porigin, sample, &proj)) abort();
+  if (!perspective_proj(porigin, origin, &proj)) abort();
 
   screen_dist = porigin[0] - psample[0];
   assert(screen_dist >= 0);
