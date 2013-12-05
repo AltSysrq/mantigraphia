@@ -359,4 +359,21 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
     }
     dm_proj_flush(&baccum, &brush_proj);
   }
+
+  brush.size = dm_proj_calc_weight(&brush_proj, dst, 5*10*MILLIMETRE/2 * 10);
+  brush.colours = petal_colours;
+  brush.num_colours = lenof(petal_colours);
+  brush_prep(&baccum, &brush, dst, 1);
+  /* Draw petals */
+  for (i = 0; i < NPET_R; ++i) {
+    for (j = 0; j <= NPET_H; ++j) {
+      yscale = (j == NPET_H? 2 : 1);
+      vb[0] = METRE + zo_cosms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
+      vb[1] = (STEM_BASE + STEM_H/2 + STEM_H*j/NPET_H/2 + PET_YOFF / yscale) * MILLIMETRE*10;
+      vb[2] = METRE + zo_sinms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
+      dm_proj_draw_point(&baccum, &brush_proj,
+                         vb, ZO_SCALING_FACTOR_MAX);
+    }
+    dm_proj_flush(&baccum, &brush_proj);
+  }
 }
