@@ -51,7 +51,7 @@ zo_scaling_factor dm_proj_calc_weight(const dm_proj* this,
                                       coord desired_size) {
   /* Create an identical perspective as we'll be using to project, but move it
    * to the origin, facing down the positive Z axis. Project a point at
-   * (size,0,near_max), as well as a point at (0,0,near_max) to account for
+   * (size,0,far_max), as well as a point at (0,0,far_max) to account for
    * centring translation. The X resulting coordinate of the projected point is
    * the negative of the actual size on screen. This actual size can then be
    * converted to a screen-width-relative size.
@@ -71,10 +71,10 @@ zo_scaling_factor dm_proj_calc_weight(const dm_proj* this,
 
   sample[0] = desired_size;
   sample[1] = 0;
-  sample[2] = this->near_max;
+  sample[2] = this->far_max;
   origin[0] = 0;
   origin[1] = 0;
-  origin[2] = this->near_max;
+  origin[2] = this->far_max;
 
   if (!perspective_proj(psample, sample, &proj)) abort();
   if (!perspective_proj(porigin, origin, &proj)) abort();
