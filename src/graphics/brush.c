@@ -194,9 +194,13 @@ static void draw_splotch(brush_accum*restrict accum,
                          unsigned max_bristle) {
   const unsigned char* splotch = splotches[accrand(accum) % NUM_SPLOTCHES];
   unsigned bristle, colour;
-  signed ixdiam16 = SPLOTCH_DIM * 65536 / xdiam;
-  signed iydiam16 = SPLOTCH_DIM * 65536 / ydiam;
+  signed ixdiam16, iydiam16;
   coord_offset x, y, cx, cy, tx, ty, sx, sy;
+
+  if (xdiam <= 0 || ydiam <= 0) return;
+
+  ixdiam16 = SPLOTCH_DIM * 65536 / xdiam;
+  iydiam16 = SPLOTCH_DIM * 65536 / ydiam;
 
   for (y = 0; y < ydiam; ++y) {
     sy = y * iydiam16 >> 16;
