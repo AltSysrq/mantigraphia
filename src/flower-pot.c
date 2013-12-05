@@ -138,11 +138,16 @@ static void flower_pot_scroll(flower_pot_state* this,
 #define STEM_BASE 80
 
 static canvas_pixel clay[TEXDIM*TEXDIM], soil[TEXDIM*TEXDIM];
-static const canvas_pixel clay_pallet[4] = {
+static const canvas_pixel clay_pallet[] = {
   argb(0, 0xFF, 0x66, 0x33),
   argb(0, 0xFF, 0x66, 0x00),
   argb(0, 0xCC, 0x66, 0x33),
   argb(0, 0xCC, 0x66, 0x00),
+  argb(0, 0xFF, 0x66, 0x33),
+  argb(0, 0xFF, 0x66, 0x00),
+  argb(0, 0xCC, 0x66, 0x33),
+  argb(0, 0xCC, 0x66, 0x00),
+  argb(0, 0x7F, 0x7F, 0x7F),
 };
 static const canvas_pixel soil_pallet[6] = {
   argb(0, 0x66, 0x33, 0x00),
