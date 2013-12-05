@@ -134,6 +134,7 @@ static void flower_pot_scroll(flower_pot_state* this,
 #define NPET_R 4
 #define NPET_H 5
 #define PET_W 64
+#define PET_YOFF 64
 #define STEM_H 400
 #define STEM_BASE 80
 
@@ -250,7 +251,8 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   brush_accum   baccum;
   perspective   proj;
   tiled_texture pot_texture, soil_texture;
-  unsigned      i;
+  unsigned      i, j;
+  signed        yscale;
   vc3           va, vb;
 
   /* Configure drawing utinsils */
@@ -340,4 +342,21 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
                     va, ZO_SCALING_FACTOR_MAX,
                     vb, ZO_SCALING_FACTOR_MAX);
   dm_proj_flush(&baccum, &brush_proj);
+
+  /* Draw branches to petals */
+  for (i = 0; i < NPET_R; ++i) {
+    for (j = 0; j <= NPET_H; ++j) {
+      yscale = (j == NPET_H? 2 : 1);
+      va[0] = METRE;
+      va[1] = (STEM_BASE + STEM_H/2 + STEM_H*j/NPET_H/2) * MILLIMETRE*10;
+      va[2] = METRE;
+      vb[0] = METRE + zo_cosms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
+      vb[1] = va[1] + PET_YOFF * MILLIMETRE*10 / yscale;
+      vb[2] = METRE + zo_sinms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
+      dm_proj_draw_line(&baccum, &brush_proj,
+                        va, ZO_SCALING_FACTOR_MAX / 2,
+                        vb, ZO_SCALING_FACTOR_MAX / 3);
+    }
+    dm_proj_flush(&baccum, &brush_proj);
+  }
 }
