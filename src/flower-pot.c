@@ -34,6 +34,7 @@
 
 #include "alloc.h"
 #include "coords.h"
+#include "defs.h"
 
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
@@ -130,6 +131,11 @@ static void flower_pot_scroll(flower_pot_state* this,
 
 #define TEXDIM 64
 #define ROTRES 32
+#define NPET_R 4
+#define NPET_H 5
+#define PET_W 64
+#define STEM_H 400
+#define STEM_BASE 80
 
 static canvas_pixel clay[TEXDIM*TEXDIM], soil[TEXDIM*TEXDIM];
 static const canvas_pixel clay_pallet[4] = {
@@ -151,12 +157,12 @@ static hull_triangle pot_mesh[ROTRES*4], soil_mesh[ROTRES];
 static coord_offset pot_verts[ROTRES*2*3], soil_verts[3*(ROTRES+1)];
 
 static const canvas_pixel plant_colours[6] = {
-  argb(0, 48, 0, 0),
-  argb(0, 64, 0, 0),
-  argb(0, 64, 0, 0),
-  argb(0, 72, 8, 8),
-  argb(0, 85, 16, 16),
-  argb(0, 108, 32, 32),
+  argb(0, 0, 48, 0),
+  argb(0, 0, 64, 0),
+  argb(0, 0, 64, 0),
+  argb(0, 8, 72, 8),
+  argb(0, 16, 85, 16),
+  argb(0, 32, 108, 32),
 };
 
 static const canvas_pixel petal_colours[4] = {
@@ -267,8 +273,8 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   brush_proj.proj = &proj;
   brush_proj.near_clipping = 1;
   brush_proj.near_max = 1;
-  brush_proj.far_max = 1;
-  brush_proj.far_clipping = 10 * METRE;
+  brush_proj.far_max = 1000*MILLIMETRE * 10;
+  brush_proj.far_clipping = 100 * METRE;
 
   pot_texture.texture = clay;
   pot_texture.w_mask = TEXDIM-1;
@@ -313,4 +319,20 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
               tiled_texture_fill_a,
               &soil_texture,
               &proj);
+
+  /* Draw stem, 1cm wide */
+  brush.size = dm_proj_calc_weight(&brush_proj, dst, MILLIMETRE * 10 * 10);
+  brush.colours = plant_colours;
+  brush.num_colours = lenof(plant_colours);
+  brush_prep(&baccum, &brush, dst, 0);
+  va[0] = METRE;
+  va[1] = STEM_BASE*MILLIMETRE * 10;
+  va[2] = METRE;
+  vb[0] = METRE;
+  vb[1] = (STEM_BASE+STEM_H)*MILLIMETRE * 10;
+  vb[2] = METRE;
+  dm_proj_draw_line(&baccum, &brush_proj,
+                    va, ZO_SCALING_FACTOR_MAX,
+                    vb, ZO_SCALING_FACTOR_MAX);
+  dm_proj_flush(&baccum, &brush_proj);
 }
