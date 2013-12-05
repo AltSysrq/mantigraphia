@@ -33,6 +33,7 @@
 #include <stdlib.h>
 
 #include "../coords.h"
+#include "../frac.h"
 #include "canvas.h"
 #include "abstract.h"
 #include "pencil.h"
@@ -105,6 +106,7 @@ void pencil_draw_line(
   unsigned thickf = thickness(dst, spec, from_weight);
   unsigned thickt = thickness(dst, spec, to_weight);
   signed thick;
+  fraction iil, idist;
 
   /* Round off with two endpoints */
   pencil_draw_point(dst, spec, from, from_weight);
@@ -123,18 +125,21 @@ void pencil_draw_line(
     yp = 0;
   }
 
+  iil = fraction_of(il);
+
   if (il > 0) {
     dist = isqrt(lx*lx + ly*ly);
+    idist = fraction_of(dist);
 
     for (i = 0; i <= il; ++i) {
-      z = (i*from[2] + (il-i)*to[2]) / il;
-      thick = (i*thickf + (il-i)*thickt) / il;
+      z = fraction_smul(i*from[2] + (il-i)*to[2], iil);
+      thick = fraction_smul(i*thickf + (il-i)*thickt, iil);
 
       for (t = 0; t < thick; ++t) {
-        x = (i*from[0] + (il-i)*to[0])/il -
-            (t-thick/2)*ly/dist;
-        y = (i*from[1] + (il-i)*to[1])/il +
-            (t-thick/2)*lx/dist;
+        x = fraction_smul(i*from[0] + (il-i)*to[0], iil) -
+            fraction_smul((t-thick/2)*ly, idist);
+        y = fraction_smul(i*from[1] + (il-i)*to[1], iil) +
+            fraction_smul((t-thick/2)*lx, idist);
 
         canvas_write_c(dst, x, y, spec->colour, z);
         canvas_write_c(dst, x+xp, y+yp, spec->colour, z);
