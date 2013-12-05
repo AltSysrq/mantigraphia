@@ -158,8 +158,10 @@ void hull_outline(canvas*restrict dst,
           perspective_proj(pa, ca, proj);
           perspective_proj(pb, cb, proj);
           /* Bump Z forward */
-          ++pa[2];
-          ++pb[2];
+          if (pa[2] < pb[2])
+            pa[2] = pb[2] = pa[2] - 1;
+          else
+            pa[2] = pb[2] = pb[2] - 1;
 
           /* Draw */
           dm_draw_line(dm_accum, method,
