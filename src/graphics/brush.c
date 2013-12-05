@@ -137,15 +137,25 @@ void brush_prep(brush_accum* accum, const brush_spec* spec,
 #ifdef PROFILE
 static unsigned short accrand(brush_accum*)
 __attribute__((noinline));
+static unsigned short lcgrand(unsigned* state)
+__attribute__((noinline));
 #endif
 static
 #ifndef PROFILE
 inline
 #endif
-unsigned short accrand(brush_accum* accum) {
+unsigned short lcgrand(unsigned* state) {
   /* Same LCG as glibc, probably a good choice */
-  accum->random_state = accum->random_state * 1103515245 + 12345;
-  return accum->random_state >> 16;
+  *state = (*state) * 1103515245 + 12345;
+  return (*state) >> 16;
+}
+
+static
+#ifndef PROFILE
+inline
+#endif
+unsigned short accrand(brush_accum* accum) {
+  return lcgrand(&accum->random_state);
 }
 
 #ifdef PROFILE
@@ -193,7 +203,7 @@ static void draw_splotch(brush_accum*restrict accum,
                          signed ydiam,
                          unsigned max_bristle) {
   const unsigned char* splotch = splotches[accrand(accum) % NUM_SPLOTCHES];
-  unsigned bristle, colour;
+  unsigned bristle, colour, noise_rand;
   signed ixdiam16, iydiam16;
   coord_offset x, y, cx, cy, tx, ty, sx, sy;
 
@@ -201,6 +211,7 @@ static void draw_splotch(brush_accum*restrict accum,
 
   ixdiam16 = SPLOTCH_DIM * 65536 / xdiam;
   iydiam16 = SPLOTCH_DIM * 65536 / ydiam;
+  noise_rand = accrand(accum);
 
   for (y = 0; y < ydiam; ++y) {
     sy = y * iydiam16 >> 16;
@@ -213,7 +224,7 @@ static void draw_splotch(brush_accum*restrict accum,
       colour = accum->bristles[bristle];
       if (colour > spec->num_colours) continue; /* dead bristle */
 
-      colour += accrand(accum) & spec->noise;
+      colour += lcgrand(&noise_rand) & spec->noise;
       if (colour > spec->num_colours) continue; /* dead bristle (noise) */
 
       cx = (x - xdiam/2);
@@ -260,7 +271,7 @@ void brush_draw_line(brush_accum*restrict accum,
   coord_offset lx, ly, dist, t, x, y, z, bx, by, thick;
   coord_offset lxd16, lyd16;
   unsigned this_step = 0, prev_step = 0, thickf, thickt;
-  unsigned i, bix;
+  unsigned i, bix, noise_rand;
   unsigned colour;
   unsigned char thickness_to_bristle[accum->basic_size];
   unsigned short noise;
@@ -270,6 +281,8 @@ void brush_draw_line(brush_accum*restrict accum,
   thickt = zo_scale(accum->basic_size, to_weight);
   if (!thickf) thickf = 1;
   if (!thickt) thickt = 1;
+
+  noise_rand = accrand(accum);
 
   for (i = 0; i < accum->basic_size; ++i)
     thickness_to_bristle[i] =
@@ -319,7 +332,7 @@ void brush_draw_line(brush_accum*restrict accum,
     by = (i*to[1] + (dist-i)*from[1]) / dist;
     z  = (i*to[2] + (dist-i)*from[2]) / dist;
     thick = (i*thickt + (dist-i)*thickf) / dist;
-    noise = accrand(accum);
+    noise = lcgrand(&noise_rand);
 
     for (t = 0; t < thick; ++t) {
       bix = thickness_to_bristle[t + (accum->basic_size - thick)/2];
