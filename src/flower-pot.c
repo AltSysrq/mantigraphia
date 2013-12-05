@@ -131,7 +131,7 @@ static void flower_pot_scroll(flower_pot_state* this,
 
 #define TEXDIM 64
 #define ROTRES 32
-#define NPET_R 4
+#define NPET_R 6
 #define NPET_H 5
 #define PET_W 32
 #define PET_YOFF 24
