@@ -133,9 +133,9 @@ static void flower_pot_scroll(flower_pot_state* this,
 #define ROTRES 32
 #define NPET_R 4
 #define NPET_H 5
-#define PET_W 64
-#define PET_YOFF 64
-#define STEM_H 400
+#define PET_W 32
+#define PET_YOFF 24
+#define STEM_H 200
 #define STEM_BASE 80
 
 static canvas_pixel clay[TEXDIM*TEXDIM], soil[TEXDIM*TEXDIM];
@@ -199,8 +199,8 @@ static void init_data(void) {
     h = (i? i-1 : ROTRES-1);
 
     cossinms(pot_verts + i*6+0, pot_verts + i*6+2, theta,
-             80 * MILLIMETRE*10);
-    pot_verts[i*6+1] = 0;
+             55 * MILLIMETRE*10);
+    pot_verts[i*6+1] = 30 * MILLIMETRE*10;
     pot_verts[i*6+3] = pot_verts[i*6+0];
     pot_verts[i*6+4] = 100 * MILLIMETRE*10;
     pot_verts[i*6+5] = pot_verts[i*6+2];
@@ -348,7 +348,7 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
     for (j = 0; j <= NPET_H; ++j) {
       yscale = (j == NPET_H? 2 : 1);
       va[0] = METRE;
-      va[1] = (STEM_BASE + STEM_H/2 + STEM_H*j/NPET_H/2) * MILLIMETRE*10;
+      va[1] = (STEM_BASE + STEM_H/3 + STEM_H*2*j/NPET_H/3) * MILLIMETRE*10;
       va[2] = METRE;
       vb[0] = METRE + zo_cosms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
       vb[1] = va[1] + PET_YOFF * MILLIMETRE*10 / yscale;
@@ -369,7 +369,7 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
     for (j = 0; j <= NPET_H; ++j) {
       yscale = (j == NPET_H? 2 : 1);
       vb[0] = METRE + zo_cosms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
-      vb[1] = (STEM_BASE + STEM_H/2 + STEM_H*j/NPET_H/2 + PET_YOFF / yscale) * MILLIMETRE*10;
+      vb[1] = (STEM_BASE + STEM_H/3 + STEM_H*2*j/NPET_H/3 + PET_YOFF / yscale) * MILLIMETRE*10;
       vb[2] = METRE + zo_sinms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
       dm_proj_draw_point(&baccum, &brush_proj,
                          vb, ZO_SCALING_FACTOR_MAX);
