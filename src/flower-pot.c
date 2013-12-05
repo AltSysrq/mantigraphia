@@ -44,6 +44,7 @@
 #include "graphics/linear-paint-tile.h"
 #include "graphics/hull.h"
 #include "graphics/dm-proj.h"
+#include "graphics/tscan.h"
 
 #include "flower-pot.h"
 
@@ -191,9 +192,9 @@ static void init_data(void) {
     pot_verts[i*6+3] = pot_verts[i*6+0];
     pot_verts[i*6+4] = 100 * MILLIMETRE*10;
     pot_verts[i*6+5] = pot_verts[i*6+2];
-    soil_verts[3 + i*3+0] = pot_verts[i*6+0];
+    soil_verts[3 + i*3+0] = pot_verts[i*6+0] * 250 / 256;
     soil_verts[3 + i*3+1] = 85 * MILLIMETRE*10;
-    soil_verts[3 + i*3+2] = pot_verts[i*6+2];
+    soil_verts[3 + i*3+2] = pot_verts[i*6+2] * 250 / 256;
 
     pot_mesh[i*4 + 0].vert[0] = i*2+0;
     pot_mesh[i*4 + 0].vert[1] = j*2+0;
@@ -259,6 +260,7 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
 
   pencil_init(&pencil);
   pencil.colour = 0;
+  pencil.thickness *= 2;
 
   dm_init(&brush_proj);
   brush_proj.delegate = (drawing_method*)&brush;
