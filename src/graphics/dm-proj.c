@@ -86,8 +86,9 @@ zo_scaling_factor dm_proj_calc_weight(const dm_proj* this,
 }
 
 static zo_scaling_factor adjust_weight(const dm_proj* this,
-                                       zo_scaling_factor weight,
+                                       zo_scaling_factor sweight,
                                        const vo3 point) {
+  signed long long weight = sweight;
   vo3 xnorm;
   coord_offset z = point[2];
 
