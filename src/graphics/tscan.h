@@ -30,6 +30,7 @@
 #define GRAPHICS_TSCAN_H_
 
 #include "../coords.h"
+#include "../frac.h"
 #include "canvas.h"
 #include "../defs.h"
 
@@ -99,27 +100,27 @@ typedef void (*triangle_shader)(canvas*restrict,
                    void* userdata) {                                    \
     coord_offset x, xl, xh, dx, y, dy, z[nz], zl[nz], zh[nz];           \
     signed long long xo, yo;                                            \
-    coord_offset idy16, idx16;                                          \
+    fraction idy, idx;                                                  \
     unsigned i;                                                         \
                                                                         \
     dy = y1 - y0;                                                       \
     if (!dy) return; /* degenerate */                                   \
-    idy16 = 65536 / dy;                                                 \
+    idy = fraction_of(dy);                                              \
     for (y = (y0 > 0? y0 : 0); y <= y1 && y < (signed)dst->h; ++y) {    \
       yo = y - y0;                                                      \
-      xl = ((dy-yo)*xt + yo*xb0) * idy16 >> 16;                         \
-      xh = ((dy-yo)*xt + yo*xb1) * idy16 >> 16;                         \
+      xl = fraction_smul((dy-yo)*xt + yo*xb0, idy);                     \
+      xh = fraction_smul((dy-yo)*xt + yo*xb1, idy);                     \
       for (i = 0; i < nz; ++i) {                                        \
-        zl[i] = ((dy-yo)*zt[i] + yo*zb0[i]) * idy16 >> 16;              \
-        zh[i] = ((dy-yo)*zt[i] + yo*zb1[i]) * idy16 >> 16;              \
+        zl[i] = fraction_smul((dy-yo)*zt[i] + yo*zb0[i], idy);          \
+        zh[i] = fraction_smul((dy-yo)*zt[i] + yo*zb1[i], idy);          \
       }                                                                 \
       dx = xh-xl;                                                       \
       if (!dx) continue; /* nothing to draw */                          \
-      idx16 = 65536 / dx;                                               \
-      for (x = (xl > 0? xl : 0); x <= xh+1 && x < (signed)dst->w; ++x) { \
+      idx = fraction_of(dx);                                            \
+      for (x = (xl > 0? xl : 0); x <= xh+1 && x < (signed)dst->w; ++x) {\
         xo = x-xl;                                                      \
         for (i = 0; i < nz; ++i)                                        \
-          z[i] = ((dx-xo)*zl[i] + xo*zh[i]) * idx16 >> 16;              \
+          z[i] = fraction_smul((dx-xo)*zl[i] + xo*zh[i], idx);          \
         shader(userdata, x, y, z);                                      \
       }                                                                 \
     }                                                                   \
@@ -139,27 +140,27 @@ typedef void (*triangle_shader)(canvas*restrict,
                    void* userdata) {                                    \
     coord_offset x, xl, xh, dx, y, dy, z[nz], zl[nz], zh[nz];           \
     signed long long xo, yo;                                            \
-    coord_offset idy16, idx16;                                          \
+    fraction idx, idy;                                                  \
     unsigned i;                                                         \
                                                                         \
     dy = y0 - y1;                                                       \
     if (!dy) return; /* degenerate */                                   \
-    idy16 = 65536 / dy;                                                 \
+    idy = fraction_of(dy);                                              \
     for (y = (y1 > 0? y1 : 0); y <= y0 && y < (signed)dst->h; ++y) {    \
       yo = y - y1;                                                      \
-      xl = ((dy-yo)*xb0 + yo*xt) * idy16 >> 16;                         \
-      xh = ((dy-yo)*xb1 + yo*xt) * idy16 >> 16;                         \
+      xl = fraction_smul((dy-yo)*xb0 + yo*xt, idy);                     \
+      xh = fraction_smul((dy-yo)*xb1 + yo*xt, idy);                     \
       for (i = 0; i < nz; ++i) {                                        \
-        zl[i] = ((dy-yo)*zb0[i] + yo*zt[i]) * idy16 >> 16;              \
-        zh[i] = ((dy-yo)*zb1[i] + yo*zt[i]) * idy16 >> 16;              \
+        zl[i] = fraction_smul((dy-yo)*zb0[i] + yo*zt[i], idy);          \
+        zh[i] = fraction_smul((dy-yo)*zb1[i] + yo*zt[i], idy);          \
       }                                                                 \
       dx = xh-xl;                                                       \
       if (!dx) continue; /* nothing to draw here */                     \
-      idx16 = 65536 / dx;                                               \
-      for (x = (xl > 0? xl : 0); x <= xh+1 && x < (signed)dst->w; ++x) { \
+      idx = fraction_of(dx);                                            \
+      for (x = (xl > 0? xl : 0); x <= xh+1 && x < (signed)dst->w; ++x) {\
         xo = x-xl;                                                      \
         for (i = 0; i < nz; ++i)                                        \
-          z[i] = ((dx-xo)*zl[i] + xo*zh[i]) * idx16 >> 16;              \
+          z[i] = fraction_smul((dx-xo)*zl[i] + xo*zh[i], idx);          \
         shader(userdata, x, y, z);                                      \
       }                                                                 \
     }                                                                   \
