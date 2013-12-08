@@ -23,6 +23,7 @@ graphics/perspective.c \
 graphics/hull.c \
 graphics/dm-proj.c \
 world/world.c \
+world/terrain.c \
 flower-pot.c
 
 trigtab.c: gentrigtab
