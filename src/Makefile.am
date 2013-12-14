@@ -22,6 +22,7 @@ graphics/linear-paint-tile.c \
 graphics/perspective.c \
 graphics/hull.c \
 graphics/dm-proj.c \
+graphics/sybmap.c \
 world/world.c \
 world/terrain.c \
 flower-pot.c
