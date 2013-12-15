@@ -25,6 +25,7 @@ graphics/dm-proj.c \
 graphics/sybmap.c \
 world/world.c \
 world/terrain.c \
+render/terrain.c \
 flower-pot.c
 
 trigtab.c: gentrigtab
