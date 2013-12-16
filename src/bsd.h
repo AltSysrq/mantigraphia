@@ -26,15 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef L3_BSD_H_
-#define L3_BSD_H_
+#ifndef BSD_H_
+#define BSD_H_
 
 /* Since GNU's "libbsd" package for some reason puts the headers in a different
  * location, despite its sole purpose being to provide compatibility with
  * applications using the BSD extensions, we need this bit of logic to figure
  * out where the includes are.
- *
- * Also includes functions very commonly needed (ie, for splay trees).
  */
 
 #if HAVE_BSD_ERR_H
@@ -69,13 +67,4 @@
 #error "No BSD sysexits.h could be found on your system. (See libbsd-dev on GNU.)"
 #endif
 
-static inline int l3_splay_compare_leading_unsigned(
-  const void* va, const void* vb
-) {
-  const unsigned* a = va, * b = vb;
-  if (*a == *b) return 0;
-  if (*a <  *b) return -1;
-  else          return +1;
-}
-
-#endif /* L3_BSD_H_ */
+#endif /* BSD_H_ */
