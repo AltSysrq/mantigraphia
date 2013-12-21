@@ -73,4 +73,11 @@ int sybmap_test(const sybmap*,
  */
 void sybmap_put(sybmap*, const vo3, const vo3, const vo3);
 
+/**
+ * Copies the data of the source sybmap into the destination sybmap. Behaviour
+ * is undefined if the two sybmaps were created with differring parameters to
+ * sybmap_new().
+ */
+void sybmap_copy(sybmap*, const sybmap*);
+
 #endif /* GRAPHICS_SYBMAP_H_ */

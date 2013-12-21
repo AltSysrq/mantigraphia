@@ -62,7 +62,8 @@ SHADE_TRIANGLE(shade_terrain, shade_terrain_pixel, 4)
 void render_terrain_tile(canvas* dst, sybmap* syb,
                          const basic_world* world,
                          const perspective* proj,
-                         coord tx, coord tz) {
+                         coord tx, coord tz,
+                         unsigned char szshift) {
   vc3 world_coords[4];
   vo3 screen_coords[4];
   terrain_interp_data interp[4];
@@ -71,22 +72,22 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
   coord tz1 = (tz+1) & (world->zmax-1);
   unsigned i;
 
-  world_coords[0][0] = tx * TILE_SZ;
+  world_coords[0][0] = tx * TILE_SZ << szshift;
   world_coords[0][1] = world->tiles[basic_world_offset(world, tx, tz)]
     .elts[0].altitude * TILE_YMUL;
-  world_coords[0][2] = tz * TILE_SZ;
+  world_coords[0][2] = tz * TILE_SZ << szshift;
   world_coords[1][0] = tx1 * TILE_SZ;
   world_coords[1][1] = world->tiles[basic_world_offset(world, tx1, tz)]
     .elts[0].altitude * TILE_YMUL;
-  world_coords[1][2] = tz * TILE_SZ;
-  world_coords[2][0] = tx * TILE_SZ;
+  world_coords[1][2] = tz * TILE_SZ << szshift;
+  world_coords[2][0] = tx * TILE_SZ << szshift;
   world_coords[2][1] = world->tiles[basic_world_offset(world, tx, tz1)]
     .elts[0].altitude * TILE_YMUL;
-  world_coords[2][2] = tz1 * TILE_SZ;
-  world_coords[3][0] = tx1 * TILE_SZ;
+  world_coords[2][2] = tz1 * TILE_SZ << szshift;
+  world_coords[3][0] = tx1 * TILE_SZ << szshift;
   world_coords[3][1] = world->tiles[basic_world_offset(world, tx1, tz1)]
     .elts[0].altitude * TILE_YMUL;
-  world_coords[3][2] = tz1 * TILE_SZ;
+  world_coords[3][2] = tz1 * TILE_SZ << szshift;
 
   has_012 &= has_123 &= perspective_proj(screen_coords[1], world_coords[1],
                                          proj);

@@ -154,3 +154,9 @@ void sybmap_put(sybmap* this, const vo3 vl, const vo3 vm, const vo3 vr) {
       this->entries[x].max = ymax;
   }
 }
+
+void sybmap_copy(sybmap* dst, const sybmap* src) {
+  memcpy(dst, src,
+         offsetof(sybmap, entries) +
+         src->w*sizeof(sybmap_entry));
+}

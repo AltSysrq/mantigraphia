@@ -25,26 +25,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RENDER_TERRAIN_H_
-#define RENDER_TERRAIN_H_
+#ifndef RENDER_WORLD_H_
+#define RENDER_WORLD_H_
 
-#include "../coords.h"
 #include "../graphics/canvas.h"
 #include "../graphics/sybmap.h"
 #include "../graphics/perspective.h"
 #include "../world/world.h"
 
 /**
- * Renders a terrain tile to the given canvas and sybmap, which is at the given
- * tile coordinates in the given world.
+ * Renders all visible tiles in the given basic_world.
  *
- * Terrain tiles MUST be rendered front-to-back in order for usage of the
- * sybmap to make sense.
+ * @param dst The canvas to which to render
+ * @param coverage Four scratch sybmaps for visibility testing. coverage[0]
+ * should be clear when this is called; the others will be destroyed by this
+ * call. When the call completes, the coverage information in each sybmap is
+ * only partial; further usage of any of them would require merging all four.
  */
-void render_terrain_tile(canvas*, sybmap*,
-                         const basic_world*,
-                         const perspective*,
-                         coord tx, coord tz,
-                         unsigned char size_shift);
+void basic_world_render(
+  canvas* dst,
+  sybmap* coverage[4],
+  const basic_world*restrict,
+  const perspective*);
 
-#endif /* RENDER_TERRAIN_H_ */
+#endif /* RENDER_WORLD_H_ */

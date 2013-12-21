@@ -99,4 +99,14 @@ int perspective_proj(vo3 dst,
                      const vc3 src,
                      const perspective*);
 
+/**
+ * Projects src (relative coordinates, as per perspective_xlate()) into dst
+ * (orthogonal screen coordinates) according to the given perspective.
+ *
+ * Returns 0 if src cannot be projected into screen coordinates (eg, resulting
+ * in a negative screen Z value). In this case, the contents of dst are
+ * destroyed and undefined.
+ */
+int perspective_proj_rel(vo3 dst, const vo3 src, const perspective*);
+
 #endif /* GRAPHICS_PERSPECTIVE_H_ */
