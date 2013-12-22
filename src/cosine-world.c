@@ -134,7 +134,7 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   }
 
   proj.camera[0] = this->x;
-  proj.camera[1] = 50 * METRE;
+  proj.camera[1] = terrain_base_y(this->world, this->x, this->z) + 2*METRE;
   proj.camera[2] = this->z;
   proj.torus_w = this->world->xmax * TILE_SZ;
   proj.torus_h = this->world->zmax * TILE_SZ;

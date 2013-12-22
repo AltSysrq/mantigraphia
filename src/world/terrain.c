@@ -40,7 +40,7 @@ static inline coord_offset altitude(const basic_world* world,
 }
 
 coord terrain_base_y(const basic_world* world, coord x, coord z) {
-  coord ox = x % TILE_SZ, oz = z % TILE_SZ;
+  unsigned long long ox = x % TILE_SZ, oz = z % TILE_SZ;
   x /= TILE_SZ;
   z /= TILE_SZ;
   coord x2 = (x+1) & (world->xmax-1), z2 = (z+1) & (world->zmax-1);
