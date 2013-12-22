@@ -77,7 +77,7 @@ game_state* cosine_world_new(void) {
     1,
     0, 0, 0, 0,
     parchment_new(),
-    basic_world_new(SIZE, SIZE, SIZE, SIZE),
+    basic_world_new(SIZE, SIZE, SIZE/8, SIZE/8),
   };
 
   cosine_world_state* this = xmalloc(sizeof(cosine_world_state));

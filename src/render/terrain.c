@@ -78,7 +78,7 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
   world_coords[0][1] = world->tiles[basic_world_offset(world, tx, tz)]
     .elts[0].altitude * TILE_YMUL;
   world_coords[0][2] = logical_tz * TILE_SZ << szshift;
-  world_coords[1][0] = (logical_tx+1) * TILE_SZ;
+  world_coords[1][0] = (logical_tx+1) * TILE_SZ << szshift;
   world_coords[1][1] = world->tiles[basic_world_offset(world, tx1, tz)]
     .elts[0].altitude * TILE_YMUL;
   world_coords[1][2] = logical_tz * TILE_SZ << szshift;
