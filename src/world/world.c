@@ -114,17 +114,21 @@ void basic_world_patch_next(basic_world* large, coord x, coord z) {
       }
     }
 
-    /* Terrain altitude is the average of the four */
-    alt = 0;
+    /* Terrain altitude is the minimum of the four.
+     * It's less mathematically correct, but it prevents gaps in the terrain
+     * due to changes in lod from showing, which we would get with an average.
+     */
+    alt = ~0;
     for (oz = 0; oz < 2; ++oz) {
       for (ox = 0; ox < 2; ++ox) {
         loff = basic_world_offset(large,
                                   (x+ox) & (large->xmax-1),
                                   (z+oz) & (large->zmax-1));
-        alt += large->tiles[loff].elts[0].altitude;
+        if (large->tiles[loff].elts[0].altitude < alt)
+          alt = large->tiles[loff].elts[0].altitude;
       }
     }
-    small->tiles[soff].elts[0].altitude = alt/4;
+    small->tiles[soff].elts[0].altitude = alt;
 
     /* Move to next level */
     large = small;
