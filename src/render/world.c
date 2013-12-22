@@ -72,7 +72,6 @@ static int render_one_tile(
   const basic_world*restrict world,
   const perspective* proj,
   coord tx0, coord tz0,
-  coord_offset logical_tx, coord_offset logical_tz,
   unsigned char level)
 {
   coord tx1 = ((tx0+1) & (world->xmax-1));
@@ -84,10 +83,10 @@ static int render_one_tile(
   int any_projected = 0, has_screen_x = 0;
 
   /* Calculate world bounding box */
-  x0 = (logical_tx+0) * TILE_SZ << level;
-  x1 = (logical_tx+1) * TILE_SZ << level;
-  z0 = (logical_tz+0) * TILE_SZ << level;
-  z1 = (logical_tz+1) * TILE_SZ << level;
+  x0 = tx0 * TILE_SZ << level;
+  x1 = tx1 * TILE_SZ << level;
+  z0 = tz0 * TILE_SZ << level;
+  z1 = tz1 * TILE_SZ << level;
   y0 = y1 = altitude(world, tx0, tz0);
   extremau(&y0, &y1, altitude(world, tx1, tz0));
   extremau(&y0, &y1, altitude(world, tx0, tz1));
@@ -95,17 +94,15 @@ static int render_one_tile(
 
   /* Test coordinates and calculate screen bounding box */
   scx0 = dst->w;
-  scx1 = 0;
+  scx1 = -1;
   scy0 = dst->h;
-  scy1 = 0;
+  scy1 = -1;
 #define TEST(x,y,z)                                     \
   point[0] = x; point[1] = y; point[2] = z;             \
   if (perspective_proj(ppoint, point, proj)) {          \
     any_projected = 1;                                  \
-    if (ppoint[0] >= 0 && ppoint[0] < (signed)dst->w)   \
-      has_screen_x = 1;                                 \
-    extremas(&scx0, &scx1, point[0]);                   \
-    extremas(&scy0, &scy1, point[1]);                   \
+    extremas(&scx0, &scx1, ppoint[0]);                  \
+    extremas(&scy0, &scy1, ppoint[1]);                  \
   }
   TEST(x0, y0, z0);
   TEST(x0, y0, z1);
@@ -117,13 +114,15 @@ static int render_one_tile(
   TEST(x1, y1, z1);
 #undef TEST
 
+  has_screen_x = (scx0 < (signed)dst->w && scx1 >= 0);
+
   if (!any_projected || !has_screen_x)
     return 0;
 
   if (sybmap_test(coverage, scx0, scx1, scy0, scy1))
     render_terrain_tile(dst, coverage, world, proj, tx0, tz0,
-                        logical_tx, logical_tz, level);
-  return level <= 0;
+                        tx0, tz0, level);
+  return 1;
 }
 
 /**
@@ -147,15 +146,15 @@ static int render_one_tile(
   if (i > max) min = i;                                 \
   /* Render tiles until boundary is reached */          \
   while (i <= max) {                                    \
+    ++i;                                                \
     if (!expr_render) {                                 \
       max = i-1;                                        \
       break;                                            \
     }                                                   \
-    ++i;                                                \
   }
 
 #define REDUCE_LEVEL                                      \
-  while (world && ((major >> level) > 128))               \
+  while (world && ((major >> level) > 16))                \
     world = SLIST_NEXT(world, next), ++level, major /= 2, \
       minor_min /= 2, minor_max /= 2, cx /= 2, cz /= 2
 
@@ -170,15 +169,13 @@ static int render_one_tile(
     coord cz = proj->camera[2] / TILE_SZ;                              \
     unsigned char level = 0;                                           \
     REDUCE_LEVEL;                                                      \
-    while (world) {                                                    \
+    while (world && major < world->xmax/2) {                           \
       RENDER_SEGMENT(render_one_tile(                                  \
                        dst, coverage, world, proj,                     \
                        coord_calc_x(major,minor,cx) &                  \
                        (world->xmax-1),                                \
                        coord_calc_z(major,minor,cz) &                  \
                        (world->zmax-1),                                \
-                       coord_calc_x(major,minor,cx),                   \
-                       coord_calc_z(major,minor,cz),                   \
                        level), minor_min, minor_max,                   \
                      minor);                                           \
       if (minor_min > minor_max) break;                                \
@@ -204,7 +201,7 @@ static inline coord_offset sr_pmaj(coord major, coord_offset minor,
 
 static inline coord_offset sr_nmaj(coord major, coord_offset minor,
                                    coord base) {
-  return base - minor;
+  return base - major;
 }
 
 SEGMENT_RENDERER(render_segment_north, sr_pmin, sr_nmaj)
@@ -212,7 +209,7 @@ SEGMENT_RENDERER(render_segment_east , sr_pmaj, sr_pmin)
 SEGMENT_RENDERER(render_segment_south, sr_nmin, sr_pmaj)
 SEGMENT_RENDERER(render_segment_west , sr_nmaj, sr_nmin)
 
-void basic_world_render_faster(
+void basic_world_render(
   canvas* dst,
   sybmap* coverage[4],
   const basic_world*restrict world,
@@ -223,7 +220,6 @@ void basic_world_render_faster(
   /* Render tile at camera position (not included in any segment) */
   render_one_tile(dst, coverage[0], world, proj,
                   proj->camera[0] / TILE_SZ, proj->camera[2] / TILE_SZ,
-                  proj->camera[0] / TILE_SZ, proj->camera[2] / TILE_SZ,
                   0);
 
   for (i = 0; i < 3; ++i)
@@ -233,20 +229,4 @@ void basic_world_render_faster(
   render_segment_east (dst, coverage[1], world, proj);
   render_segment_south(dst, coverage[2], world, proj);
   render_segment_west (dst, coverage[3], world, proj);
-}
-
-void basic_world_render(
-  canvas* dst,
-  sybmap* coverage[4],
-  const basic_world*restrict world,
-  const perspective* proj)
-{
-  coord x, z;
-
-  for (z = 0; z < world->zmax; ++z) {
-    for (x = 0; x < world->xmax/2; ++x) {
-      render_terrain_tile(dst, coverage[0], world, proj,
-                          x, z, x, z, 0);
-    }
-  }
 }
