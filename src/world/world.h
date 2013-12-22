@@ -124,8 +124,7 @@ typedef struct basic_world_s {
  */
 static unsigned basic_world_offset(const basic_world* world,
                                    coord x, coord z) {
-  assert(x < world->xmax && z < world->zmax);
-  return x + world->zmax * z;
+  return x + world->xmax * z;
 }
 
 /**

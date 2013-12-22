@@ -46,7 +46,7 @@
 
 #include "cosine-world.h"
 
-#define SIZE 256
+#define SIZE 1024
 
 typedef struct {
   game_state vtab;
@@ -104,7 +104,7 @@ static void cosine_world_init_world(cosine_world_state* this) {
     for (x = 0; x < SIZE; ++x) {
       this->world->tiles[basic_world_offset(this->world, x, z)]
         .elts[0].altitude =
-        (zo_cosms((x+z)*(65536/SIZE), 10*METRE) + 20*METRE) / TILE_YMUL;
+        (zo_cosms((x+z)*256, 10*METRE) + 20*METRE) / TILE_YMUL;
     }
   }
 

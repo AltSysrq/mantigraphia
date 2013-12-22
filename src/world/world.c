@@ -128,8 +128,8 @@ void basic_world_patch_next(basic_world* large, coord x, coord z) {
 
     /* Move to next level */
     large = small;
-    x = sx;
-    z = sz;
+    x = sx &~ 1;
+    z = sz &~ 1;
   }
 }
 
