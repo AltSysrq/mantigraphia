@@ -101,7 +101,9 @@ void basic_world_patch_next(basic_world* large, coord x, coord z) {
       strongest = 256;
       for (oz = 0; oz < 2; ++oz) {
         for (ox = 0; ox < 2; ++ox) {
-          loff = basic_world_offset(large, x+ox, z+oz);
+          loff = basic_world_offset(large,
+                                    (x+ox) & (large->xmax-1),
+                                    (z+oz) & (large->zmax-1));
           if (large->tiles[loff].elts[elt].type < strongest) {
             strongest = large->tiles[loff].elts[elt].type;
             memcpy(&small->tiles[soff].elts[elt],
@@ -116,7 +118,9 @@ void basic_world_patch_next(basic_world* large, coord x, coord z) {
     alt = 0;
     for (oz = 0; oz < 2; ++oz) {
       for (ox = 0; ox < 2; ++ox) {
-        loff = basic_world_offset(large, x+ox, z+oz);
+        loff = basic_world_offset(large,
+                                  (x+ox) & (large->xmax-1),
+                                  (z+oz) & (large->zmax-1));
         alt += large->tiles[loff].elts[0].altitude;
       }
     }
@@ -124,6 +128,8 @@ void basic_world_patch_next(basic_world* large, coord x, coord z) {
 
     /* Move to next level */
     large = small;
+    x = sx;
+    z = sz;
   }
 }
 

@@ -25,28 +25,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RENDER_TERRAIN_H_
-#define RENDER_TERRAIN_H_
+#ifndef COSINE_WORLD_H_
+#define COSINE_WORLD_H_
 
-#include "../coords.h"
-#include "../graphics/canvas.h"
-#include "../graphics/sybmap.h"
-#include "../graphics/perspective.h"
-#include "../world/world.h"
+#include "game-state.h"
 
 /**
- * Renders a terrain tile to the given canvas and sybmap, which is at the given
- * tile coordinates in the given world.
- *
- * Terrain tiles MUST be rendered front-to-back in order for usage of the
- * sybmap to make sense.
+ * Creates a new instance of the "cosine world" demo, which runs until the ESC
+ * key is pressed.
  */
-void render_terrain_tile(canvas*, sybmap*,
-                         const basic_world*,
-                         const perspective*,
-                         coord tx, coord tz,
-                         coord_offset logical_tx,
-                         coord_offset logical_ty,
-                         unsigned char size_shift);
+game_state* cosine_world_new(void);
 
-#endif /* RENDER_TERRAIN_H_ */
+#endif /* COSINE_WORLD_H_ */

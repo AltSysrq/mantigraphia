@@ -63,6 +63,8 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
                          const basic_world* world,
                          const perspective* proj,
                          coord tx, coord tz,
+                         coord_offset logical_tx,
+                         coord_offset logical_tz,
                          unsigned char szshift) {
   vc3 world_coords[4];
   vo3 screen_coords[4];
@@ -72,22 +74,22 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
   coord tz1 = (tz+1) & (world->zmax-1);
   unsigned i;
 
-  world_coords[0][0] = tx * TILE_SZ << szshift;
+  world_coords[0][0] = logical_tx * TILE_SZ << szshift;
   world_coords[0][1] = world->tiles[basic_world_offset(world, tx, tz)]
     .elts[0].altitude * TILE_YMUL;
-  world_coords[0][2] = tz * TILE_SZ << szshift;
-  world_coords[1][0] = tx1 * TILE_SZ;
+  world_coords[0][2] = logical_tz * TILE_SZ << szshift;
+  world_coords[1][0] = (logical_tx+1) * TILE_SZ;
   world_coords[1][1] = world->tiles[basic_world_offset(world, tx1, tz)]
     .elts[0].altitude * TILE_YMUL;
-  world_coords[1][2] = tz * TILE_SZ << szshift;
-  world_coords[2][0] = tx * TILE_SZ << szshift;
+  world_coords[1][2] = logical_tz * TILE_SZ << szshift;
+  world_coords[2][0] = logical_tx * TILE_SZ << szshift;
   world_coords[2][1] = world->tiles[basic_world_offset(world, tx, tz1)]
     .elts[0].altitude * TILE_YMUL;
-  world_coords[2][2] = tz1 * TILE_SZ << szshift;
-  world_coords[3][0] = tx1 * TILE_SZ << szshift;
+  world_coords[2][2] = (logical_tz+1) * TILE_SZ << szshift;
+  world_coords[3][0] = (logical_tx+1) * TILE_SZ << szshift;
   world_coords[3][1] = world->tiles[basic_world_offset(world, tx1, tz1)]
     .elts[0].altitude * TILE_YMUL;
-  world_coords[3][2] = tz1 * TILE_SZ << szshift;
+  world_coords[3][2] = (logical_tz+1) * TILE_SZ << szshift;
 
   has_012 &= has_123 &= perspective_proj(screen_coords[1], world_coords[1],
                                          proj);
@@ -106,7 +108,7 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
                   screen_coords[0], (coord_offset*)&interp[0],
                   screen_coords[1], (coord_offset*)&interp[1],
                   screen_coords[2], (coord_offset*)&interp[2],
-                  NULL);
+                  dst);
     sybmap_put(syb, screen_coords[0], screen_coords[1], screen_coords[2]);
   }
 
@@ -115,7 +117,7 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
                   screen_coords[1], (coord_offset*)&interp[1],
                   screen_coords[2], (coord_offset*)&interp[2],
                   screen_coords[3], (coord_offset*)&interp[3],
-                  NULL);
+                  dst);
     sybmap_put(syb, screen_coords[1], screen_coords[2], screen_coords[3]);
   }
 }

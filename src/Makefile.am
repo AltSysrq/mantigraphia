@@ -27,7 +27,8 @@ world/world.c \
 world/terrain.c \
 render/terrain.c \
 render/world.c \
-flower-pot.c
+flower-pot.c \
+cosine-world.c
 
 trigtab.c: gentrigtab
 	./gentrigtab >trigtab.c

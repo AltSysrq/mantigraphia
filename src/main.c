@@ -41,7 +41,7 @@
 #include "graphics/parchment.h"
 #include "graphics/brush.h"
 #include "game-state.h"
-#include "flower-pot.h"
+#include "cosine-world.h"
 
 static game_state* update(game_state*);
 static void draw(canvas*, game_state*, SDL_Texture*, SDL_Renderer*);
@@ -97,7 +97,7 @@ int main(void) {
   if (!texture)
     errx(EX_UNAVAILABLE, "Unable to create screen texture: %s", SDL_GetError());
 
-  state = flower_pot_new();
+  state = cosine_world_new();
 
   do {
     draw(canv, state, texture, renderer);

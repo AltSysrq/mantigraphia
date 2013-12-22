@@ -56,9 +56,14 @@ void perspective_xlate(vo3 dst,
                        const vc3 src,
                        const perspective* this) {
   vo3 tx, rty;
+  vc3 src_clamped;
+
+  src_clamped[0] = src[0] & (this->torus_w-1);
+  src_clamped[1] = src[1];
+  src_clamped[2] = src[2] & (this->torus_h-1);
 
   /* Translate */
-  vc3dist(tx, src, this->camera, this->torus_w, this->torus_h);
+  vc3dist(tx, src_clamped, this->camera, this->torus_w, this->torus_h);
   /* Rotate Y */
   rty[0] = zo_scale(tx[0], this->yrot_cos) - zo_scale(tx[2], this->yrot_sin);
   rty[1] = tx[1];
@@ -76,13 +81,13 @@ int perspective_proj_rel(vo3 dst,
   vo3 rtx;
 
   /* Scale Z for FOV and screen, invert Z axis to match screen coords */
-  scaled_z = -zo_scale(rtx[2], this->zscale);
+  scaled_z = -zo_scale(src[2], this->zscale);
   /* Discard if in front of the near clipping plane */
   if (scaled_z <= this->near_clipping_plane) return 0;
 
   /* Scale X and Y by Z */
-  rtx[0] /= src[0] / scaled_z;
-  rtx[1] /= src[1] / scaled_z;
+  rtx[0] = src[0] / scaled_z;
+  rtx[1] = src[1] / scaled_z;
   rtx[2] = src[2];
 
   /* Translate into screen coordinates */
