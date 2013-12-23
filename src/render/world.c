@@ -179,7 +179,7 @@ void basic_world_render(
 #undef C
     }
 
-    if ((dist >> level) > 16) {
+    if ((dist >> level/2) > 16) {
       world = SLIST_NEXT(world, next);
       dist /= 2;
       cx /= 2;

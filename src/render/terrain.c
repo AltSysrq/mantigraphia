@@ -43,7 +43,7 @@
  */
 typedef struct {
   coord_offset screen_z;
-  vc3 world_coords;
+  coord_offset red, green, blue;
 } terrain_interp_data;
 
 static void shade_terrain_pixel(canvas* dst,
@@ -51,9 +51,7 @@ static void shade_terrain_pixel(canvas* dst,
                                 const coord_offset* vinterps) {
   const terrain_interp_data* interp = (const terrain_interp_data*)vinterps;
   canvas_write(dst, x, y,
-               argb(255, interp->world_coords[0] / TILE_SZ,
-                    interp->world_coords[1] / TILE_SZ,
-                    interp->world_coords[2] / TILE_SZ),
+               argb(255, interp->red, interp->green, interp->blue),
                interp->screen_z);
 }
 
@@ -100,7 +98,9 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
 
   for (i = 0; i < 4; ++i) {
     interp[i].screen_z = screen_coords[i][2];
-    memcpy(interp[i].world_coords, world_coords[i], sizeof(vc3));
+    interp[i].red = (world_coords[i][0] / TILE_SZ) & 0xFF;
+    interp[i].green = (world_coords[i][1] / TILE_SZ) & 0xFF;
+    interp[i].blue = (world_coords[i][2] / TILE_SZ) & 0xFF;
   }
 
   if (has_012) {

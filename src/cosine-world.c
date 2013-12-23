@@ -47,7 +47,7 @@
 
 #include "cosine-world.h"
 
-#define SIZE 1024
+#define SIZE 4096
 
 typedef struct {
   game_state vtab;
@@ -79,7 +79,7 @@ game_state* cosine_world_new(void) {
     0, 0,
     { 0, 0 },
     parchment_new(),
-    basic_world_new(SIZE, SIZE, SIZE/8, SIZE/8),
+    basic_world_new(SIZE, SIZE, SIZE/256, SIZE/256),
   };
 
   cosine_world_state* this = xmalloc(sizeof(cosine_world_state));
