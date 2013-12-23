@@ -122,8 +122,8 @@ typedef struct basic_world_s {
  * Calculates the offset within the tiles array of the given coordinates within
  * the given world.
  */
-static unsigned basic_world_offset(const basic_world* world,
-                                   coord x, coord z) {
+static inline unsigned basic_world_offset(const basic_world* world,
+                                          coord x, coord z) {
   return x + world->xmax * z;
 }
 

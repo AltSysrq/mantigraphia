@@ -47,6 +47,14 @@ typedef struct {
    */
   coord torus_w, torus_h;
   /**
+   * Angles from which other values are derived. These are not directly used by
+   * the perspective code, but are used by other code which must reason about
+   * the raw angles in question.
+   *
+   * fov is automatically set by perspective_init().
+   */
+  angle yrot, rxrot, fov;
+  /**
    * The cosine and sine of the rotation of the camera about the Z axis.
    */
   zo_scaling_factor yrot_cos, yrot_sin;

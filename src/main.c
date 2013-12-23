@@ -41,6 +41,7 @@
 #include "graphics/parchment.h"
 #include "graphics/brush.h"
 #include "control/mouselook.h"
+#include "render/terrain.h"
 #include "game-state.h"
 #include "cosine-world.h"
 
@@ -88,6 +89,7 @@ int main(void) {
   parchment_init();
   brush_load();
   mouselook_init(screen);
+  render_terrain_init();
 
   canv = canvas_new(ww, wh);
 

@@ -35,6 +35,11 @@
 #include "../world/world.h"
 
 /**
+ * Initialises the resources needed to render terrain.
+ */
+void render_terrain_init(void);
+
+/**
  * Renders a terrain tile to the given canvas and sybmap, which is at the given
  * tile coordinates in the given world.
  *

@@ -50,6 +50,7 @@ void perspective_init(perspective* this,
   this->zscale = fcos
                * ZO_SCALING_FACTOR_MAX / fsin
                / screen->w;
+  this->fov = fov;
 }
 
 void perspective_xlate(vo3 dst,

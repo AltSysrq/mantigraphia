@@ -30,32 +30,60 @@
 #endif
 
 #include "../coords.h"
+#include "../defs.h"
 #include "../graphics/canvas.h"
 #include "../graphics/sybmap.h"
 #include "../graphics/tscan.h"
 #include "../graphics/perspective.h"
+#include "../graphics/linear-paint-tile.h"
 #include "../world/world.h"
 #include "../world/terrain.h"
 #include "terrain.h"
 
-/* This shader is just for testing right now --- colour according to world
- * coordinates.
- */
+#define TEXSZ 256
+#define TEXMASK (TEXSZ-1)
+
+static canvas_pixel texture[TEXSZ*TEXSZ];
+
+void render_terrain_init(void) {
+  static const canvas_pixel pallet[] = {
+    argb(255,255,255,255),
+    argb(255,254,254,254),
+    argb(255,252,252,252),
+    argb(255,248,248,248),
+    argb(255,240,240,240),
+    argb(255,224,224,224),
+    argb(255,192,192,192),
+    argb(255,128,128,128),
+    argb(255,64,64,64),
+    argb(255,0,0,0),
+  };
+
+  linear_paint_tile_render(texture, TEXSZ, TEXSZ,
+                           TEXSZ/4, 1,
+                           pallet, lenof(pallet));
+}
+
 typedef struct {
   coord_offset screen_z;
-  coord_offset red, green, blue;
+  coord_offset world_y;
 } terrain_interp_data;
 
-static void shade_terrain_pixel(canvas* dst,
+typedef struct {
+  canvas* dst;
+  coord_offset ox, oy;
+} terrain_global_data;
+
+static void shade_terrain_pixel(terrain_global_data* d,
                                 coord_offset x, coord_offset y,
                                 const coord_offset* vinterps) {
   const terrain_interp_data* interp = (const terrain_interp_data*)vinterps;
-  canvas_write(dst, x, y,
-               argb(255, interp->red, interp->green, interp->blue),
-               interp->screen_z);
+  unsigned tx = (x + d->ox) & TEXMASK;
+  unsigned ty = (y + interp->world_y + d->oy) & TEXMASK;
+  canvas_write(d->dst, x, y, texture[tx + ty*TEXSZ], interp->screen_z);
 }
 
-SHADE_TRIANGLE(shade_terrain, shade_terrain_pixel, 4)
+SHADE_TRIANGLE(shade_terrain, shade_terrain_pixel, 2)
 
 void render_terrain_tile(canvas* dst, sybmap* syb,
                          const basic_world* world,
@@ -67,6 +95,7 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
   vc3 world_coords[4];
   vo3 screen_coords[4];
   terrain_interp_data interp[4];
+  terrain_global_data glob;
   int has_012 = 1, has_123 = 1;
   coord tx1 = (tx+1) & (world->xmax-1);
   coord tz1 = (tz+1) & (world->zmax-1);
@@ -98,17 +127,18 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
 
   for (i = 0; i < 4; ++i) {
     interp[i].screen_z = screen_coords[i][2];
-    interp[i].red = (world_coords[i][0] / TILE_SZ) & 0xFF;
-    interp[i].green = (world_coords[i][1] / TILE_SZ) & 0xFF;
-    interp[i].blue = (world_coords[i][2] / TILE_SZ) & 0xFF;
+    interp[i].world_y = world_coords[i][1] / (METRE/2);
   }
 
+  glob.dst = dst;
+  glob.ox = 0;
+  glob.oy = 0;
   if (has_012) {
     shade_terrain(dst,
                   screen_coords[0], (coord_offset*)&interp[0],
                   screen_coords[1], (coord_offset*)&interp[1],
                   screen_coords[2], (coord_offset*)&interp[2],
-                  dst);
+                  &glob);
     sybmap_put(syb, screen_coords[0], screen_coords[1], screen_coords[2]);
   }
 
@@ -117,7 +147,7 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
                   screen_coords[1], (coord_offset*)&interp[1],
                   screen_coords[2], (coord_offset*)&interp[2],
                   screen_coords[3], (coord_offset*)&interp[3],
-                  dst);
+                  &glob);
     sybmap_put(syb, screen_coords[1], screen_coords[2], screen_coords[3]);
   }
 }
