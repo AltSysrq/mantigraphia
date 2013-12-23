@@ -37,14 +37,14 @@
  * Renders all visible tiles in the given basic_world.
  *
  * @param dst The canvas to which to render
- * @param coverage Four scratch sybmaps for visibility testing. coverage[0]
+ * @param coverage Two scratch sybmaps for visibility testing. coverage[0]
  * should be clear when this is called; the others will be destroyed by this
- * call. When the call completes, the coverage information in each sybmap is
- * only partial; further usage of any of them would require merging all four.
+ * call. When the call completes, coverage[1] is the most complete; coverage[0]
+ * should be considered entirely destroyed.
  */
 void basic_world_render(
   canvas* dst,
-  sybmap* coverage[4],
+  sybmap* coverage[2],
   const basic_world*restrict,
   const perspective*);
 

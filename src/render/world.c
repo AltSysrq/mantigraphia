@@ -29,6 +29,8 @@
 #include <config.h>
 #endif
 
+#include <stdlib.h>
+
 #include "../coords.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
@@ -65,13 +67,16 @@ static inline void extremas(coord_offset*restrict min,
  * - At least one vertex of the tile's bounding box could be projected via
  *   perspective_proj().
  * - At least one projected vertex had an X coordinate within the canvas
- *   boundaries
+ *   boundaries.
+ * - At least one projected vertex had a Y coordinate within the canvas
+ *   boundaries.
  */
 static int render_one_tile(
-  canvas* dst, sybmap* coverage,
+  canvas* dst, sybmap* test_coverage, sybmap* write_coverage,
   const basic_world*restrict world,
   const perspective* proj,
   coord tx0, coord tz0,
+  coord cx, coord cz,
   unsigned char level)
 {
   coord tx1 = ((tx0+1) & (world->xmax-1));
@@ -80,7 +85,12 @@ static int render_one_tile(
   coord_offset scx0, scx1, scy0, scy1;
   vc3 point;
   vo3 ppoint;
-  int any_projected = 0, has_screen_x = 0;
+  int any_projected = 0, has_screen_x = 0, has_screen_y;
+
+  /* Don't draw if tile wraps around the torus */
+  if (abs(torus_dist(cx-tx0, world->xmax)) >= (signed)(world->xmax/2-1) ||
+      abs(torus_dist(cz-tz0, world->zmax)) >= (signed)(world->zmax/2-1))
+    return 0;
 
   /* Calculate world bounding box */
   x0 = tx0 * TILE_SZ << level;
@@ -115,12 +125,13 @@ static int render_one_tile(
 #undef TEST
 
   has_screen_x = (scx0 < (signed)dst->w && scx1 >= 0);
+  has_screen_y = (scy0 < (signed)dst->h && scy1 >= 0);
 
-  if (!any_projected || !has_screen_x)
+  if (!any_projected || !has_screen_x || !has_screen_y)
     return 0;
 
-  if (sybmap_test(coverage, scx0, scx1, scy0, scy1))
-    render_terrain_tile(dst, coverage, world, proj, tx0, tz0,
+  if (sybmap_test(test_coverage, scx0, scx1, scy0, scy1))
+    render_terrain_tile(dst, write_coverage, world, proj, tx0, tz0,
                         tx0, tz0, level);
   return 1;
 }
@@ -130,103 +141,50 @@ static int render_one_tile(
  * centred on the camera's location. Each quadrant is rendered independently,
  * moving in a cardinal direction (the major axis). Each point along this
  * cardinal direction is a segment, drawn as a series of tiles along the minor
- * axis. Each time a segment is drawn, the minor axis is capped to the bounds
- * that were actually on the screen, but expands one unit in each direction as
- * the major axis moves out.
+ * axis. The minor axis is *not* capped to what is drawable, as sometimes
+ * terrain will move out of the visible area only to rise back into it later.
+ *
+ * Segments are drawn in parallel at the same major axis value. Because of
+ * this, we use two sybmaps: The one representing the state after drawing the
+ * previous major axis value, and the one new data is written to.
+ *
+ * This attempts to render every tile in the world, subject to lod. This is
+ * logarithmic with respect to each dimension being rendered.
  */
-
-#define RENDER_SEGMENT(expr_render, min, max, i)        \
-  /* Find the first renderable tile */                  \
-  for (i = min; i <= max; ++i) {                        \
-    if (expr_render) {                                  \
-      min = i;                                          \
-      break;                                            \
-    }                                                   \
-  }                                                     \
-  if (i > max) min = i;                                 \
-  /* Render tiles until boundary is reached */          \
-  while (i <= max) {                                    \
-    ++i;                                                \
-    if (!expr_render) {                                 \
-      max = i-1;                                        \
-      break;                                            \
-    }                                                   \
-  }
-
-#define REDUCE_LEVEL                                      \
-  while (world && ((major >> level) > 16))                \
-    world = SLIST_NEXT(world, next), ++level, major /= 2, \
-      minor_min /= 2, minor_max /= 2, cx /= 2, cz /= 2
-
-#define SEGMENT_RENDERER(name, coord_calc_x, coord_calc_z)             \
-  static void name(canvas* dst,                                        \
-                   sybmap* coverage,                                   \
-                   const basic_world*restrict world,                   \
-                   const perspective* proj) {                          \
-    coord major = 1;                                                   \
-    coord_offset minor, minor_min = 0, minor_max = 1;                  \
-    coord cx = proj->camera[0] / TILE_SZ;                              \
-    coord cz = proj->camera[2] / TILE_SZ;                              \
-    unsigned char level = 0;                                           \
-    REDUCE_LEVEL;                                                      \
-    while (world && major < world->xmax/2) {                           \
-      RENDER_SEGMENT(render_one_tile(                                  \
-                       dst, coverage, world, proj,                     \
-                       coord_calc_x(major,minor,cx) &                  \
-                       (world->xmax-1),                                \
-                       coord_calc_z(major,minor,cz) &                  \
-                       (world->zmax-1),                                \
-                       level), minor_min, minor_max,                   \
-                     minor);                                           \
-      if (minor_min > minor_max) break;                                \
-      --minor_min, ++minor_max, ++major;                               \
-      REDUCE_LEVEL;                                                    \
-    }                                                                  \
-  }
-
-static inline coord_offset sr_pmin(coord major, coord_offset minor,
-                                   coord base) {
-  return base + minor;
-}
-
-static inline coord_offset sr_nmin(coord major, coord_offset minor,
-                                   coord base) {
-  return base - minor;
-}
-
-static inline coord_offset sr_pmaj(coord major, coord_offset minor,
-                                   coord base) {
-  return base + major;
-}
-
-static inline coord_offset sr_nmaj(coord major, coord_offset minor,
-                                   coord base) {
-  return base - major;
-}
-
-SEGMENT_RENDERER(render_segment_north, sr_pmin, sr_nmaj)
-SEGMENT_RENDERER(render_segment_east , sr_pmaj, sr_pmin)
-SEGMENT_RENDERER(render_segment_south, sr_nmin, sr_pmaj)
-SEGMENT_RENDERER(render_segment_west , sr_nmaj, sr_nmin)
-
 void basic_world_render(
   canvas* dst,
-  sybmap* coverage[4],
+  sybmap* coverage[2],
   const basic_world*restrict world,
   const perspective* proj)
 {
-  unsigned i;
-
+  coord cx = proj->camera[0] / TILE_SZ, cz = proj->camera[2] / TILE_SZ;
+  coord_offset dist, minor;
+  unsigned char level = 0;
   /* Render tile at camera position (not included in any segment) */
-  render_one_tile(dst, coverage[0], world, proj,
-                  proj->camera[0] / TILE_SZ, proj->camera[2] / TILE_SZ,
-                  0);
+  render_one_tile(dst, coverage[0], coverage[1], world, proj,
+                  cx, cz, cx, cz, 0);
 
-  for (i = 0; i < 3; ++i)
-    sybmap_copy(coverage[i+1], coverage[0]);
+  for (dist = 1; world && dist < (signed)(world->xmax / 2); ++dist) {
+    sybmap_copy(coverage[0], coverage[1]);
+    for (minor = -dist+1; minor <= dist; ++minor) {
+#define C(x,lim) ((x) & (world->lim-1))
+      render_one_tile(dst, coverage[0], coverage[1], world, proj,
+                      C(cx + minor,xmax), C(cz - dist,zmax), cx, cz, level);
+      render_one_tile(dst, coverage[0], coverage[1], world, proj,
+                      C(cx + dist,xmax), C(cz + minor,zmax), cx, cz, level);
+      render_one_tile(dst, coverage[0], coverage[1], world, proj,
+                      C(cx - minor,xmax), C(cz + dist,zmax), cx, cz, level);
+      render_one_tile(dst, coverage[0], coverage[1], world, proj,
+                      C(cx - dist,xmax), C(cz - minor,zmax), cx, cz, level);
+#undef C
+    }
 
-  render_segment_north(dst, coverage[0], world, proj);
-  render_segment_east (dst, coverage[1], world, proj);
-  render_segment_south(dst, coverage[2], world, proj);
-  render_segment_west (dst, coverage[3], world, proj);
+    if ((dist >> level) > 16) {
+      world = SLIST_NEXT(world, next);
+      dist /= 2;
+      cx /= 2;
+      cz /= 2;
+      ++level;
+    }
+  }
 }

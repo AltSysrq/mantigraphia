@@ -124,10 +124,10 @@ static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
 
 static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   perspective proj;
-  sybmap* coverage[4];
+  sybmap* coverage[2];
   unsigned i;
 
-  for (i = 0; i < 4; ++i) {
+  for (i = 0; i < 2; ++i) {
     coverage[i] = sybmap_new(dst->w, dst->h);
     sybmap_clear(coverage[i]);
   }
@@ -147,7 +147,7 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   parchment_draw(dst, this->bg);
   basic_world_render(dst, coverage, this->world, &proj);
 
-  for (i = 0; i < 4; ++i)
+  for (i = 0; i < 2; ++i)
     sybmap_delete(coverage[i]);
 }
 
