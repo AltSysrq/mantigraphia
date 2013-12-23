@@ -81,6 +81,7 @@ void mouselook_set(int);
  * updated appropriately, and the background is adjusted if not NULL.
  */
 void mouselook_update(mouselook_state*,
-                      parchment* bg, const SDL_MouseMotionEvent*);
+                      parchment* bg, const SDL_MouseMotionEvent*,
+                      angle fov_x, angle fov_y);
 
 #endif /* CONTROL_MOUSELOOK_H_ */

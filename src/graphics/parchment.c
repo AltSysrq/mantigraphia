@@ -104,4 +104,20 @@ void parchment_draw(canvas* dst, const parchment* this) {
   }
 }
 
-/* TODO: parchment_xform */
+void parchment_xform(parchment* this,
+                     angle old_yaw,
+                     angle old_pitch,
+                     angle new_yaw,
+                     angle new_pitch,
+                     angle fov_x,
+                     angle fov_y,
+                     coord_offset screen_w,
+                     coord_offset screen_h) {
+  /* Shift vertically as per change in pitch */
+  this->ty += 2 * screen_h * (new_pitch - old_pitch) / fov_y;
+  /* Shift horizontally as per change in yaw, but scale this shift by
+   * cos(pitch), since looking vertically has less an effect on perceived
+   * rotation.
+   */
+  this->tx -= 2 * zo_cosms(new_pitch, screen_w * (new_yaw-old_yaw) / fov_x);
+}

@@ -187,5 +187,5 @@ static void cosine_world_key(cosine_world_state* this,
 
 static void cosine_world_mmotion(cosine_world_state* this,
                                  SDL_MouseMotionEvent* evt) {
-  mouselook_update(&this->look, this->bg, evt);
+  mouselook_update(&this->look, this->bg, evt, DEG_90, DEG_90);
 }

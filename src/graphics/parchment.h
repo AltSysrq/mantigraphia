@@ -74,6 +74,8 @@ void parchment_xform(parchment*,
                      angle new_yaw,
                      angle new_pitch,
                      angle fov_x,
-                     angle fov_y);
+                     angle fov_y,
+                     coord_offset screen_w,
+                     coord_offset screen_h);
 
 #endif /* GRAPHICS_PARCHMENT_H_ */
