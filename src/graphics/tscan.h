@@ -108,7 +108,7 @@ typedef void (*triangle_shader)(canvas*restrict,
     for (y = (y0 > 0? y0 : 0); y <= y1 && y < (signed)dst->h; ++y) {    \
       yo = y - y0;                                                      \
       xl = fraction_smul((dy-yo)*xt + yo*xb0, idy);                     \
-      xh = fraction_smul((dy-yo)*xt + yo*xb1, idy);                     \
+      xh = fraction_smul((dy-yo)*xt + yo*xb1, idy)+1;                   \
       for (i = 0; i < nz; ++i) {                                        \
         zl[i] = fraction_smul((dy-yo)*zt[i] + yo*zb0[i], idy);          \
         zh[i] = fraction_smul((dy-yo)*zt[i] + yo*zb1[i], idy);          \
@@ -116,7 +116,7 @@ typedef void (*triangle_shader)(canvas*restrict,
       dx = xh-xl;                                                       \
       if (!dx) continue; /* nothing to draw */                          \
       idx = fraction_of(dx);                                            \
-      for (x = (xl > 0? xl : 0); x <= xh+1 && x < (signed)dst->w; ++x) {\
+      for (x = (xl > 0? xl : 0); x <= xh && x < (signed)dst->w; ++x) {  \
         xo = x-xl;                                                      \
         for (i = 0; i < nz; ++i)                                        \
           z[i] = fraction_smul((dx-xo)*zl[i] + xo*zh[i], idx);          \
@@ -148,7 +148,7 @@ typedef void (*triangle_shader)(canvas*restrict,
     for (y = (y1 > 0? y1 : 0); y <= y0 && y < (signed)dst->h; ++y) {    \
       yo = y - y1;                                                      \
       xl = fraction_smul((dy-yo)*xb0 + yo*xt, idy);                     \
-      xh = fraction_smul((dy-yo)*xb1 + yo*xt, idy);                     \
+      xh = fraction_smul((dy-yo)*xb1 + yo*xt, idy)+1;                   \
       for (i = 0; i < nz; ++i) {                                        \
         zl[i] = fraction_smul((dy-yo)*zb0[i] + yo*zt[i], idy);          \
         zh[i] = fraction_smul((dy-yo)*zb1[i] + yo*zt[i], idy);          \
@@ -156,7 +156,7 @@ typedef void (*triangle_shader)(canvas*restrict,
       dx = xh-xl;                                                       \
       if (!dx) continue; /* nothing to draw here */                     \
       idx = fraction_of(dx);                                            \
-      for (x = (xl > 0? xl : 0); x <= xh+1 && x < (signed)dst->w; ++x) {\
+      for (x = (xl > 0? xl : 0); x <= xh && x < (signed)dst->w; ++x) {  \
         xo = x-xl;                                                      \
         for (i = 0; i < nz; ++i)                                        \
           z[i] = fraction_smul((dx-xo)*zl[i] + xo*zh[i], idx);          \
