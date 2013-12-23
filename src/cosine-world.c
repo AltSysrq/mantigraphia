@@ -160,22 +160,22 @@ static void cosine_world_key(cosine_world_state* this,
     this->is_running = 0;
     break;
 
-  case SDLK_UP:
+  case SDLK_l:
     this->x -= zo_sinms(this->look.yrot, METRE/2);
     this->z -= zo_cosms(this->look.yrot, METRE/2);
     break;
 
-  case SDLK_DOWN:
+  case SDLK_a:
     this->x += zo_sinms(this->look.yrot, METRE/2);
     this->z += zo_cosms(this->look.yrot, METRE/2);
     break;
 
-  case SDLK_LEFT:
+  case SDLK_i:
     this->x -= zo_cosms(this->look.yrot, METRE/2);
     this->z += zo_sinms(this->look.yrot, METRE/2);
     break;
 
-  case SDLK_RIGHT:
+  case SDLK_e:
     this->x += zo_cosms(this->look.yrot, METRE/2);
     this->z -= zo_sinms(this->look.yrot, METRE/2);
     break;
