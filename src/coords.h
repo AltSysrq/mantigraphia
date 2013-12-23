@@ -135,8 +135,8 @@ typedef coord_offset acceleration;
 
 /**
  * Angle is expressed in units of 1/65536th of a circle. Most calculations care
- * only about the upper byte (1/256th of a circle), however. The lower byte
- * only exists to support rotational speeds below 360 deg/sec.
+ * only about the upper 12 bits (1/4096th of a circle), however. The lower bits
+ * only exist to support intermediate values.
  */
 typedef unsigned short angle;
 #define DEG_90  ((angle)0x4000)
@@ -165,11 +165,11 @@ static inline signed zo_scale(signed input, zo_scaling_factor factor) {
   return (signed)value;
 }
 
-#define ZO_COSINE_COUNT 256
+#define ZO_COSINE_COUNT 4096
 extern const zo_scaling_factor zo_cosine[ZO_COSINE_COUNT];
 
 static inline zo_scaling_factor zo_cos(angle ang) {
-  return zo_cosine[(ang >> 8) & (ZO_COSINE_COUNT-1)];
+  return zo_cosine[(ang >> 4) & (ZO_COSINE_COUNT-1)];
 }
 
 static inline zo_scaling_factor zo_sin(angle ang) {
