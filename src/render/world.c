@@ -185,6 +185,10 @@ void basic_world_render(
       cx /= 2;
       cz /= 2;
       ++level;
+      /* Re-draw the last pair of tiles, so that any discontinuity is
+       * masked.
+       */
+      --dist;
     }
   }
 }
