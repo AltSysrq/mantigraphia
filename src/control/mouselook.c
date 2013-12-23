@@ -68,7 +68,7 @@ void mouselook_set(int enabled) {
       /* Explicitly hide the cursor, and remember that we need to emulate SRMM
        * by warping the mouse.
        */
-      SDL_SetCursor(SDL_DISABLE);
+      SDL_ShowCursor(0);
       emulate_srmm = 1;
     } else {
       emulate_srmm = 0;
@@ -76,7 +76,7 @@ void mouselook_set(int enabled) {
   } else {
     if (emulate_srmm) {
       /* Restore cursor */
-      SDL_SetCursor(SDL_GetDefaultCursor());
+      SDL_ShowCursor(1);
     } else {
       SDL_SetRelativeMouseMode(SDL_FALSE);
     }
