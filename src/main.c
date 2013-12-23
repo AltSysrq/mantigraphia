@@ -40,6 +40,7 @@
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
 #include "graphics/brush.h"
+#include "control/mouselook.h"
 #include "game-state.h"
 #include "cosine-world.h"
 
@@ -86,6 +87,7 @@ int main(void) {
 
   parchment_init();
   brush_load();
+  mouselook_init(screen);
 
   canv = canvas_new(ww, wh);
 

@@ -27,6 +27,7 @@ world/world.c \
 world/terrain.c \
 render/terrain.c \
 render/world.c \
+control/mouselook.c \
 flower-pot.c \
 cosine-world.c
 

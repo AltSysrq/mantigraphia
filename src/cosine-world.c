@@ -43,6 +43,7 @@
 #include "world/world.h"
 #include "world/terrain.h"
 #include "render/world.h"
+#include "control/mouselook.h"
 
 #include "cosine-world.h"
 
@@ -52,7 +53,7 @@ typedef struct {
   game_state vtab;
   int is_running;
   coord x, z;
-  angle yrot, xrot;
+  mouselook_state look;
   parchment* bg;
   basic_world* world;
 } cosine_world_state;
@@ -75,7 +76,8 @@ game_state* cosine_world_new(void) {
       NULL, NULL, NULL,
     },
     1,
-    0, 0, 0, 0,
+    0, 0,
+    { 0, 0 },
     parchment_new(),
     basic_world_new(SIZE, SIZE, SIZE/8, SIZE/8),
   };
@@ -85,7 +87,7 @@ game_state* cosine_world_new(void) {
 
   cosine_world_init_world(this);
 
-  SDL_SetRelativeMouseMode(SDL_TRUE);
+  mouselook_set(1);
 
   return (game_state*)this;
 }
@@ -125,9 +127,6 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   sybmap* coverage[4];
   unsigned i;
 
-  printf("xrot=%d, yrot=%d, x=%d, z=%d\n", (int)this->xrot, (int)this->yrot,
-         this->x, this->z);
-
   for (i = 0; i < 4; ++i) {
     coverage[i] = sybmap_new(dst->w, dst->h);
     sybmap_clear(coverage[i]);
@@ -138,10 +137,10 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   proj.camera[2] = this->z;
   proj.torus_w = this->world->xmax * TILE_SZ;
   proj.torus_h = this->world->zmax * TILE_SZ;
-  proj.yrot_cos = zo_cos(this->yrot);
-  proj.yrot_sin = zo_sin(this->yrot);
-  proj.rxrot_cos = zo_cos(this->xrot);
-  proj.rxrot_sin = zo_sin(this->xrot);
+  proj.yrot_cos = zo_cos(this->look.yrot);
+  proj.yrot_sin = zo_sin(this->look.yrot);
+  proj.rxrot_cos = zo_cos(this->look.rxrot);
+  proj.rxrot_sin = zo_sin(this->look.rxrot);
   proj.near_clipping_plane = 1;
   perspective_init(&proj, dst, DEG_90);
 
@@ -162,23 +161,23 @@ static void cosine_world_key(cosine_world_state* this,
     break;
 
   case SDLK_UP:
-    this->x += zo_sinms(this->yrot, METRE/2);
-    this->z -= zo_cosms(this->yrot, METRE/2);
+    this->x -= zo_sinms(this->look.yrot, METRE/2);
+    this->z -= zo_cosms(this->look.yrot, METRE/2);
     break;
 
   case SDLK_DOWN:
-    this->x -= zo_sinms(this->yrot, METRE/2);
-    this->z += zo_cosms(this->yrot, METRE/2);
+    this->x += zo_sinms(this->look.yrot, METRE/2);
+    this->z += zo_cosms(this->look.yrot, METRE/2);
     break;
 
   case SDLK_LEFT:
-    this->x -= zo_cosms(this->yrot, METRE/2);
-    this->z += zo_sinms(this->yrot, METRE/2);
+    this->x -= zo_cosms(this->look.yrot, METRE/2);
+    this->z += zo_sinms(this->look.yrot, METRE/2);
     break;
 
   case SDLK_RIGHT:
-    this->x += zo_cosms(this->yrot, METRE/2);
-    this->z -= zo_sinms(this->yrot, METRE/2);
+    this->x += zo_cosms(this->look.yrot, METRE/2);
+    this->z -= zo_sinms(this->look.yrot, METRE/2);
     break;
   }
 
@@ -188,20 +187,5 @@ static void cosine_world_key(cosine_world_state* this,
 
 static void cosine_world_mmotion(cosine_world_state* this,
                                  SDL_MouseMotionEvent* evt) {
-  signed xrot = this->xrot;
-  signed yrot = this->yrot;
-  static int ignore = 1;
-  if (ignore) {
-    ignore = 0;
-    return;
-  }
-
-  xrot += evt->yrel * (signed)DEG_180 / 1024;
-  yrot -= evt->xrel * (signed)DEG_180 / 1280;
-
-  if (xrot < -DEG_90) xrot = -DEG_90;
-  if (xrot > +DEG_90) xrot = +DEG_90;
-
-  this->xrot = xrot;
-  this->yrot = yrot;
+  mouselook_update(&this->look, this->bg, evt);
 }
