@@ -127,7 +127,9 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
 
   for (i = 0; i < 4; ++i) {
     interp[i].screen_z = screen_coords[i][2];
-    interp[i].world_y = world_coords[i][1] / (METRE/2);
+    if (interp[i].screen_z / (METRE/128) + METRE/32)
+      interp[i].world_y = world_coords[i][1] /
+                          (interp[i].screen_z / (METRE/128) + METRE/32);
   }
 
   glob.dst = dst;
