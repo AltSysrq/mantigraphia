@@ -137,8 +137,10 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   proj.camera[2] = this->z;
   proj.torus_w = this->world->xmax * TILE_SZ;
   proj.torus_h = this->world->zmax * TILE_SZ;
+  proj.yrot = this->look.yrot;
   proj.yrot_cos = zo_cos(this->look.yrot);
   proj.yrot_sin = zo_sin(this->look.yrot);
+  proj.rxrot = this->look.rxrot;
   proj.rxrot_cos = zo_cos(this->look.rxrot);
   proj.rxrot_sin = zo_sin(this->look.rxrot);
   proj.near_clipping_plane = 1;

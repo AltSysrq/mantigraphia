@@ -131,8 +131,8 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
   }
 
   glob.dst = dst;
-  glob.ox = 0;
-  glob.oy = 0;
+  glob.ox = (-(signed)dst->w) * proj->yrot / proj->fov;
+  glob.oy = 2 * ((signed)dst->h) * proj->rxrot / proj->fov;
   if (has_012) {
     shade_terrain(dst,
                   screen_coords[0], (coord_offset*)&interp[0],
