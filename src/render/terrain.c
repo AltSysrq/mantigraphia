@@ -72,14 +72,16 @@ typedef struct {
 typedef struct {
   canvas* dst;
   coord_offset ox, oy;
+  zo_scaling_factor scale512;
 } terrain_global_data;
 
 static void shade_terrain_pixel(terrain_global_data* d,
                                 coord_offset x, coord_offset y,
                                 const coord_offset* vinterps) {
   const terrain_interp_data* interp = (const terrain_interp_data*)vinterps;
-  unsigned tx = (x + d->ox) & TEXMASK;
-  unsigned ty = (y + interp->world_y + d->oy) & TEXMASK;
+  unsigned tx = zo_scale((x + d->ox)*512, d->scale512) & TEXMASK;
+  unsigned ty = zo_scale((y + interp->world_y + d->oy)*512, d->scale512)
+              & TEXMASK;
   canvas_write(d->dst, x, y, texture[tx + ty*TEXSZ], interp->screen_z);
 }
 
@@ -135,6 +137,7 @@ void render_terrain_tile(canvas* dst, sybmap* syb,
   glob.dst = dst;
   glob.ox = (-(signed)dst->w) * proj->yrot / proj->fov;
   glob.oy = 2 * ((signed)dst->h) * proj->rxrot / proj->fov;
+  glob.scale512 = ZO_SCALING_FACTOR_MAX / dst->h;
   if (has_012) {
     shade_terrain(dst,
                   screen_coords[0], (coord_offset*)&interp[0],
