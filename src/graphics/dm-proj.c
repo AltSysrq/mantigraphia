@@ -70,10 +70,10 @@ zo_scaling_factor dm_proj_calc_weight(const dm_proj* this,
 
   sample[0] = desired_size;
   sample[1] = 0;
-  sample[2] = this->far_max;
+  sample[2] = this->near_max;
   origin[0] = 0;
   origin[1] = 0;
-  origin[2] = this->far_max;
+  origin[2] = this->near_max;
 
   if (!perspective_proj(psample, sample, &proj)) abort();
   if (!perspective_proj(porigin, origin, &proj)) abort();
@@ -89,7 +89,7 @@ static zo_scaling_factor adjust_weight(const dm_proj* this,
                                        const vo3 point) {
   signed long long weight = sweight;
   vo3 xnorm;
-  coord_offset z = point[2];
+  coord_offset z = point[2], zd;
 
   if (z <= this->near_clipping || z >= this->far_clipping)
     return 0;
@@ -104,6 +104,10 @@ static zo_scaling_factor adjust_weight(const dm_proj* this,
     perspective_xlate(xnorm, (const coord*)this->normal, this->proj);
     weight += this->perp_weight_add * abs(xnorm[2]) / this->normal_magnitude;
   }
+
+  /* Always scale for perspective */
+  zd = zo_scale(z, this->proj->zscale) / this->near_max;
+  if (zd) weight /= zd;
 
   if (z >= this->near_max && z <= this->far_max)
     /* Nominal distance; no adjustment required */
