@@ -53,8 +53,12 @@
 #define TILE_YMUL (METRE/8)
 /**
  * Each tile consists of TILE_NELT independent elements.
+ *
+ * This is currently 1 since plans are now to have things that would have been
+ * other elements instead be static objects, since the "grid of cubes" model
+ * this was designed for doesn't really mesh with the artistic style.
  */
-#define TILE_NELT 4
+#define TILE_NELT 1
 
 /**
  * The type of a tile is used to determine how it is drawn and how it behaves
