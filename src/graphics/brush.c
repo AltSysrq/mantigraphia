@@ -33,6 +33,7 @@
 #include <stdlib.h>
 
 #include "../coords.h"
+#include "../rand.h"
 #include "canvas.h"
 #include "abstract.h"
 #include "brush.h"
@@ -136,18 +137,7 @@ void brush_prep(brush_accum* accum, const brush_spec* spec,
 #ifdef PROFILE
 static unsigned short accrand(brush_accum*)
 __attribute__((noinline));
-static unsigned short lcgrand(unsigned* state)
-__attribute__((noinline));
 #endif
-static
-#ifndef PROFILE
-inline
-#endif
-unsigned short lcgrand(unsigned* state) {
-  /* Same LCG as glibc, probably a good choice */
-  *state = (*state) * 1103515245 + 12345;
-  return (*state) >> 16;
-}
 
 static
 #ifndef PROFILE
