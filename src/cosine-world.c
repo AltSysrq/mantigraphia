@@ -43,6 +43,7 @@
 #include "world/world.h"
 #include "world/terrain.h"
 #include "render/world.h"
+#include "render/context.h"
 #include "control/mouselook.h"
 
 #include "cosine-world.h"
@@ -56,6 +57,7 @@ typedef struct {
   mouselook_state look;
   parchment* bg;
   basic_world* world;
+  rendering_context*restrict context;
 } cosine_world_state;
 
 static game_state* cosine_world_update(cosine_world_state*, chronon);
@@ -80,6 +82,7 @@ game_state* cosine_world_new(void) {
     { 0, 0 },
     parchment_new(),
     basic_world_new(SIZE, SIZE, SIZE/256, SIZE/256),
+    rendering_context_new()
   };
 
   cosine_world_state* this = xmalloc(sizeof(cosine_world_state));
@@ -95,6 +98,7 @@ game_state* cosine_world_new(void) {
 static void cosine_world_delete(cosine_world_state* this) {
   parchment_delete(this->bg);
   basic_world_delete(this->world);
+  rendering_context_delete(this->context);
   free(this);
 }
 
@@ -107,6 +111,8 @@ static void cosine_world_init_world(cosine_world_state* this) {
       this->world->tiles[basic_world_offset(this->world, x, z)]
         .elts[0].altitude =
         (zo_cosms((x+z)*256, 10*METRE) + 20*METRE) / TILE_YMUL;
+      this->world->tiles[basic_world_offset(this->world, x, z)]
+        .elts[0].type = (x-z)/32 & 3;
     }
   }
 
@@ -123,9 +129,12 @@ static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
 }
 
 static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
+  rendering_context_invariant context_inv;
   perspective proj;
   sybmap* coverage[2];
   unsigned i;
+
+  context_inv.proj = &proj;
 
   for (i = 0; i < 2; ++i) {
     coverage[i] = sybmap_new(dst->w, dst->h);
@@ -146,8 +155,10 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   proj.near_clipping_plane = 1;
   perspective_init(&proj, dst, DEG_90);
 
+  rendering_context_set(this->context, &context_inv);
+
   parchment_draw(dst, this->bg);
-  basic_world_render(dst, coverage, this->world, &proj);
+  basic_world_render(dst, coverage, this->world, this->context);
 
   for (i = 0; i < 2; ++i)
     sybmap_delete(coverage[i]);

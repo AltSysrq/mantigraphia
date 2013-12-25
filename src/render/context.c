@@ -25,36 +25,58 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RENDER_TERRAIN_H_
-#define RENDER_TERRAIN_H_
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
-#include "../coords.h"
-#include "../graphics/canvas.h"
-#include "../graphics/sybmap.h"
-#include "../graphics/perspective.h"
-#include "../world/world.h"
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
-/**
- * Initialises the resources needed to render terrain.
- */
-void render_terrain_init(void);
+#include "../alloc.h"
+#include "terrain.h"
+#include "context.h"
 
-/**
- * Renders a terrain tile to the given canvas and sybmap, which is at the given
- * tile coordinates in the given world.
- *
- * Terrain tiles MUST be rendered front-to-back in order for usage of the
- * sybmap to make sense.
- */
-void render_terrain_tile(canvas*, sybmap*,
-                         const basic_world*,
-                         const void*restrict context,
-                         coord tx, coord tz,
-                         coord_offset logical_tx,
-                         coord_offset logical_ty,
-                         unsigned char size_shift);
+static size_t space_for_invariant(size_t);
 
-size_t render_terrain_put_context_offset(size_t);
-void render_terrain_set_context(void*);
+static size_t (*const context_put[])(size_t) = {
+  space_for_invariant,
+  render_terrain_put_context_offset,
+  NULL
+};
 
-#endif /* RENDER_TERRAIN_H_ */
+static void (*const context_set[])(void*) = {
+  render_terrain_set_context,
+  NULL
+};
+
+static size_t space_for_invariant(size_t zero) {
+  assert(!zero);
+  return sizeof(rendering_context_invariant);
+}
+
+rendering_context* rendering_context_new(void) {
+  size_t off = 0;
+  unsigned i;
+
+  for (i = 0; context_put[i]; ++i) {
+    off = (*context_put[i])(off);
+    /* Align to pointer */
+    off += sizeof(void*) - 1;
+    off &= ~(sizeof(void*) - 1);
+  }
+
+  return xmalloc(off);
+}
+
+void rendering_context_delete(rendering_context* this) {
+  free(this);
+}
+
+void rendering_context_set(rendering_context*restrict this,
+                           const rendering_context_invariant*restrict inv) {
+  unsigned i;
+  memcpy(this, inv, sizeof(*inv));
+  for (i = 0; context_set[i]; ++i)
+    (*context_set[i])(this);
+}

@@ -25,6 +25,7 @@ graphics/dm-proj.c \
 graphics/sybmap.c \
 world/world.c \
 world/terrain.c \
+render/context.c \
 render/terrain.c \
 render/world.c \
 control/mouselook.c \

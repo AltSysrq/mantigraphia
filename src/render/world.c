@@ -38,6 +38,7 @@
 #include "../world/world.h"
 #include "../world/terrain.h"
 #include "terrain.h"
+#include "context.h"
 #include "world.h"
 
 static inline coord altitude(const basic_world* world,
@@ -74,11 +75,13 @@ static inline void extremas(coord_offset*restrict min,
 static int render_one_tile(
   canvas* dst, sybmap* test_coverage, sybmap* write_coverage,
   const basic_world*restrict world,
-  const perspective* proj,
+  const void*restrict context,
   coord tx0, coord tz0,
   coord cx, coord cz,
   unsigned char level)
 {
+  const perspective*restrict proj =
+    ((const rendering_context_invariant*)context)->proj;
   coord tx1 = ((tx0+1) & (world->xmax-1));
   coord tz1 = ((tz0+1) & (world->zmax-1));
   coord x0, x1, y0, y1, z0, z1;
@@ -131,7 +134,7 @@ static int render_one_tile(
     return 0;
 
   if (sybmap_test(test_coverage, scx0, scx1, scy0, scy1))
-    render_terrain_tile(dst, write_coverage, world, proj, tx0, tz0,
+    render_terrain_tile(dst, write_coverage, world, context, tx0, tz0,
                         tx0, tz0, level);
   return 1;
 }
@@ -155,26 +158,28 @@ void basic_world_render(
   canvas* dst,
   sybmap* coverage[2],
   const basic_world*restrict world,
-  const perspective* proj)
+  const void*restrict context)
 {
+  const perspective*restrict proj =
+    ((const rendering_context_invariant*)context)->proj;
   coord cx = proj->camera[0] / TILE_SZ, cz = proj->camera[2] / TILE_SZ;
   coord_offset dist, minor;
   unsigned char level = 0;
   /* Render tile at camera position (not included in any segment) */
-  render_one_tile(dst, coverage[0], coverage[1], world, proj,
+  render_one_tile(dst, coverage[0], coverage[1], world, context,
                   cx, cz, cx, cz, 0);
 
   for (dist = 1; world && dist < (signed)(world->xmax / 2); ++dist) {
     sybmap_copy(coverage[0], coverage[1]);
     for (minor = -dist+1; minor <= dist; ++minor) {
 #define C(x,lim) ((x) & (world->lim-1))
-      render_one_tile(dst, coverage[0], coverage[1], world, proj,
+      render_one_tile(dst, coverage[0], coverage[1], world, context,
                       C(cx + minor,xmax), C(cz - dist,zmax), cx, cz, level);
-      render_one_tile(dst, coverage[0], coverage[1], world, proj,
+      render_one_tile(dst, coverage[0], coverage[1], world, context,
                       C(cx + dist,xmax), C(cz + minor,zmax), cx, cz, level);
-      render_one_tile(dst, coverage[0], coverage[1], world, proj,
+      render_one_tile(dst, coverage[0], coverage[1], world, context,
                       C(cx - minor,xmax), C(cz + dist,zmax), cx, cz, level);
-      render_one_tile(dst, coverage[0], coverage[1], world, proj,
+      render_one_tile(dst, coverage[0], coverage[1], world, context,
                       C(cx - dist,xmax), C(cz - minor,zmax), cx, cz, level);
 #undef C
     }

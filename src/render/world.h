@@ -46,6 +46,6 @@ void basic_world_render(
   canvas* dst,
   sybmap* coverage[2],
   const basic_world*restrict,
-  const perspective*);
+  const void*restrict context);
 
 #endif /* RENDER_WORLD_H_ */
