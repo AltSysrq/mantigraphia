@@ -46,40 +46,30 @@ void dm_init(dm_proj* this) {
 }
 
 zo_scaling_factor dm_proj_calc_weight(const canvas* canv,
-                                      const perspective* orig_proj,
+                                      const perspective* proj,
                                       coord distance,
                                       coord desired_size) {
-  /* Create an identical perspective as we'll be using to project, but move it
-   * to the origin, facing down the positive Z axis. Project a point at
-   * (size,0,far_max), as well as a point at (0,0,far_max) to account for
-   * centring translation. The X resulting coordinate of the projected point is
-   * the negative of the actual size on screen. This actual size can then be
-   * converted to a screen-width-relative size.
+  /* Project a point at relative coordinates (size,0,far_max), as well as a
+   * point at (0,0,far_max) to account for centring translation. The X
+   * resulting coordinate of the projected point is the negative of the actual
+   * size on screen. This actual size can then be converted to a
+   * screen-width-relative size.
    */
-  vc3 sample, origin;
+  vo3 sample, origin;
   vo3 psample, porigin;
-  perspective proj;
   coord_offset screen_dist;
-
-  memcpy(&proj, orig_proj, sizeof(proj));
-  memset(proj.camera, 0, sizeof(proj.camera));
-  proj.yrot_cos = -ZO_SCALING_FACTOR_MAX;
-  proj.yrot_sin = 0;
-  proj.rxrot_cos = ZO_SCALING_FACTOR_MAX;
-  proj.rxrot_sin = 0;
-  proj.near_clipping_plane = 0;
 
   sample[0] = desired_size;
   sample[1] = 0;
-  sample[2] = distance;
+  sample[2] = -(coord_offset)distance;
   origin[0] = 0;
   origin[1] = 0;
-  origin[2] = distance;
+  origin[2] = -(coord_offset)distance;
 
-  if (!perspective_proj(psample, sample, &proj)) abort();
-  if (!perspective_proj(porigin, origin, &proj)) abort();
+  if (!perspective_proj_rel(psample, sample, proj)) abort();
+  if (!perspective_proj_rel(porigin, origin, proj)) abort();
 
-  screen_dist = porigin[0] - psample[0];
+  screen_dist = psample[0] - porigin[0];
   assert(screen_dist >= 0);
 
   return screen_dist * ZO_SCALING_FACTOR_MAX / canv->w;
