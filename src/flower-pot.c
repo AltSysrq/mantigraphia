@@ -327,7 +327,8 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
               &proj);
 
   /* Draw stem, 1cm wide */
-  brush.size = dm_proj_calc_weight(&brush_proj, dst, MILLIMETRE * 10 * 10);
+  brush.size = dm_proj_calc_weight(dst, &proj,
+                                   brush_proj.far_max, MILLIMETRE * 10 * 10);
   brush.colours = plant_colours;
   brush.num_colours = lenof(plant_colours);
   brush_prep(&baccum, &brush, dst, 0);
@@ -359,7 +360,8 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
     dm_proj_flush(&baccum, &brush_proj);
   }
 
-  brush.size = dm_proj_calc_weight(&brush_proj, dst, 5*10*MILLIMETRE/2 * 10);
+  brush.size = dm_proj_calc_weight(dst, &proj,
+                                   brush_proj.far_max, 5*10*MILLIMETRE/2 * 10);
   brush.colours = petal_colours;
   brush.num_colours = lenof(petal_colours);
   brush_prep(&baccum, &brush, dst, 1);

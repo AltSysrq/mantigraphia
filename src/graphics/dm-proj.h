@@ -99,12 +99,13 @@ void dm_init(dm_proj*);
 
 /**
  * Calculates a nominal width that can be used to obtain the appearance of the
- * given world size at the nominal distance for this dm_proj. This assumes that
+ * given world size at the given distance for a dm_proj. This assumes that
  * the underlying drawing method interprets weight as a fraction of screen
  * width.
  */
-zo_scaling_factor dm_proj_calc_weight(const dm_proj*,
-                                      const canvas*,
+zo_scaling_factor dm_proj_calc_weight(const canvas*,
+                                      const perspective*,
+                                      coord distance,
                                       coord desired_size);
 
 void dm_proj_draw_point(void*,

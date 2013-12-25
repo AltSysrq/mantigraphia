@@ -45,8 +45,9 @@ void dm_init(dm_proj* this) {
   this->nominal_weight = ZO_SCALING_FACTOR_MAX;
 }
 
-zo_scaling_factor dm_proj_calc_weight(const dm_proj* this,
-                                      const canvas* canv,
+zo_scaling_factor dm_proj_calc_weight(const canvas* canv,
+                                      const perspective* orig_proj,
+                                      coord distance,
                                       coord desired_size) {
   /* Create an identical perspective as we'll be using to project, but move it
    * to the origin, facing down the positive Z axis. Project a point at
@@ -60,7 +61,7 @@ zo_scaling_factor dm_proj_calc_weight(const dm_proj* this,
   perspective proj;
   coord_offset screen_dist;
 
-  memcpy(&proj, this->proj, sizeof(proj));
+  memcpy(&proj, orig_proj, sizeof(proj));
   memset(proj.camera, 0, sizeof(proj.camera));
   proj.yrot_cos = -ZO_SCALING_FACTOR_MAX;
   proj.yrot_sin = 0;
@@ -70,10 +71,10 @@ zo_scaling_factor dm_proj_calc_weight(const dm_proj* this,
 
   sample[0] = desired_size;
   sample[1] = 0;
-  sample[2] = this->far_max;
+  sample[2] = distance;
   origin[0] = 0;
   origin[1] = 0;
-  origin[2] = this->far_max;
+  origin[2] = distance;
 
   if (!perspective_proj(psample, sample, &proj)) abort();
   if (!perspective_proj(porigin, origin, &proj)) abort();
