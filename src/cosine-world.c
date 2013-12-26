@@ -59,6 +59,8 @@ typedef struct {
   parchment* bg;
   basic_world* world;
   rendering_context*restrict context;
+
+  int moving_forward, moving_backward, moving_left, moving_right;
 } cosine_world_state;
 
 static game_state* cosine_world_update(cosine_world_state*, chronon);
@@ -83,7 +85,8 @@ game_state* cosine_world_new(void) {
     { 0, 0 },
     parchment_new(),
     basic_world_new(SIZE, SIZE, SIZE/256, SIZE/256),
-    rendering_context_new()
+    rendering_context_new(),
+    0,0,0,0
   };
 
   cosine_world_state* this = xmalloc(sizeof(cosine_world_state));
@@ -107,7 +110,30 @@ static void cosine_world_init_world(cosine_world_state* this) {
   world_generate(this->world, 1);
 }
 
+#define SPEED (4*METRES_PER_SECOND)
 static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
+  if (this->moving_forward) {
+    this->x -= zo_sinms(this->look.yrot, et * SPEED);
+    this->z -= zo_cosms(this->look.yrot, et * SPEED);
+  }
+
+  if (this->moving_backward) {
+    this->x += zo_sinms(this->look.yrot, et * SPEED);
+    this->z += zo_cosms(this->look.yrot, et * SPEED);
+  }
+
+  if (this->moving_left) {
+    this->x -= zo_cosms(this->look.yrot, et * SPEED);
+    this->z += zo_sinms(this->look.yrot, et * SPEED);
+  }
+
+  if (this->moving_right) {
+    this->x += zo_cosms(this->look.yrot, et * SPEED);
+    this->z -= zo_sinms(this->look.yrot, et * SPEED);
+  }
+  this->x &= this->world->xmax*TILE_SZ - 1;
+  this->z &= this->world->zmax*TILE_SZ - 1;
+
   if (this->is_running) {
     return (game_state*)this;
   } else {
@@ -154,7 +180,7 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
 
 static void cosine_world_key(cosine_world_state* this,
                              SDL_KeyboardEvent* evt) {
-  if (SDL_KEYDOWN != evt->type) return;
+  int down = SDL_KEYDOWN == evt->type;
 
   switch (evt->keysym.sym) {
   case SDLK_ESCAPE:
@@ -162,28 +188,21 @@ static void cosine_world_key(cosine_world_state* this,
     break;
 
   case SDLK_l:
-    this->x -= zo_sinms(this->look.yrot, METRE/2);
-    this->z -= zo_cosms(this->look.yrot, METRE/2);
+    this->moving_forward = down;
     break;
 
   case SDLK_a:
-    this->x += zo_sinms(this->look.yrot, METRE/2);
-    this->z += zo_cosms(this->look.yrot, METRE/2);
+    this->moving_backward = down;
     break;
 
   case SDLK_i:
-    this->x -= zo_cosms(this->look.yrot, METRE/2);
-    this->z += zo_sinms(this->look.yrot, METRE/2);
+    this->moving_left = down;
     break;
 
   case SDLK_e:
-    this->x += zo_cosms(this->look.yrot, METRE/2);
-    this->z -= zo_sinms(this->look.yrot, METRE/2);
+    this->moving_right = down;
     break;
   }
-
-  this->x &= this->world->xmax*TILE_SZ - 1;
-  this->z &= this->world->zmax*TILE_SZ - 1;
 }
 
 static void cosine_world_mmotion(cosine_world_state* this,
