@@ -103,7 +103,7 @@ static void randomise(basic_world* world,
     world->tiles[i].elts[0].type = GRASS;
     world->tiles[i].elts[0].thickness = 0;
     world->tiles[i].elts[0].altitude =
-      twist(twister) & (2*(1 << level) - 1);
+      twist(twister) & (4*(1 << level) - 1);
   }
 }
 
@@ -120,7 +120,7 @@ static inline unsigned short perturb(signed base_altitude,
                                      mersenne_twister* twister) {
   if (level <= 1) return base_altitude;
   base_altitude -= 1 << level;
-  base_altitude += twist(twister) & ((1 << (level-1)) - 1);
+  base_altitude += twist(twister) & ((2 << (level-1)) - 1);
   if (base_altitude < 0) return 0;
   if (base_altitude > 32767) return 32767;
   return base_altitude;
@@ -149,7 +149,7 @@ static void rmp_up(basic_world* large,
 
       /* Exactly-matching points never change */
       large->tiles[basic_world_offset(large, lx0, lz0)]
-        .elts[0].altitude = sa00;
+        .elts[0].altitude = perturb(sa00, level, twister);
 
       /* Other points get perturbed averages of what they are in-between. */
       large->tiles[basic_world_offset(large, lx0, lz1)]
