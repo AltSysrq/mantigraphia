@@ -197,9 +197,9 @@ void render_terrain_tile(canvas*restrict dst, sybmap* syb,
 
 static const vo3 colours[4] = {
   { 255, 255, 255 },
+  { 120, 120, 120 },
   { 10, 120, 16 },
   { 140, 120, 8 },
-  { 120, 120, 120 },
 };
 
 void render_terrain_set_context(void* vcontext) {

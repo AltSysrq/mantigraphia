@@ -26,6 +26,7 @@ graphics/dm-proj.c \
 graphics/sybmap.c \
 world/world.c \
 world/terrain.c \
+world/generate.c \
 render/context.c \
 render/terrain.c \
 render/world.c \

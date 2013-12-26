@@ -42,6 +42,7 @@
 #include "graphics/parchment.h"
 #include "world/world.h"
 #include "world/terrain.h"
+#include "world/generate.h"
 #include "render/world.h"
 #include "render/context.h"
 #include "control/mouselook.h"
@@ -103,20 +104,7 @@ static void cosine_world_delete(cosine_world_state* this) {
 }
 
 static void cosine_world_init_world(cosine_world_state* this) {
-  coord x, z;
-  memset(this->world->tiles, 0,
-         this->world->xmax * this->world->zmax * sizeof(tile_info));
-  for (z = 0; z < SIZE; ++z) {
-    for (x = 0; x < SIZE; ++x) {
-      this->world->tiles[basic_world_offset(this->world, x, z)]
-        .elts[0].altitude =
-        (zo_cosms((x+z)*256, 10*METRE) + 20*METRE) / TILE_YMUL;
-      this->world->tiles[basic_world_offset(this->world, x, z)]
-        .elts[0].type = (x-z)/32 & 3;
-    }
-  }
-
-  basic_world_calc_next(this->world);
+  world_generate(this->world, 1);
 }
 
 static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
