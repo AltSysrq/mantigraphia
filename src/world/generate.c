@@ -59,7 +59,7 @@ void world_generate(basic_world* world, unsigned seed) {
 
   twister_seed(&twister, seed);
 
-  generate_level(world, -1, &twister);
+  generate_level(world, 0, &twister);
   select_terrain(world, &twister);
   create_path_to_from(world, &twister,
                       0, 0, world->xmax/2, world->zmax/2);
@@ -103,7 +103,7 @@ static void randomise(basic_world* world,
     world->tiles[i].elts[0].type = GRASS;
     world->tiles[i].elts[0].thickness = 0;
     world->tiles[i].elts[0].altitude =
-      twist(twister) & (16*(1 << level) - 1);
+      twist(twister) & (2*(1 << level) - 1);
   }
 }
 
@@ -180,7 +180,9 @@ static void select_terrain(basic_world* world, mersenne_twister* twister) {
         maxy = 0;
         for (dz = 0; dz < 2; ++dz) {
           for (dx = 0; dx < 2; ++dx) {
-            y = world->tiles[basic_world_offset(world, x+dx, z+dz)]
+            y = world->tiles[basic_world_offset(world,
+                                                (x+dx) & (world->xmax-1),
+                                                (z+dz) & (world->zmax-1))]
               .elts[0].altitude * TILE_YMUL;
             if (y > maxy)
               maxy = y;
