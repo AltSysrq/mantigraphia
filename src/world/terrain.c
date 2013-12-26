@@ -39,18 +39,18 @@ static inline coord_offset altitude(const basic_world* world,
     TILE_YMUL;
 }
 
-coord terrain_base_y(const basic_world* world, coord x, coord z) {
-  unsigned long long ox = x % TILE_SZ, oz = z % TILE_SZ;
-  x /= TILE_SZ;
-  z /= TILE_SZ;
+coord terrain_base_y(const basic_world* world, coord wx, coord wz) {
+  unsigned long long ox = wx % TILE_SZ, oz = wz % TILE_SZ;
+  coord x = wx / TILE_SZ;
+  coord z = wz / TILE_SZ;
   coord x2 = (x+1) & (world->xmax-1), z2 = (z+1) & (world->zmax-1);
   coord y00 = altitude(world, x, z),
         y01 = altitude(world, x, z2),
         y10 = altitude(world, x2, z),
         y11 = altitude(world, x2, z2);
 
-  coord y0 = ((TILE_SZ-ox)*y00 + ox*y01) / TILE_SZ;
-  coord y1 = ((TILE_SZ-ox)*y10 + ox*y11) / TILE_SZ;
+  coord y0 = ((TILE_SZ-ox)*y00 + ox*y10) / TILE_SZ;
+  coord y1 = ((TILE_SZ-ox)*y01 + ox*y11) / TILE_SZ;
 
   return ((TILE_SZ-oz)*y0 + oz*y1) / TILE_SZ;
 }
