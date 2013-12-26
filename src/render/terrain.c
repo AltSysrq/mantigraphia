@@ -197,8 +197,8 @@ void render_terrain_tile(canvas*restrict dst, sybmap* syb,
 
 static const vo3 colours[4] = {
   { 255, 255, 255 },
-  { 120, 120, 120 },
-  { 10, 120, 16 },
+  { 148, 148, 140 },
+  { 5, 64, 8 },
   { 140, 120, 8 },
 };
 

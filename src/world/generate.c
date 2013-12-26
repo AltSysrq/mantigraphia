@@ -45,10 +45,10 @@
 #define GRAVEL 3
 
 static void initialise(basic_world*);
-static void randomise(basic_world*, unsigned, mersenne_twister*);
+static void randomise(basic_world*, signed, mersenne_twister*);
 static void rmp_up(basic_world* large, const basic_world* small,
-                   unsigned level, mersenne_twister*);
-static void generate_level(basic_world*, unsigned level, mersenne_twister*);
+                   signed level, mersenne_twister*);
+static void generate_level(basic_world*, signed level, mersenne_twister*);
 static void select_terrain(basic_world*, mersenne_twister*);
 static void create_path_to_from(basic_world*, mersenne_twister*,
                                 coord xto, coord zto,
@@ -59,7 +59,7 @@ void world_generate(basic_world* world, unsigned seed) {
 
   twister_seed(&twister, seed);
 
-  generate_level(world, 1, &twister);
+  generate_level(world, -1, &twister);
   select_terrain(world, &twister);
   create_path_to_from(world, &twister,
                       0, 0, world->xmax/2, world->zmax/2);
@@ -67,7 +67,7 @@ void world_generate(basic_world* world, unsigned seed) {
   basic_world_calc_next(world);
 }
 
-static void generate_level(basic_world* world, unsigned level,
+static void generate_level(basic_world* world, signed level,
                            mersenne_twister* twister) {
   basic_world* next;
 
@@ -94,7 +94,7 @@ static void initialise(basic_world* world) {
 }
 
 static void randomise(basic_world* world,
-                      unsigned level,
+                      signed level,
                       mersenne_twister* twister) {
   unsigned i, max;
 
@@ -103,7 +103,7 @@ static void randomise(basic_world* world,
     world->tiles[i].elts[0].type = GRASS;
     world->tiles[i].elts[0].thickness = 0;
     world->tiles[i].elts[0].altitude =
-      twist(twister) & ((1 << level) - 1);
+      twist(twister) & (16*(1 << level) - 1);
   }
 }
 
@@ -116,8 +116,9 @@ static inline signed altitude(const basic_world* world,
 }
 
 static inline unsigned short perturb(signed base_altitude,
-                                     unsigned level,
+                                     signed level,
                                      mersenne_twister* twister) {
+  if (level <= 1) return base_altitude;
   base_altitude -= 1 << level;
   base_altitude += twist(twister) & ((1 << (level-1)) - 1);
   if (base_altitude < 0) return 0;
@@ -127,7 +128,7 @@ static inline unsigned short perturb(signed base_altitude,
 
 static void rmp_up(basic_world* large,
                    const basic_world* small,
-                   unsigned level,
+                   signed level,
                    mersenne_twister* twister) {
   coord sx0, sz0, lx0, lz0, sx1, sz1, lx1, lz1;
   signed sa00, sa01, sa10, sa11;
