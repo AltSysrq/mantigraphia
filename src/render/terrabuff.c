@@ -222,7 +222,7 @@ static void draw_segments(canvas*restrict dst,
   unsigned x0, x1;
 
   for (x0 = 0; x0 < dst->w; ++x0) {
-    if (back[x0].y >= front[x0].y) {
+    if (back[x0].y <= front[x0].y) {
       x1 = x0+1;
       while (x1 < dst->w && back[x1].y >= front[x0].y)
         ++x1;
@@ -240,9 +240,9 @@ static void fill_area_between(canvas*restrict dst,
   unsigned x, off;
 
   for (x = 0; x < dst->w; ++x) {
-    if (front[x].y > back[x].y) {
-      y0 = back[x].y;
-      y1 = front[x].y;
+    if (front[x].y < back[x].y) {
+      y0 = front[x].y;
+      y1 = back[x].y;
       if (y0 < 0) y0 = 0;
       if (y1 >= (signed)dst->h) y1 = (signed)dst->h-1;
 
@@ -275,8 +275,8 @@ void terrabuff_render(canvas*restrict dst,
    *
    * Then, for each iteration, swap the yz buffers, and interpolate the new
    * scan into the front buffer. Fill the areas where the front buffer Y is
-   * greater than the back buffer Y. Then draw line segments along the back
-   * buffer where its Y is greater than or equal to the front buffer.
+   * less than (above) the back buffer Y. Then draw line segments along the back
+   * buffer where its Y is less than or equal to the front buffer.
    *
    * When done, draw a line across the entire front buffer to add contrast to
    * the sky and to be consistent with how the rest of the drawing looks.
