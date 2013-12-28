@@ -291,7 +291,7 @@ void terrabuff_render(canvas*restrict dst,
   screen_yz lbuff_front[dst->w+1], lbuff_back[dst->w+1];
   unsigned scan, x, line_thickness;
 
-  line_thickness = 1 + dst->w / 512;
+  line_thickness = 1 + dst->h / 1024;
 
   /* Render from the bottom up. First, initialise the front-yz buffer to have
    * the minimum Y coordinate at all points, so that the bottom level never
