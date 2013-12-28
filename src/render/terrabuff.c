@@ -288,7 +288,7 @@ static void draw_segments(canvas*restrict dst,
   for (x0 = 0; x0 < dst->w; ++x0) {
     if (back[x0].y <= front[x0].y) {
       x1 = x0+1;
-      while (x1 < dst->w && back[x1].y >= front[x0].y)
+      while (x1 < dst->w && back[x1].y <= front[x0].y)
         ++x1;
 
       draw_line_with_thickness(dst, back, x0, x1, thickness);
