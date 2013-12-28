@@ -41,7 +41,7 @@
 #include "terrabuff.h"
 #include "world.h"
 
-#define SLICE_CAP 128
+#define SLICE_CAP 256
 #define SCAN_CAP 128
 
 RENDERING_CONTEXT_STRUCT(render_basic_world, terrabuff*)
