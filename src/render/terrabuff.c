@@ -123,6 +123,7 @@ void terrabuff_clear(terrabuff* this, terrabuff_slice l, terrabuff_slice r) {
   this->scan = 0;
   this->scurr = 0;
   this->soff = l;
+  this->boundaries[0].low = 0;
 }
 
 int terrabuff_next(terrabuff* this, terrabuff_slice* l, terrabuff_slice* r) {
@@ -131,16 +132,20 @@ int terrabuff_next(terrabuff* this, terrabuff_slice* l, terrabuff_slice* r) {
   *r = (this->boundaries[this->scan].high + this->soff) & (this->scap-1);
   ++this->scan;
 
+  this->boundaries[this->scan].low = this->scurr;
+
   return this->boundaries[this->scan-1].low + 4 <
     this->boundaries[this->scan-1].high;
 }
 
 void terrabuff_put(terrabuff* this, const vo3 where, coord_offset xmax) {
   /* Update boundaries */
-  if (where[0] < 0)
-    this->boundaries[this->scan].low = (this->scurr-1) & (this->scap-1);
-  else if (where[0] < xmax)
+  if (where[0] < 0) {
+    if (this->scurr > this->boundaries[this->scan].low+2)
+      this->boundaries[this->scan].low = this->scurr - 2;
+  } else if (where[0] < xmax) {
     this->boundaries[this->scan].high = (this->scurr+2) & (this->scap-1);
+  }
 
   memcpy(this->points[this->scan*this->scap + this->scurr], where, sizeof(vo3));
   ++this->scurr;
@@ -152,13 +157,15 @@ typedef struct {
 
 static void interpolate(screen_yz*restrict dst, vo3*restrict points,
                         coord_offset xmax) {
-  /* TODO: Better interpolation than linear (ie, cubic) */
+  /* Use a Catmull-Rom spline for Y, linear for Z */
   coord_offset x0 = points[1][0], x1 = points[2][0];
   coord_offset y0 = points[1][1], y1 = points[2][1];
   coord_offset z0 = points[1][2], z1 = points[2][2];
   coord_offset xl = (x0 >= 0? x0 : 0), xh = (x1 < xmax? x1 : xmax);
   coord_offset dx = x1 - x0;
   coord_offset x;
+  coord_offset m0n, m1n;
+  precise_fraction pidx, t1, t2, t3, m0d, m1d;
   fraction idx;
 
   if (!dx) {
@@ -169,11 +176,43 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
     return;
   }
 
-  idx = fraction_of(dx);
+  /* Clamp y values to maximum range allowed by precise_fraction. */
+  y0 = clamps(-32768, y0, +32767);
+  y1 = clamps(-32768, y1, +32767);
 
+  /* Since here we know that the X of 1 and 2 are inequal, we also know that
+   * those of 0 and 2, as well as 1 and 3, are inequal.
+   *
+   * We calculate here the tangents m0 and m1 as rationals, ie, m0 = m0n/m0d.
+   */
+  m0d = precise_fraction_of(points[2][0] - points[0][0]);
+  m1d = precise_fraction_of(points[3][0] - points[1][0]);
+  m0n = clamps(-32768, points[2][1] - points[0][1], +32767);
+  m1n = clamps(-32768, points[3][1] - points[1][1], +32767);
+
+  pidx = precise_fraction_of(dx);
+  idx = fraction_of(dx);
   for (x = xl; x <= xh; ++x) {
-    dst[x].y = fraction_smul(y0*(x1-x) + y1*(x-x0), idx);
-    dst[x].z = fraction_smul(z0*(x1-x) + z1*(x0-x), idx);
+    t1 = (x-x0) * pidx;
+    t2 = precise_fraction_fmul(t1, t1);
+    t3 = precise_fraction_fmul(t2, t1);
+
+    dst[x].y = precise_fraction_sred(
+      + 2 * precise_fraction_smul(y0, t3)
+      - 3 * precise_fraction_smul(y0, t2)
+      + precise_fraction_sexp(y0)
+      + precise_fraction_smul(
+        precise_fraction_sred(
+          +     precise_fraction_smul(m0n, t3)
+          - 2 * precise_fraction_smul(m0n, t2)
+          +     precise_fraction_smul(m0n, t1)), m0d)
+      - 2 * precise_fraction_smul(y1, t3)
+      + 3 * precise_fraction_smul(y1, t2)
+      + precise_fraction_smul(
+        precise_fraction_sred(
+          + precise_fraction_smul(m1n, t3)
+          - precise_fraction_smul(m1n, t2)), m1d));
+    dst[x].z = fraction_smul((x-x0)*z1 + (x1-x)*z0, idx);
   }
 }
 
@@ -183,8 +222,9 @@ static void interpolate_all(screen_yz*restrict dst,
                             coord_offset xmax) {
   unsigned i;
 
-  for (i = 1; i < num_points-1; ++i)
-    interpolate(dst, points + (i-1), xmax);
+  for (i = 1; i < num_points-2 && points[i][0] < xmax; ++i)
+    if (points[i+1][0] >= 0)
+      interpolate(dst, points + (i-1), xmax);
 }
 
 #define LINE_COLOUR (argb(255,12,12,12))
