@@ -86,8 +86,11 @@ void terrabuff_clear(terrabuff*, terrabuff_slice l, terrabuff_slice h);
  * after a terrabuff_put() which filled the previous scan. l and h are set to
  * the low (inclusive) and high (exclusive) indices which are to be used for
  * the subsequent scan.
+ *
+ * Returns whether is is possible to continue scanning, respective to available
+ * slices. The return value does not take the current scan into account.
  */
-void terrabuff_next(terrabuff*, terrabuff_slice* l, terrabuff_slice* h);
+int terrabuff_next(terrabuff*, terrabuff_slice* l, terrabuff_slice* h);
 
 /**
  * Informs the terrabuff of the orthogonal screen coordinates of a terrain

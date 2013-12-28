@@ -64,10 +64,17 @@ typedef struct {
    */
   zo_scaling_factor rxrot_cos, rxrot_sin;
   /**
-   * The near clipping plane. Vertices in front of it are discarded. This
-   * must be at least 0.
+   * The near clipping plane, in scaled coordinates. Vertices in front of it (Z
+   * <= plane) are discarded. This must be at least 0. The actual clipping
+   * plane is dependent on fov and screen size.
    */
   coord_offset near_clipping_plane;
+  /**
+   * The "effective" near clipping plane, in relative coordinates. This is set
+   * by perspective_init(), and compensates the absolute near clipping plane
+   * for the Z scaling factor. This value is always negative.
+   */
+  coord_offset effective_near_clipping_plane;
   /**
    * Perspective Z scaling factor. Should be set by perspective_init().
    */

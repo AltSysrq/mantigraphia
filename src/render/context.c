@@ -34,19 +34,28 @@
 #include <assert.h>
 
 #include "../alloc.h"
-#include "terrain.h"
+#include "world.h"
 #include "context.h"
 
 static size_t space_for_invariant(size_t);
 
 static size_t (*const context_put[])(size_t) = {
   space_for_invariant,
-  render_terrain_put_context_offset,
+  render_basic_world_put_context_offset,
   NULL
 };
 
-static void (*const context_set[])(void*) = {
-  render_terrain_set_context,
+static void (*const context_set[])(rendering_context*restrict) = {
+  NULL
+};
+
+static void (*const context_ctor[])(rendering_context*restrict) = {
+  render_basic_world_context_ctor,
+  NULL
+};
+
+static void (*const context_dtor[])(rendering_context*restrict) = {
+  render_basic_world_context_dtor,
   NULL
 };
 
@@ -56,6 +65,7 @@ static size_t space_for_invariant(size_t zero) {
 }
 
 rendering_context* rendering_context_new(void) {
+  rendering_context* this;
   size_t off = 0;
   unsigned i;
 
@@ -66,10 +76,19 @@ rendering_context* rendering_context_new(void) {
     off &= ~(sizeof(void*) - 1);
   }
 
-  return xmalloc(off);
+  this = xmalloc(off);
+  for (i = 0; context_ctor[i]; ++i)
+    (*context_ctor[i])(this);
+
+  return this;
 }
 
 void rendering_context_delete(rendering_context* this) {
+  unsigned i;
+
+  for (i = 0; context_dtor[i]; ++i)
+    (*context_dtor[i])(this);
+
   free(this);
 }
 

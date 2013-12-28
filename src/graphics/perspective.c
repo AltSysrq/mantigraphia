@@ -51,6 +51,8 @@ void perspective_init(perspective* this,
                * ZO_SCALING_FACTOR_MAX / fsin
                / screen->w;
   this->fov = fov;
+
+  this->effective_near_clipping_plane = -ZO_SCALING_FACTOR_MAX*2 / this->zscale;
 }
 
 void perspective_xlate(vo3 dst,

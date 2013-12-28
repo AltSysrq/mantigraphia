@@ -28,24 +28,24 @@
 #ifndef RENDER_WORLD_H_
 #define RENDER_WORLD_H_
 
+#include <stdlib.h>
+
 #include "../graphics/canvas.h"
-#include "../graphics/sybmap.h"
 #include "../graphics/perspective.h"
 #include "../world/world.h"
+#include "context.h"
+#include "terrabuff.h"
 
 /**
  * Renders all visible tiles in the given basic_world.
- *
- * @param dst The canvas to which to render
- * @param coverage Two scratch sybmaps for visibility testing. coverage[0]
- * should be clear when this is called; the others will be destroyed by this
- * call. When the call completes, coverage[1] is the most complete; coverage[0]
- * should be considered entirely destroyed.
  */
-void basic_world_render(
+void render_basic_world(
   canvas* dst,
-  sybmap* coverage[2],
   const basic_world*restrict,
-  const void*restrict context);
+  const rendering_context*restrict context);
+
+size_t render_basic_world_put_context_offset(size_t);
+void render_basic_world_context_ctor(rendering_context*restrict);
+void render_basic_world_context_dtor(rendering_context*restrict);
 
 #endif /* RENDER_WORLD_H_ */

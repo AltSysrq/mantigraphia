@@ -125,19 +125,22 @@ void terrabuff_clear(terrabuff* this, terrabuff_slice l, terrabuff_slice r) {
   this->soff = l;
 }
 
-void terrabuff_next(terrabuff* this, terrabuff_slice* l, terrabuff_slice* r) {
+int terrabuff_next(terrabuff* this, terrabuff_slice* l, terrabuff_slice* r) {
   this->scurr = this->boundaries[this->scan].low;
   *l = (this->boundaries[this->scan].low  + this->soff) & (this->scap-1);
   *r = (this->boundaries[this->scan].high + this->soff) & (this->scap-1);
   ++this->scan;
+
+  return this->boundaries[this->scan-1].low + 4 <
+    this->boundaries[this->scan-1].high;
 }
 
 void terrabuff_put(terrabuff* this, const vo3 where, coord_offset xmax) {
   /* Update boundaries */
   if (where[0] < 0)
-    this->boundaries[this->scan].low = this->scurr;
+    this->boundaries[this->scan].low = (this->scurr-1) & (this->scap-1);
   else if (where[0] < xmax)
-    this->boundaries[this->scan].high = this->scurr + 2;
+    this->boundaries[this->scan].high = (this->scurr+2) & (this->scap-1);
 
   memcpy(this->points[this->scan*this->scap + this->scurr], where, sizeof(vo3));
   ++this->scurr;
@@ -156,7 +159,17 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
   coord_offset xl = (x0 >= 0? x0 : 0), xh = (x1 < xmax? x1 : xmax);
   coord_offset dx = x1 - x0;
   coord_offset x;
-  fraction idx = fraction_of(dx);
+  fraction idx;
+
+  if (!dx) {
+    if (x0 >=0 && x0 < xmax) {
+      dst[x0].y = y0;
+      dst[x0].z = z0;
+    }
+    return;
+  }
+
+  idx = fraction_of(dx);
 
   for (x = xl; x <= xh; ++x) {
     dst[x].y = fraction_smul(y0*(x1-x) + y1*(x-x0), idx);
@@ -249,7 +262,7 @@ static void fill_area_between(canvas*restrict dst,
       for (y = y0; y <= y1; ++y) {
         off = canvas_offset(dst, x, y);
         dst->px[off] = texture[
-          TEXSZ*((y+front[x].y) & TEXMASK) +
+          TEXSZ*((y-front[x].y) & TEXMASK) +
           (x & TEXMASK)];
         dst->depth[off] = front[x].z;
       }
@@ -282,10 +295,10 @@ void terrabuff_render(canvas*restrict dst,
    * the sky and to be consistent with how the rest of the drawing looks.
    */
   for (x = 0; x <= dst->w; ++x) {
-    lbuff_front[x].y = 0x80000000; /* most negative value */
+    lbuff_front[x].y = 0x7FFFFFFF;
     lbuff_front[x].z = 0x7FFFFFFF;
   }
-  for (scan = 0; scan < this->scan; ++scan) {
+  for (scan = 0; scan < this->scan-1; ++scan) {
     lbuff_tmp = lbuff_front;
     lbuff_front = lbuff_back;
     lbuff_back = lbuff_tmp;

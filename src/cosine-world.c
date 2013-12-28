@@ -145,15 +145,8 @@ static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
 static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   rendering_context_invariant context_inv;
   perspective proj;
-  sybmap* coverage[2];
-  unsigned i;
 
   context_inv.proj = &proj;
-
-  for (i = 0; i < 2; ++i) {
-    coverage[i] = sybmap_new(dst->w, dst->h);
-    sybmap_clear(coverage[i]);
-  }
 
   proj.camera[0] = this->x;
   proj.camera[1] = terrain_base_y(this->world, this->x, this->z) + 2*METRE;
@@ -172,10 +165,7 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   rendering_context_set(this->context, &context_inv);
 
   parchment_draw(dst, this->bg);
-  basic_world_render(dst, coverage, this->world, this->context);
-
-  for (i = 0; i < 2; ++i)
-    sybmap_delete(coverage[i]);
+  render_basic_world(dst, this->world, this->context);
 }
 
 static void cosine_world_key(cosine_world_state* this,

@@ -37,163 +37,111 @@
 #include "../graphics/sybmap.h"
 #include "../world/world.h"
 #include "../world/terrain.h"
-#include "terrain.h"
 #include "context.h"
+#include "terrabuff.h"
 #include "world.h"
 
-static inline coord altitude(const basic_world* world,
-                             coord x, coord z) {
-  return world->tiles[basic_world_offset(world, x, z)]
-    .elts[0].altitude * TILE_YMUL;
+#define SLICE_CAP 128
+#define SCAN_CAP 128
+
+RENDERING_CONTEXT_STRUCT(render_basic_world, terrabuff*)
+
+void render_basic_world_context_ctor(rendering_context*restrict context) {
+  *render_basic_world_getm(context) = terrabuff_new(SLICE_CAP, SCAN_CAP);
 }
 
-static inline void extremau(coord*restrict min, coord*restrict max,
-                            coord value) {
-  if (value < *min) *min = value;
-  if (value > *max) *max = value;
-}
-static inline void extremas(coord_offset*restrict min,
-                            coord_offset*restrict max,
-                            coord_offset value) {
-  if (value < *min) *min = value;
-  if (value > *max) *max = value;
+void render_basic_world_context_dtor(rendering_context*restrict context) {
+  terrabuff_delete(*render_basic_world_get(context));
 }
 
-/**
- * Renders one tile of the world at the given detail level. Returns whether the
- * tile could possibly be projected onto the screen.
- *
- * "Possibly projected" means that:
- *
- * - At least one vertex of the tile's bounding box could be projected via
- *   perspective_proj().
- * - At least one projected vertex had an X coordinate within the canvas
- *   boundaries.
- * - At least one projected vertex had a Y coordinate within the canvas
- *   boundaries.
- */
-static int render_one_tile(
-  canvas* dst, sybmap* test_coverage, sybmap* write_coverage,
-  const basic_world*restrict world,
-  const void*restrict context,
-  coord tx0, coord tz0,
-  coord cx, coord cz,
-  unsigned char level)
-{
-  const perspective*restrict proj =
-    ((const rendering_context_invariant*)context)->proj;
-  coord tx1 = ((tx0+1) & (world->xmax-1));
-  coord tz1 = ((tz0+1) & (world->zmax-1));
-  coord x0, x1, y0, y1, z0, z1;
-  coord_offset scx0, scx1, scy0, scy1;
+static inline terrabuff_slice angle_to_slice(angle ang) {
+  unsigned zx = ang;
+  /* Invert direction, as slices run clockwise and angles counter-clockwise. */
+  zx = 65536 - zx;
+  /* Rescale */
+  return zx * SLICE_CAP / 65536;
+}
+
+static inline angle slice_to_angle(terrabuff_slice slice) {
+  unsigned zx = slice;
+  zx = zx * 65536 / SLICE_CAP;
+  return 65536 - zx;
+}
+
+static void put_point(terrabuff* dst, const vc3 centre,
+                      terrabuff_slice slice, coord_offset distance,
+                      const basic_world*restrict world, unsigned char level,
+                      const perspective* proj, unsigned xmax) {
   vc3 point;
-  vo3 ppoint;
-  int any_projected = 0, has_screen_x = 0, has_screen_y;
+  vo3 relative, projected;
+  coord tx, tz;
+  int clamped = 0;
 
-  /* Don't draw if tile wraps around the torus */
-  if (abs(torus_dist(cx-tx0, world->xmax)) >= (signed)(world->xmax/2-1) ||
-      abs(torus_dist(cz-tz0, world->zmax)) >= (signed)(world->zmax/2-1))
-    return 0;
+  point[0] = centre[0] - zo_sinms(slice_to_angle(slice), distance);
+  point[2] = centre[2] - zo_cosms(slice_to_angle(slice), distance);
+  tx = ((point[0] >> level) / TILE_SZ) & (world->xmax-1);
+  tz = ((point[2] >> level) / TILE_SZ) & (world->zmax-1);
+  point[1] = TILE_YMUL * world->tiles[basic_world_offset(world, tx, tz)]
+    .elts[0].altitude;
 
-  /* Calculate world bounding box */
-  x0 = tx0 * TILE_SZ << level;
-  x1 = tx1 * TILE_SZ << level;
-  z0 = tz0 * TILE_SZ << level;
-  z1 = tz1 * TILE_SZ << level;
-  y0 = y1 = altitude(world, tx0, tz0);
-  extremau(&y0, &y1, altitude(world, tx1, tz0));
-  extremau(&y0, &y1, altitude(world, tx0, tz1));
-  extremau(&y0, &y1, altitude(world, tx1, tz1));
-
-  /* Test coordinates and calculate screen bounding box */
-  scx0 = dst->w;
-  scx1 = -1;
-  scy0 = dst->h;
-  scy1 = -1;
-#define TEST(x,y,z)                                     \
-  point[0] = x; point[1] = y; point[2] = z;             \
-  if (perspective_proj(ppoint, point, proj)) {          \
-    any_projected = 1;                                  \
-    extremas(&scx0, &scx1, ppoint[0]);                  \
-    extremas(&scy0, &scy1, ppoint[1]);                  \
+  /* To ensure that every point can project, clamp relative Z coordinates to
+   * the effective near clipping plane. This provides an acceptable
+   * approximation of the 2D projection of "infinity in that direction".
+   */
+  perspective_xlate(relative, point, proj);
+  if (relative[2] > proj->effective_near_clipping_plane-1) {
+    relative[2] = proj->effective_near_clipping_plane-1;
+    clamped = 1;
   }
-  TEST(x0, y0, z0);
-  TEST(x0, y0, z1);
-  TEST(x0, y1, z0);
-  TEST(x0, y1, z1);
-  TEST(x1, y0, z0);
-  TEST(x1, y0, z1);
-  TEST(x1, y1, z0);
-  TEST(x1, y1, z1);
-#undef TEST
 
-  has_screen_x = (scx0 < (signed)dst->w && scx1 >= 0);
-  has_screen_y = (scy0 < (signed)dst->h && scy1 >= 0);
+  if (!perspective_proj_rel(projected, relative, proj))
+    abort();
 
-  if (!any_projected || !has_screen_x || !has_screen_y)
-    return 0;
+  if (clamped)
+    projected[1] = 65536;
 
-  if (sybmap_test(test_coverage, scx0, scx1, scy0, scy1))
-    render_terrain_tile(dst, write_coverage, world, context, tx0, tz0,
-                        tx0, tz0, level);
-  return 1;
+  terrabuff_put(dst, projected, xmax);
 }
 
-/**
- * World rendering is performed by splitting the world into four quadrants,
- * centred on the camera's location. Each quadrant is rendered independently,
- * moving in a cardinal direction (the major axis). Each point along this
- * cardinal direction is a segment, drawn as a series of tiles along the minor
- * axis. The minor axis is *not* capped to what is drawable, as sometimes
- * terrain will move out of the visible area only to rise back into it later.
- *
- * Segments are drawn in parallel at the same major axis value. Because of
- * this, we use two sybmaps: The one representing the state after drawing the
- * previous major axis value, and the one new data is written to.
- *
- * This attempts to render every tile in the world, subject to lod. This is
- * logarithmic with respect to each dimension being rendered.
- */
-void basic_world_render(
+void render_basic_world(
   canvas* dst,
-  sybmap* coverage[2],
   const basic_world*restrict world,
-  const void*restrict context)
+  const rendering_context*restrict context)
 {
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;
-  coord cx = proj->camera[0] / TILE_SZ, cz = proj->camera[2] / TILE_SZ;
-  coord_offset dist, minor;
+  terrabuff* terra = *render_basic_world_get(context);
+  unsigned scan = 0;
+  terrabuff_slice smin, scurr, smax;
   unsigned char level = 0;
-  /* Render tile at camera position (not included in any segment) */
-  render_one_tile(dst, coverage[0], coverage[1], world, context,
-                  cx, cz, cx, cz, 0);
+  coord_offset distance = 1 * METRE, distance_incr = 1 * METRE;
 
-  for (dist = 1; world && dist < (signed)(world->xmax / 2); ++dist) {
-    sybmap_copy(coverage[0], coverage[1]);
-    for (minor = -dist+1; minor <= dist; ++minor) {
-#define C(x,lim) ((x) & (world->lim-1))
-      render_one_tile(dst, coverage[0], coverage[1], world, context,
-                      C(cx + minor,xmax), C(cz - dist,zmax), cx, cz, level);
-      render_one_tile(dst, coverage[0], coverage[1], world, context,
-                      C(cx + dist,xmax), C(cz + minor,zmax), cx, cz, level);
-      render_one_tile(dst, coverage[0], coverage[1], world, context,
-                      C(cx - minor,xmax), C(cz + dist,zmax), cx, cz, level);
-      render_one_tile(dst, coverage[0], coverage[1], world, context,
-                      C(cx - dist,xmax), C(cz - minor,zmax), cx, cz, level);
-#undef C
-    }
+  /* Start by assuming 180 deg effective field. The terrabuff will give us
+   * better boundaries after the first scan.
+   */
+  scurr = angle_to_slice(proj->yrot);
+  smin = (scurr - SLICE_CAP/4) & (SLICE_CAP-1);
+  smax = (scurr + SLICE_CAP/4) & (SLICE_CAP-1);
 
-    if ((dist >> level/2) > (64 >> level/2)) {
-      world = SLIST_NEXT(world, next);
-      dist /= 2;
-      cx /= 2;
-      cz /= 2;
+  terrabuff_clear(terra, smin, smax);
+  while (scan < SCAN_CAP && world &&
+         (distance >> level) / TILE_SZ < (signed)world->xmax/2) {
+    for (scurr = smin; scurr != smax; scurr = (scurr+1) & (SLICE_CAP-1))
+      put_point(terra, proj->camera, scurr, distance, world, level,
+                proj, dst->w);
+
+    if (!terrabuff_next(terra, &smin, &smax)) break;
+
+    ++scan;
+    distance += distance_incr;
+    distance_incr += METRE/4;
+    /* Reduce level so that arc-length is less than 2m */
+    /* (assume pi=3...) */
+    while (distance * 6 / SLICE_CAP > (2*METRE << level) && world) {
       ++level;
-      /* Re-draw the last pair of tiles, so that any discontinuity is
-       * masked.
-       */
-      --dist;
+      world = SLIST_NEXT(world, next);
     }
   }
+
+  terrabuff_render(dst, terra, context);
 }

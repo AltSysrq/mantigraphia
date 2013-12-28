@@ -119,10 +119,10 @@ void rendering_context_set(rendering_context*restrict,
     prefix##_context_offset = sz;                               \
     return sz + sizeof(typename);                               \
   }                                                             \
-  static inline const typename* prefix##_get(                   \
+  static inline typename const* prefix##_get(                   \
     const void*restrict context                                 \
   ) {                                                           \
-    return (const typename*restrict)                            \
+    return (typename const*restrict)                            \
       (((const char*restrict)context)+prefix##_context_offset); \
   }                                                             \
   static inline typename* prefix##_getm(                        \
