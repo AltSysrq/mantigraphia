@@ -270,14 +270,25 @@ static void fill_area_between(canvas*restrict dst,
   }
 }
 
+static void collapse_buffer(screen_yz*restrict dst,
+                            const screen_yz*restrict src,
+                            unsigned xmax) {
+  unsigned x;
+
+  for (x = 0; x < xmax; ++x) {
+    if (src[x].y < dst[x].y) {
+      dst[x].y = src[x].y;
+      dst[x].z = src[x].z;
+    }
+  }
+}
+
 void terrabuff_render(canvas*restrict dst,
                       const terrabuff*restrict this,
                       const rendering_context*restrict ctxt) {
   const rendering_context_invariant*restrict context =
     (const rendering_context_invariant*restrict)ctxt;
-  screen_yz lbuffa[dst->w+1], lbuffb[dst->w+1];
-  screen_yz*restrict lbuff_front = lbuffa, *restrict lbuff_back = lbuffb;
-  screen_yz* lbuff_tmp;
+  screen_yz lbuff_front[dst->w+1], lbuff_back[dst->w+1];
   unsigned scan, x, line_thickness;
 
   line_thickness = 1 + dst->w / 512;
@@ -286,23 +297,20 @@ void terrabuff_render(canvas*restrict dst,
    * the minimum Y coordinate at all points, so that the bottom level never
    * interacts.
    *
-   * Then, for each iteration, swap the yz buffers, and interpolate the new
-   * scan into the front buffer. Fill the areas where the front buffer Y is
-   * less than (above) the back buffer Y. Then draw line segments along the back
-   * buffer where its Y is less than or equal to the front buffer.
+   * Then, for each iteration, interpolate the new scan into the front
+   * buffer. Fill the areas where the front buffer Y is less than (above) the
+   * back buffer Y. Then draw line segments along the back buffer where its Y
+   * is less than or equal to the front buffer. Finally, collapse the front
+   * buffer into the back buffer by selecting lesser Y coordinates.
    *
-   * When done, draw a line across the entire front buffer to add contrast to
+   * When done, draw a line across the entire back buffer to add contrast to
    * the sky and to be consistent with how the rest of the drawing looks.
    */
   for (x = 0; x <= dst->w; ++x) {
-    lbuff_front[x].y = 0x7FFFFFFF;
-    lbuff_front[x].z = 0x7FFFFFFF;
+    lbuff_back[x].y = 0x7FFFFFFF;
+    lbuff_back[x].z = 0x7FFFFFFF;
   }
   for (scan = 0; scan < this->scan-1; ++scan) {
-    lbuff_tmp = lbuff_front;
-    lbuff_front = lbuff_back;
-    lbuff_back = lbuff_tmp;
-
     interpolate_all(lbuff_front,
                     this->points + this->scap*scan + this->boundaries[scan].low,
                     this->boundaries[scan].high - this->boundaries[scan].low,
@@ -310,7 +318,9 @@ void terrabuff_render(canvas*restrict dst,
 
     fill_area_between(dst, lbuff_front, lbuff_back);
     draw_segments(dst, lbuff_front, lbuff_back, line_thickness);
+
+    collapse_buffer(lbuff_back, lbuff_front, dst->w);
   }
 
-  draw_line_with_thickness(dst, lbuff_front, 0, dst->w, line_thickness);
+  draw_line_with_thickness(dst, lbuff_back, 0, dst->w, line_thickness);
 }
