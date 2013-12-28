@@ -88,6 +88,8 @@ struct terrabuff_s {
    */
   terrabuff_slice soff;
 
+  terrabuff_slice next_low, next_high;
+
   /**
    * The current scan index.
    */
@@ -124,27 +126,36 @@ void terrabuff_clear(terrabuff* this, terrabuff_slice l, terrabuff_slice r) {
   this->scurr = 0;
   this->soff = l;
   this->boundaries[0].low = 0;
+  this->boundaries[1].high = (r-l) & (this->scap-1);
 }
 
 int terrabuff_next(terrabuff* this, terrabuff_slice* l, terrabuff_slice* r) {
-  this->scurr = this->boundaries[this->scan].low;
-  *l = (this->boundaries[this->scan].low  + this->soff) & (this->scap-1);
-  *r = (this->boundaries[this->scan].high + this->soff) & (this->scap-1);
+  terrabuff_slice low = this->next_low;
+  terrabuff_slice high = this->next_high;
+  if (low > 2)
+    low -= 2;
+  else
+    low = 0;
+
+  this->scurr = low;
+  *l = (low  + this->soff) & (this->scap-1);
+  *r = (high + this->soff) & (this->scap-1);
   ++this->scan;
 
-  this->boundaries[this->scan].low = this->scurr;
+  this->boundaries[this->scan].low = low;
+  this->boundaries[this->scan].high = high;
+  this->next_low = low;
+  this->next_high = high;
 
-  return this->boundaries[this->scan-1].low + 4 <
-    this->boundaries[this->scan-1].high;
+  return low + 4 < high;
 }
 
 void terrabuff_put(terrabuff* this, const vo3 where, coord_offset xmax) {
   /* Update boundaries */
   if (where[0] < 0) {
-    if (this->scurr > this->boundaries[this->scan].low+2)
-      this->boundaries[this->scan].low = this->scurr - 2;
+    this->next_low = this->scurr;
   } else if (where[0] < xmax) {
-    this->boundaries[this->scan].high = (this->scurr+2) & (this->scap-1);
+    this->next_high = this->scurr+3;
   }
 
   memcpy(this->points[this->scan*this->scap + this->scurr], where, sizeof(vo3));
