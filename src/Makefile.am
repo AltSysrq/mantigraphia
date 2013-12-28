@@ -29,6 +29,7 @@ world/terrain.c \
 world/generate.c \
 render/context.c \
 render/terrain.c \
+render/terrabuff.c \
 render/world.c \
 control/mouselook.c \
 flower-pot.c \
