@@ -42,6 +42,10 @@
 #define TEXSZ 256
 #define TEXMASK (TEXSZ-1)
 
+/**
+ * Texture to use for drawing. This is actually column-major, since drawing
+ * functions need to traverse it vertically.
+ */
 static canvas_pixel texture[TEXSZ*TEXSZ];
 
 void terrabuff_init(void) {
@@ -59,7 +63,8 @@ void terrabuff_init(void) {
   };
 
   linear_paint_tile_render(texture, TEXSZ, TEXSZ,
-                           TEXSZ/4, 1,
+                           /* Inverted parm order due to column-major order */
+                           1, TEXSZ/4,
                            pallet, lenof(pallet));
 }
 
@@ -344,8 +349,8 @@ static void fill_area_between(canvas*restrict dst,
       for (y = y0; y <= y1; ++y) {
         off = canvas_offset(dst, x, y);
         dst->px[off] = texture[
-          TEXSZ*((y-front[x].y) & TEXMASK) +
-          ((x + tex_x_off) & TEXMASK)];
+          ((y-front[x].y) & TEXMASK) +
+          TEXSZ*((x + tex_x_off) & TEXMASK)];
         dst->depth[off] = front[x].z;
       }
     }
