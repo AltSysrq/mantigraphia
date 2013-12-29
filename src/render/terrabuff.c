@@ -410,8 +410,8 @@ void terrabuff_render(canvas*restrict dst,
   unsigned scan, x, line_thickness;
   coord_offset texture_x_offset;
 
-  texture_x_offset = (-(signed)dst->w) *
-    context->proj->yrot / context->proj->fov;
+  texture_x_offset = (-(signed)dst->w) * 314159 / 200000 *
+    context->long_yrot / context->proj->fov;
   line_thickness = 1 + dst->h / 1024;
   memset(line_points, 0, dst->w);
 

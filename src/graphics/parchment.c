@@ -47,7 +47,7 @@
 static canvas_pixel texture[PARCHMENT_DIM*PARCHMENT_DIM];
 
 struct parchment_s {
-  unsigned short tx, ty;
+  unsigned tx, ty;
 };
 
 void parchment_init(void) {
@@ -88,14 +88,14 @@ void parchment_delete(parchment* this) {
 void parchment_draw(canvas* dst, const parchment* this) {
   unsigned y, yo, xo, cnt, off;
   for (yo = 0; yo < dst->h; ++yo) {
-    y = (yo + this->ty) & PARCHMENT_MASK;
+    y = (yo + this->ty/1024) & PARCHMENT_MASK;
 
     for (xo = 0; xo < dst->w; xo += cnt) {
-      cnt = PARCHMENT_DIM - ((xo + this->tx) & PARCHMENT_MASK);
+      cnt = PARCHMENT_DIM - ((xo + this->tx/1024) & PARCHMENT_MASK);
       if (xo + cnt > dst->w)
         cnt = dst->w - xo;
 
-      off = ((xo + this->tx) & PARCHMENT_MASK) + y * PARCHMENT_DIM;
+      off = ((xo + this->tx/1024) & PARCHMENT_MASK) + y * PARCHMENT_DIM;
 
       memcpy(dst->px + canvas_offset(dst, xo, yo),
              texture + off,
@@ -116,10 +116,10 @@ void parchment_xform(parchment* this,
   signed short delta_pitch = new_pitch - old_pitch;
   signed short delta_yaw = new_yaw - old_yaw;
   /* Shift vertically as per change in pitch */
-  this->ty += 2 * screen_h * delta_pitch / fov_y;
+  this->ty += screen_w * delta_pitch * 314159LL / fov_y * 1024 / 200000;
   /* Shift horizontally as per change in yaw, but scale this shift by
    * cos(pitch), since looking vertically has less an effect on perceived
    * rotation.
    */
-  this->tx -= 2 * zo_cosms(new_pitch, screen_w * delta_yaw / fov_x);
+  this->tx -= screen_w * delta_yaw * 314159LL / fov_x * 1024 / 200000;
 }

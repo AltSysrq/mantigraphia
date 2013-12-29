@@ -63,6 +63,15 @@ typedef struct {
    * The current chronon of the game being rendered.
    */
   chronon now;
+
+  /**
+   * The "long" rotation of the camera; in other words, the total Y rotation
+   * that the camera has undergone, often being outside the normal angle
+   * range. This is maintained for texture X coordinate correction, since 256
+   * is not a multiple of pi, and thus textures would "jump" at the wrap point
+   * if only an angle were used.
+   */
+  signed long_yrot;
 } rendering_context_invariant;
 
 /**

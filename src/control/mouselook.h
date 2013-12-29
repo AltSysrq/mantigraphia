@@ -39,9 +39,9 @@
  */
 typedef struct {
   /**
-   * The absolute rotation on the Y axis.
+   * The absolute rotation on the Y axis ("long" form).
    */
-  angle yrot;
+  signed yrot;
   /**
    * The relative rotation on the X axis. Ranges from -DEG_90 to +DEG_90.
    */
