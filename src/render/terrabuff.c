@@ -117,6 +117,12 @@ struct terrabuff_s {
    * the same memory allocation as the terrabuff itself.
    */
   vo3*restrict points;
+  /**
+   * For faster rendering, we recolour the texture before writing the
+   * pixels. Only TEXSZ*canvas->h is filled, since that is the maximum coordinate
+   * that we ever actually attempt to draw.
+   */
+  canvas_pixel texture_coloured[TEXSZ*TEXSZ*TEXTURE_REPETITION];
 };
 
 terrabuff* terrabuff_new(terrabuff_slice scap, unsigned scancap) {
@@ -214,7 +220,8 @@ __attribute__((noinline));
 static void fill_area_between(canvas*restrict,
                               const screen_yz*restrict,
                               const screen_yz*restrict,
-                              coord_offset)
+                              coord_offset,
+                              const canvas_pixel*restrict)
 __attribute__((noinline));
 static void collapse_buffer(char*restrict,
                             screen_yz*restrict, const screen_yz*restrict,
@@ -362,7 +369,8 @@ static void draw_segments(canvas*restrict dst,
 static void fill_area_between(canvas*restrict dst,
                               const screen_yz*restrict front,
                               const screen_yz*restrict back,
-                              coord_offset tex_x_off) {
+                              coord_offset tex_x_off,
+                              const canvas_pixel*restrict texture_coloured) {
   coord_offset y, y0, y1;
   unsigned x;
   register unsigned w = dst->w;
@@ -380,7 +388,7 @@ static void fill_area_between(canvas*restrict dst,
 
       px = dst->px + canvas_offset(dst, x, y0);
       depth = dst->depth + canvas_offset(dst, x, y0);
-      tex = texture + ((y0-front[x].y) & TEXMASK) +
+      tex = texture_coloured + ((y0-front[x].y) & TEXMASK) +
         TEXSZ*((x+tex_x_off) & TEXMASK);
 
       for (y = y0; y <= y1; ++y) {
@@ -410,8 +418,24 @@ static void collapse_buffer(char* line_points,
   }
 }
 
+static inline unsigned char mod8(unsigned char a, unsigned char b) {
+  unsigned short prod = a;
+  prod *= b;
+  return prod >> 8;
+}
+
+static inline canvas_pixel modulate(canvas_pixel raw,
+                                    unsigned char r,
+                                    unsigned char g,
+                                    unsigned char b) {
+  return argb(get_alpha(r),
+              mod8(get_red(raw), r),
+              mod8(get_green(raw), g),
+              mod8(get_blue(raw), b));
+}
+
 void terrabuff_render(canvas*restrict dst,
-                      const terrabuff*restrict this,
+                      terrabuff*restrict this,
                       const rendering_context*restrict ctxt) {
   const rendering_context_invariant*restrict context =
     (const rendering_context_invariant*restrict)ctxt;
@@ -427,6 +451,11 @@ void terrabuff_render(canvas*restrict dst,
     context->long_yrot / context->proj->fov;
   line_thickness = 1 + dst->h / 1024;
   memset(line_points, 0, dst->w);
+
+  /* Generate the coloured version of the texture */
+#pragma omp parallel for
+  for (x = 0; x < TEXSZ * dst->h; ++x)
+    this->texture_coloured[x] = modulate(texture[x], 16, 100, 24);
 
   /* Render from the bottom up. First, initialise the front-yz buffer to have
    * the minimum Y coordinate at all points, so that the bottom level never
@@ -452,7 +481,8 @@ void terrabuff_render(canvas*restrict dst,
                     dst->w);
 
     fill_area_between(dst, lbuff_front, lbuff_back,
-                      texture_x_offset + 31*scan*scan + 75*scan);
+                      texture_x_offset + 31*scan*scan + 75*scan,
+                      this->texture_coloured);
     draw_segments(dst, line_points, lbuff_front, lbuff_back, line_thickness);
 
     collapse_buffer(line_points, lbuff_back, lbuff_front, dst->w);

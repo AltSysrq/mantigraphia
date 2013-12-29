@@ -110,7 +110,7 @@ void terrabuff_put(terrabuff*, const vo3 where, coord_offset xmax);
  * terrain.
  */
 void terrabuff_render(canvas*restrict,
-                      const terrabuff*restrict,
+                      terrabuff*restrict,
                       const rendering_context*restrict);
 
 #endif /* RENDER_TERRABUFF_H_ */
