@@ -476,7 +476,7 @@ void terrabuff_render(canvas*restrict dst,
     lbuff_back[x].y = 0x7FFFFFFF;
     lbuff_back[x].z = 0x7FFFFFFF;
   }
-  for (scan = 0; scan < this->scan-1; ++scan) {
+  for (scan = 0; scan < this->scan; ++scan) {
     interpolate_all(lbuff_front,
                     this->points + this->scap*scan + this->boundaries[scan].low,
                     this->boundaries[scan].high - this->boundaries[scan].low,
