@@ -113,11 +113,13 @@ void parchment_xform(parchment* this,
                      angle fov_y,
                      coord_offset screen_w,
                      coord_offset screen_h) {
+  signed short delta_pitch = new_pitch - old_pitch;
+  signed short delta_yaw = new_yaw - old_yaw;
   /* Shift vertically as per change in pitch */
-  this->ty += 2 * screen_h * (new_pitch - old_pitch) / fov_y;
+  this->ty += 2 * screen_h * delta_pitch / fov_y;
   /* Shift horizontally as per change in yaw, but scale this shift by
    * cos(pitch), since looking vertically has less an effect on perceived
    * rotation.
    */
-  this->tx -= 2 * zo_cosms(new_pitch, screen_w * (new_yaw-old_yaw) / fov_x);
+  this->tx -= 2 * zo_cosms(new_pitch, screen_w * delta_yaw / fov_x);
 }
