@@ -289,8 +289,9 @@ static void interpolate_all(screen_yz*restrict dst,
                             coord_offset xmax) {
   unsigned i;
 
-  for (i = 1; i < num_points-2 && points[i][0] < xmax; ++i)
-    if (points[i+1][0] >= 0)
+#pragma omp parallel for
+  for (i = 1; i < num_points-2; ++i)
+    if (points[i+1][0] >= 0 && points[i][0] < xmax)
       interpolate(dst, points + (i-1), xmax);
 }
 
@@ -369,6 +370,7 @@ static void fill_area_between(canvas*restrict dst,
   register const canvas_pixel*restrict tex;
   register unsigned*restrict depth;
 
+#pragma omp parallel for private(y,y0,y1,px,tex,depth)
   for (x = 0; x < dst->w; ++x) {
     if (front[x].y < back[x].y) {
       y0 = front[x].y;
