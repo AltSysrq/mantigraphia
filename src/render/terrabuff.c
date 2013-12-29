@@ -139,7 +139,7 @@ void terrabuff_clear(terrabuff* this, terrabuff_slice l, terrabuff_slice r) {
   this->scurr = 0;
   this->soff = l;
   this->boundaries[0].low = 0;
-  this->boundaries[1].high = (r-l) & (this->scap-1);
+  this->boundaries[0].high = (r-l) & (this->scap-1);
 }
 
 int terrabuff_next(terrabuff* this, terrabuff_slice* l, terrabuff_slice* r) {
