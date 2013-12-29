@@ -438,7 +438,8 @@ void terrabuff_render(canvas*restrict dst,
                     this->boundaries[scan].high - this->boundaries[scan].low,
                     dst->w);
 
-    fill_area_between(dst, lbuff_front, lbuff_back, texture_x_offset);
+    fill_area_between(dst, lbuff_front, lbuff_back,
+                      texture_x_offset + 31*scan*scan + 75*scan);
     draw_segments(dst, line_points, lbuff_front, lbuff_back, line_thickness);
 
     collapse_buffer(line_points, lbuff_back, lbuff_front, dst->w);
