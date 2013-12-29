@@ -172,6 +172,17 @@ void terrabuff_put(terrabuff* this, const vo3 where, coord_offset xmax) {
   }
 
   memcpy(this->points[this->scan*this->scap + this->scurr], where, sizeof(vo3));
+
+  /* Nominall, X coordinates need to be strictly ascending. However, in extreme
+   * cases, off-screen points sometimes move the other way. It is safe to
+   * silently patch such circumstances, since the points don't contribute to
+   * the display significantly.
+   */
+  if (this->scurr > this->boundaries[this->scan].low &&
+      where[0] <= this->points[this->scan*this->scap + this->scurr-1][0])
+    this->points[this->scan*this->scap + this->scurr][0] = 1 +
+      this->points[this->scan*this->scap + this->scurr-1][0];
+
   ++this->scurr;
 }
 
