@@ -187,6 +187,7 @@ static void draw_line_with_thickness(canvas*restrict, const screen_yz*restrict,
                                      unsigned, unsigned, unsigned)
 __attribute__((noinline));
 static void draw_segments(canvas*restrict,
+                          char*restrict,
                           const screen_yz*restrict,
                           const screen_yz*restrict,
                           unsigned)
@@ -196,7 +197,8 @@ static void fill_area_between(canvas*restrict,
                               const screen_yz*restrict,
                               coord_offset)
 __attribute__((noinline));
-static void collapse_buffer(screen_yz*restrict, const screen_yz*restrict,
+static void collapse_buffer(char*restrict,
+                            screen_yz*restrict, const screen_yz*restrict,
                             unsigned)
 __attribute__((noinline));
 #endif /* PROFILE */
@@ -315,19 +317,24 @@ static void draw_line_with_thickness(canvas*restrict dst,
 }
 
 static void draw_segments(canvas*restrict dst,
+                          char*restrict line_points,
                           const screen_yz*restrict front,
                           const screen_yz*restrict back,
                           unsigned thickness) {
   unsigned x0, x1;
 
   for (x0 = 0; x0 < dst->w; ++x0) {
-    if (back[x0].y <= front[x0].y) {
+    if (back[x0].y <= front[x0].y && !line_points[x0]) {
+      line_points[x0] = 1;
       x1 = x0+1;
-      while (x1 < dst->w && back[x1].y <= front[x1].y)
+      while (x1 < dst->w && back[x1].y <= front[x1].y && !line_points[x1]) {
+        line_points[x1] = 1;
         ++x1;
+      }
 
       draw_line_with_thickness(dst, back, x0, x1, thickness);
       x0 = x1;
+      line_points[x1] = 1;
     }
   }
 }
@@ -357,7 +364,8 @@ static void fill_area_between(canvas*restrict dst,
   }
 }
 
-static void collapse_buffer(screen_yz*restrict dst,
+static void collapse_buffer(char* line_points,
+                            screen_yz*restrict dst,
                             const screen_yz*restrict src,
                             unsigned xmax) {
   unsigned x;
@@ -366,6 +374,7 @@ static void collapse_buffer(screen_yz*restrict dst,
     if (src[x].y < dst[x].y) {
       dst[x].y = src[x].y;
       dst[x].z = src[x].z;
+      line_points[x] = 0;
     }
   }
 }
@@ -376,12 +385,17 @@ void terrabuff_render(canvas*restrict dst,
   const rendering_context_invariant*restrict context =
     (const rendering_context_invariant*restrict)ctxt;
   screen_yz lbuff_front[dst->w+1], lbuff_back[dst->w+1];
+  /* Track points (X coordinates) that already have lines. This way, we can
+   * avoid drawing the same line segment over and over.
+   */
+  char line_points[dst->w];
   unsigned scan, x, line_thickness;
   coord_offset texture_x_offset;
 
   texture_x_offset = (-(signed)dst->w) *
     context->proj->yrot / context->proj->fov;
   line_thickness = 1 + dst->h / 1024;
+  memset(line_points, 0, dst->w);
 
   /* Render from the bottom up. First, initialise the front-yz buffer to have
    * the minimum Y coordinate at all points, so that the bottom level never
@@ -407,9 +421,9 @@ void terrabuff_render(canvas*restrict dst,
                     dst->w);
 
     fill_area_between(dst, lbuff_front, lbuff_back, texture_x_offset);
-    draw_segments(dst, lbuff_front, lbuff_back, line_thickness);
+    draw_segments(dst, line_points, lbuff_front, lbuff_back, line_thickness);
 
-    collapse_buffer(lbuff_back, lbuff_front, dst->w);
+    collapse_buffer(line_points, lbuff_back, lbuff_front, dst->w);
   }
 
   draw_line_with_thickness(dst, lbuff_back, 0, dst->w, line_thickness);
