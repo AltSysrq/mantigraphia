@@ -32,7 +32,6 @@
 #include "../frac.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
-#include "../graphics/sybmap.h"
 
 /**
  * Defines the invariant data which define a "rendering context" from the
@@ -43,11 +42,6 @@ typedef struct {
    * The projection being used to render the scene.
    */
   const perspective*restrict proj;
-  /**
-   * A coverage map of regions known to already be completely covered. This is
-   * only meaningful for things known to be drawn front-to-back.
-   */
-  const sybmap* coverage;
 
   /**
    * The integer value (0..11) of the current scenic month. 0,1,2 are spring;

@@ -34,7 +34,6 @@
 #include "../coords.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
-#include "../graphics/sybmap.h"
 #include "../world/world.h"
 #include "../world/terrain.h"
 #include "context.h"
