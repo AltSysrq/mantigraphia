@@ -156,6 +156,9 @@ int terrabuff_next(terrabuff* this, terrabuff_slice* l, terrabuff_slice* r) {
   else
     low = 0;
 
+  if (high > this->scap/2)
+    high = this->scap/2;
+
   this->scurr = low;
   *l = (low  + this->soff) & (this->scap-1);
   *r = (high + this->soff) & (this->scap-1);
