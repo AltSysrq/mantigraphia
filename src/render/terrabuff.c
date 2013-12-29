@@ -344,7 +344,11 @@ static void fill_area_between(canvas*restrict dst,
                               const screen_yz*restrict back,
                               coord_offset tex_x_off) {
   coord_offset y, y0, y1;
-  unsigned x, off;
+  unsigned x;
+  register unsigned w = dst->w;
+  register canvas_pixel*restrict px;
+  register const canvas_pixel*restrict tex;
+  register unsigned*restrict depth;
 
   for (x = 0; x < dst->w; ++x) {
     if (front[x].y < back[x].y) {
@@ -353,12 +357,18 @@ static void fill_area_between(canvas*restrict dst,
       if (y0 < 0) y0 = 0;
       if (y1 >= (signed)dst->h) y1 = (signed)dst->h-1;
 
+      px = dst->px + canvas_offset(dst, x, y0);
+      depth = dst->depth + canvas_offset(dst, x, y0);
+      tex = texture + ((y0-front[x].y) & TEXMASK) +
+        TEXSZ*((x+tex_x_off) & TEXMASK);
+
       for (y = y0; y <= y1; ++y) {
-        off = canvas_offset(dst, x, y);
-        dst->px[off] = texture[
-          ((y-front[x].y) & TEXMASK) +
-          TEXSZ*((x + tex_x_off) & TEXMASK)];
-        dst->depth[off] = front[x].z;
+        *px = *tex;
+        *depth = front[x].z;
+
+        px += w;
+        depth += w;
+        ++tex;
       }
     }
   }
