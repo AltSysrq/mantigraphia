@@ -87,6 +87,7 @@ void parchment_delete(parchment* this) {
 
 void parchment_draw(canvas* dst, const parchment* this) {
   unsigned y, yo, xo, cnt, off;
+#pragma omp parallel for private(y,yo,xo,cnt,off)
   for (yo = 0; yo < dst->h; ++yo) {
     y = (yo + this->ty/1024) & PARCHMENT_MASK;
 
