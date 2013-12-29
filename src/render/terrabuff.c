@@ -250,9 +250,11 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
     return;
   }
 
-  /* Clamp y values to maximum range allowed by precise_fraction. */
-  y0 = clamps(-32768, y0, +32767);
-  y1 = clamps(-32768, y1, +32767);
+  /* Clamp y values to maximum range allowed by precise_fraction.
+   * Need an extra bit clamped off to avoid overflow below.
+   */
+  y0 = clamps(-16384, y0, +16383);
+  y1 = clamps(-16384, y1, +16383);
 
   /* Since here we know that the X of 1 and 2 are inequal, we also know that
    * those of 0 and 2, as well as 1 and 3, are inequal.
@@ -261,8 +263,8 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
    */
   m0d = precise_fraction_of(points[2][0] - points[0][0]);
   m1d = precise_fraction_of(points[3][0] - points[1][0]);
-  m0n = clamps(-32768, points[2][1] - points[0][1], +32767);
-  m1n = clamps(-32768, points[3][1] - points[1][1], +32767);
+  m0n = clamps(-16384, points[2][1] - points[0][1], +16383);
+  m1n = clamps(-16384, points[3][1] - points[1][1], +16383);
 
   pidx = precise_fraction_of(dx);
   idx = fraction_of(dx);
