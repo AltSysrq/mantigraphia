@@ -478,6 +478,11 @@ void terrabuff_render(canvas*restrict dst,
   for (x = 0; x <= dst->w; ++x) {
     lbuff_back[x].y = 0x7FFFFFFF;
     lbuff_back[x].z = 0x7FFFFFFF;
+    /* Also initialise the front buffer, since some off-screen circumstances
+     * would cause it to be left uninitialised.
+     */
+    lbuff_front[x].y = 0x7FFFFFFF;
+    lbuff_front[x].z = 0x7FFFFFFF;
   }
   for (scan = 0; scan < this->scan; ++scan) {
     interpolate_all(lbuff_front,
