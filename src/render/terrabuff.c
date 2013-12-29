@@ -41,14 +41,19 @@
 
 #define TEXSZ 256
 #define TEXMASK (TEXSZ-1)
+#define TEXTURE_REPETITION (16384/TEXSZ)
 
 /**
  * Texture to use for drawing. This is actually column-major, since drawing
- * functions need to traverse it vertically.
+ * functions need to traverse it vertically. It is repeated TEXTURE_REPETITION
+ * times so that the shader can blindly increment a pointer to it and never go
+ * off the edge.
  */
-static canvas_pixel texture[TEXSZ*TEXSZ];
+static canvas_pixel texture[TEXSZ*TEXSZ*TEXTURE_REPETITION];
 
 void terrabuff_init(void) {
+  unsigned i;
+
   static const canvas_pixel pallet[] = {
     argb(255,255,255,255),
     argb(255,254,254,254),
@@ -66,6 +71,9 @@ void terrabuff_init(void) {
                            /* Inverted parm order due to column-major order */
                            1, TEXSZ/4,
                            pallet, lenof(pallet));
+
+  for (i = 1; i < TEXTURE_REPETITION; ++i)
+    memcpy(texture + i*TEXSZ*TEXSZ, texture, TEXSZ*TEXSZ*sizeof(canvas_pixel));
 }
 
 /**
