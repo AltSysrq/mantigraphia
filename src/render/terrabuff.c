@@ -166,6 +166,36 @@ typedef struct {
   coord_offset y, z;
 } screen_yz;
 
+#ifdef PROFILE
+/* Prevent inlining of our static functions so that we can get profiling data
+ * on each individual one.
+ */
+static void interpolate(screen_yz*restrict, vo3*restrict, coord_offset)
+__attribute__((noinline));
+static void interpolate_all(screen_yz*restrict, vo3*restrict,
+                            unsigned, coord_offset)
+__attribute__((noinline));
+static void draw_line(canvas*restrict, const screen_yz*restrict,
+                      unsigned, unsigned, signed)
+__attribute__((noinline));
+static void draw_line_with_thickness(canvas*restrict, const screen_yz*restrict,
+                                     unsigned, unsigned, unsigned)
+__attribute__((noinline));
+static void draw_segments(canvas*restrict,
+                          const screen_yz*restrict,
+                          const screen_yz*restrict,
+                          unsigned)
+__attribute__((noinline));
+static void fill_area_between(canvas*restrict,
+                              const screen_yz*restrict,
+                              const screen_yz*restrict,
+                              coord_offset)
+__attribute__((noinline));
+static void collapse_buffer(screen_yz*restrict, const screen_yz*restrict,
+                            unsigned)
+__attribute__((noinline));
+#endif /* PROFILE */
+
 static void interpolate(screen_yz*restrict dst, vo3*restrict points,
                         coord_offset xmax) {
   /* Use a Catmull-Rom spline for Y, linear for Z */
