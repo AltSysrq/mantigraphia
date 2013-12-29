@@ -299,7 +299,8 @@ static void draw_segments(canvas*restrict dst,
 
 static void fill_area_between(canvas*restrict dst,
                               const screen_yz*restrict front,
-                              const screen_yz*restrict back) {
+                              const screen_yz*restrict back,
+                              coord_offset tex_x_off) {
   coord_offset y, y0, y1;
   unsigned x, off;
 
@@ -314,7 +315,7 @@ static void fill_area_between(canvas*restrict dst,
         off = canvas_offset(dst, x, y);
         dst->px[off] = texture[
           TEXSZ*((y-front[x].y) & TEXMASK) +
-          (x & TEXMASK)];
+          ((x + tex_x_off) & TEXMASK)];
         dst->depth[off] = front[x].z;
       }
     }
@@ -341,7 +342,10 @@ void terrabuff_render(canvas*restrict dst,
     (const rendering_context_invariant*restrict)ctxt;
   screen_yz lbuff_front[dst->w+1], lbuff_back[dst->w+1];
   unsigned scan, x, line_thickness;
+  coord_offset texture_x_offset;
 
+  texture_x_offset = (-(signed)dst->w) *
+    context->proj->yrot / context->proj->fov;
   line_thickness = 1 + dst->h / 1024;
 
   /* Render from the bottom up. First, initialise the front-yz buffer to have
@@ -367,7 +371,7 @@ void terrabuff_render(canvas*restrict dst,
                     this->boundaries[scan].high - this->boundaries[scan].low,
                     dst->w);
 
-    fill_area_between(dst, lbuff_front, lbuff_back);
+    fill_area_between(dst, lbuff_front, lbuff_back, texture_x_offset);
     draw_segments(dst, lbuff_front, lbuff_back, line_thickness);
 
     collapse_buffer(lbuff_back, lbuff_front, dst->w);
