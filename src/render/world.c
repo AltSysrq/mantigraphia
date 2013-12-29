@@ -79,10 +79,9 @@ static void put_point(terrabuff* dst, const vc3 centre,
 
   point[0] = centre[0] - zo_sinms(slice_to_angle(slice), distance);
   point[2] = centre[2] - zo_cosms(slice_to_angle(slice), distance);
-  tx = ((point[0] >> level) / TILE_SZ) & (world->xmax-1);
-  tz = ((point[2] >> level) / TILE_SZ) & (world->zmax-1);
-  point[1] = TILE_YMUL * world->tiles[basic_world_offset(world, tx, tz)]
-    .elts[0].altitude;
+  tx = (point[0] >> level) & (world->xmax*TILE_SZ - 1);
+  tz = (point[2] >> level) & (world->zmax*TILE_SZ - 1);
+  point[1] = terrain_base_y(world, tx, tz);
 
   /* To ensure that every point can project, clamp relative Z coordinates to
    * the effective near clipping plane. This provides an acceptable
