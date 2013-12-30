@@ -53,11 +53,17 @@ void (*const terrain_renderers[4])(
 static void render_grass(canvas*restrict dst, const basic_world*restrict world,
                          const rendering_context*restrict context,
                          coord tx, coord tz) {
+  const perspective*restrict proj =
+    ((const rendering_context_invariant*)context)->proj;
   unsigned i, rand;
   pencil_spec pencil;
   dm_proj penproj;
   vc3 from, to;
   coord base_x, base_z;
+  coord dist = abs(torus_dist(tx*TILE_SZ - proj->camera[0],
+                              TILE_SZ*world->xmax))
+             + abs(torus_dist(tz*TILE_SZ - proj->camera[2],
+                              TILE_SZ*world->zmax));
 
   pencil_init(&pencil);
   pencil.colour = argb(255, 32, 140, 24);
@@ -65,7 +71,7 @@ static void render_grass(canvas*restrict dst, const basic_world*restrict world,
 
   dm_init(&penproj);
   penproj.delegate = (drawing_method*)&pencil;
-  penproj.proj = ((const rendering_context_invariant*)context)->proj;
+  penproj.proj = proj;
   penproj.nominal_weight = ZO_SCALING_FACTOR_MAX;
   penproj.near_clipping = 1;
   penproj.near_max = METRE/4;
@@ -76,7 +82,7 @@ static void render_grass(canvas*restrict dst, const basic_world*restrict world,
   base_x = tx * TILE_SZ;
   base_z = tz * TILE_SZ;
 
-  for (i = 0; i < 16; ++i) {
+  for (i = 0; i < 64 / (1+dist/TILE_SZ/4); ++i) {
     from[0] = base_x + (lcgrand(&rand) & (TILE_SZ-1));
     from[2] = base_z + (lcgrand(&rand) & (TILE_SZ-1));
     from[1] = terrain_base_y(world, from[0], from[2]);
