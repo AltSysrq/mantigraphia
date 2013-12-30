@@ -101,7 +101,8 @@ void pencil_draw_line(
   const vo3 to,
   zo_scaling_factor to_weight
 ) {
-  coord_offset x, y, lx, ly, xp, yp, il, i, t, z, dist;
+  coord_offset x, y, lx, ly, xp, yp, il, i, imin, imax, t, z, dist;
+  coord_offset low, high;
   unsigned thickf = thickness(dst, spec, from_weight);
   unsigned thickt = thickness(dst, spec, to_weight);
   signed thick;
@@ -124,10 +125,32 @@ void pencil_draw_line(
     il = abs(lx);
     xp = 0;
     yp = 1;
+
+    if (from[0] < to[0]) {
+      low = from[0];
+      high = to[0];
+    } else {
+      low = to[0];
+      high = from[0];
+    }
+
+    imin = low - clamps(0, low, dst->w);
+    imax = clamps(0, high, dst->w) - low;
   } else {
     il = abs(ly);
     xp = 1;
     yp = 0;
+
+    if (from[1] < to[1]) {
+      low = from[1];
+      high = to[1];
+    } else {
+      low = to[1];
+      high = from[1];
+    }
+
+    imin = low - clamps(0, low, dst->h);
+    imax = clamps(0, high, dst->h) - low;
   }
 
   if (il > 0) {
@@ -135,7 +158,7 @@ void pencil_draw_line(
     dist = isqrt(lx*lx + ly*ly);
     idist = fraction_of(dist);
 
-    for (i = 0; i <= il; ++i) {
+    for (i = imin; i <= imax; ++i) {
       z = fraction_smul(i*from[2] + (il-i)*to[2], iil);
       thick = fraction_smul(i*thickf + (il-i)*thickt, iil);
       if (0 == thick) thick=1;
