@@ -82,7 +82,7 @@ static void render_grass(canvas*restrict dst, const basic_world*restrict world,
   base_x = tx * TILE_SZ;
   base_z = tz * TILE_SZ;
 
-  for (i = 0; i < 64 / (1+dist/TILE_SZ/4); ++i) {
+  for (i = 0; i < 1+63 / (1+dist/TILE_SZ/4); ++i) {
     from[0] = base_x + (lcgrand(&rand) & (TILE_SZ-1));
     from[2] = base_z + (lcgrand(&rand) & (TILE_SZ-1));
     from[1] = terrain_base_y(world, from[0], from[2]);

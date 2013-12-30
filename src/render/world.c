@@ -153,21 +153,75 @@ static void render_basic_world_terrain_features(
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;
   coord x, z, ctx, ctz;
-  unsigned i, type;
+  unsigned major, major_max, type;
+  signed minor, minor_min;
+  signed major_axis_x, major_axis_z;
+  signed minor_axis_x, minor_axis_z;
+  signed dx, dz;
+  signed long long fov_lcos, fov_lsin, fov_rcos, fov_rsin;
+  int has_rendered;
 
   ctx = proj->camera[0] / TILE_SZ;
   ctz = proj->camera[2] / TILE_SZ;
+  /* Calculate vectors for the FOV relative to the current direction, so that
+   * we can quickly test whether tiles are visible according to (X,Z) coords.
+   */
+  fov_lcos = zo_cos(-proj->yrot + proj->fov/2);
+  fov_lsin = zo_sin(-proj->yrot + proj->fov/2);
+  fov_rcos = zo_cos(-proj->yrot - proj->fov/2);
+  fov_rsin = zo_sin(-proj->yrot - proj->fov/2);
 
-#pragma omp parallel for private(x,z,type)
-  for (i = 0; i < 64*64; ++i) {
-    x = (i%64 - 32 + ctx) & (world->xmax-1);
-    z = (i/64 - 32 + ctz) & (world->zmax-1);
-
-    type = world->tiles[basic_world_offset(world, x, z)].elts[0].type;
-    if (terrain_renderers[type])
-      (*terrain_renderers[type])(
-        dst, world, context, x, z);
+  if (abs(proj->yrot_cos) > abs(proj->yrot_sin)) {
+    major_axis_x = 0;
+    major_axis_z = (proj->yrot_cos > 0? -1 : +1);
+    minor_axis_x = 1;
+    minor_axis_z = 0;
+  } else {
+    major_axis_z = 0;
+    major_axis_x = (proj->yrot_sin > 0? -1 : +1);
+    minor_axis_z = 1;
+    minor_axis_x = 0;
   }
+
+  if (world->xmax/2-1 < 512)
+    major_max = world->xmax/2-1;
+  else
+    major_max = 512;
+
+#pragma omp parallel private(minor,minor_min,has_rendered,dx,dz,x,z,type)
+  {
+    minor_min = -32;
+#pragma omp for
+    for (major = 0; major < major_max; ++major) {
+      has_rendered = 0;
+      for (minor = minor_min; minor < (signed)major_max; ++minor) {
+        dx = major*major_axis_x + minor*minor_axis_x;
+        dz = major*major_axis_z + minor*minor_axis_z;
+        x = (ctx + dx) & (world->xmax-1);
+        z = (ctz + dz) & (world->zmax-1);
+
+        /* Check whether within fov */
+        if (dx*fov_lcos + dz*fov_lsin <= 0 &&
+            dx*fov_rcos + dz*fov_rsin >= 0) {
+          has_rendered = 1;
+
+          type = world->tiles[basic_world_offset(world, x, z)].elts[0].type;
+          if (terrain_renderers[type])
+            (*terrain_renderers[type])(
+              dst, world, context, x, z);
+        } else {
+          if (has_rendered)
+            break;
+          else
+            minor_min = minor;
+        }
+      }
+
+      minor_min -= 16;
+      if (minor_min < -(signed)major_max)
+        minor_min = 1-(signed)major_max;
+    }
+  } /* end parallel */
 }
 
 void render_basic_world(canvas* dst,
