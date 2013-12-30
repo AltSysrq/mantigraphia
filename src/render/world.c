@@ -38,6 +38,7 @@
 #include "../world/terrain.h"
 #include "context.h"
 #include "terrabuff.h"
+#include "terrain.h"
 #include "world.h"
 
 #define SLICE_CAP 256
@@ -101,7 +102,7 @@ static void put_point(terrabuff* dst, const vc3 centre,
   terrabuff_put(dst, projected, xmax);
 }
 
-void render_basic_world(
+static void render_basic_world_terrain(
   canvas* dst,
   const basic_world*restrict world,
   const rendering_context*restrict context)
@@ -142,4 +143,36 @@ void render_basic_world(
   }
 
   terrabuff_render(dst, terra, context);
+}
+
+static void render_basic_world_terrain_features(
+  canvas* dst,
+  const basic_world*restrict world,
+  const rendering_context*restrict context)
+{
+  const perspective*restrict proj =
+    ((const rendering_context_invariant*)context)->proj;
+  coord x, z, ctx, ctz;
+  unsigned i, type;
+
+  ctx = proj->camera[0] / TILE_SZ;
+  ctz = proj->camera[2] / TILE_SZ;
+
+#pragma omp parallel for private(x,z,type)
+  for (i = 0; i < 64*64; ++i) {
+    x = (i%64 - 32 + ctx) & (world->xmax-1);
+    z = (i/64 - 32 + ctz) & (world->zmax-1);
+
+    type = world->tiles[basic_world_offset(world, x, z)].elts[0].type;
+    if (terrain_renderers[type])
+      (*terrain_renderers[type])(
+        dst, world, context, x, z);
+  }
+}
+
+void render_basic_world(canvas* dst,
+                        const basic_world*restrict world,
+                        const rendering_context*restrict context) {
+  render_basic_world_terrain(dst, world, context);
+  render_basic_world_terrain_features(dst, world, context);
 }

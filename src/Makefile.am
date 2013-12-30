@@ -29,6 +29,7 @@ world/generate.c \
 render/context.c \
 render/terrabuff.c \
 render/world.c \
+render/terrain.c \
 control/mouselook.c \
 flower-pot.c \
 cosine-world.c

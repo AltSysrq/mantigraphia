@@ -107,6 +107,12 @@ void pencil_draw_line(
   signed thick;
   fraction iil, idist;
 
+  if ((from[0] < 0 && to[0] < 0) ||
+      (from[1] < 0 && to[1] < 0) ||
+      (from[0] >= (signed)dst->w && to[0] >= (signed)dst->w) ||
+      (from[1] >= (signed)dst->h && to[1] >= (signed)dst->h))
+    return;
+
   /* Round off with two endpoints */
   pencil_draw_point(dst, spec, from, from_weight);
   pencil_draw_point(dst, spec, to, to_weight);
@@ -124,15 +130,15 @@ void pencil_draw_line(
     yp = 0;
   }
 
-  iil = fraction_of(il);
-
   if (il > 0) {
+    iil = fraction_of(il);
     dist = isqrt(lx*lx + ly*ly);
     idist = fraction_of(dist);
 
     for (i = 0; i <= il; ++i) {
       z = fraction_smul(i*from[2] + (il-i)*to[2], iil);
       thick = fraction_smul(i*thickf + (il-i)*thickt, iil);
+      if (0 == thick) thick=1;
 
       for (t = 0; t < thick; ++t) {
         x = fraction_smul(i*from[0] + (il-i)*to[0], iil) -

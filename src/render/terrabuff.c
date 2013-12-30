@@ -398,7 +398,7 @@ static void fill_area_between(canvas*restrict dst,
 
       for (y = y0; y <= y1; ++y) {
         *px = *tex;
-        *depth = front[x].z;
+        *depth = front[x].z + 65536;
 
         px += w;
         depth += w;
