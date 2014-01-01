@@ -241,7 +241,7 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
   coord_offset x0 = points[1][0], x1 = points[2][0];
   coord_offset y0 = points[1][1], y1 = points[2][1];
   coord_offset z0 = points[1][2], z1 = points[2][2];
-  coord_offset xl = (x0 >= 0? x0 : 0), xh = (x1 < xmax? x1 : xmax);
+  coord_offset xl = (x0 >= xmin? x0 : xmin), xh = (x1 < xmax? x1 : xmax);
   coord_offset dx = x1 - x0;
   coord_offset x;
   coord_offset m0n, m1n;
@@ -249,7 +249,7 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
   fraction idx;
 
   if (!dx) {
-    if (x0 >= xmin && x0 < xmax) {
+    if (x0 >= xmin && x0 <= xmax) {
       dst[x0-xmin].y = y0;
       dst[x0-xmin].z = z0;
     }
@@ -306,7 +306,7 @@ static void interpolate_all(screen_yz*restrict dst,
   unsigned i;
 
   for (i = 1; i < num_points-2; ++i)
-    if (points[i+1][0] >= xmin && points[i][0] < xmax)
+    if (points[i+1][0] >= xmin && points[i][0] <= xmax)
       interpolate(dst, points + (i-1), xmin, xmax);
 }
 
@@ -370,7 +370,11 @@ static void draw_segments(canvas*restrict dst,
         ++x1;
       }
 
-      draw_line_with_thickness(dst, back, x0, x1, xmin, thickness);
+      if (x1 >= xmax-xmin)
+        x1 = xmax-xmin-1;
+
+      if (x1 > x0)
+        draw_line_with_thickness(dst, back, x0, x1, xmin, thickness);
       x0 = x1;
       line_points[x1] = 1;
     }
@@ -445,29 +449,64 @@ static inline canvas_pixel modulate(canvas_pixel raw,
               mod8(get_blue(raw), b));
 }
 
+#define RENDER_COL_W (4 * UMP_CACHE_LINE_SZ / sizeof(canvas_depth))
+static canvas*restrict render_dst;
+static terrabuff*restrict render_this;
+static const rendering_context*restrict render_ctxt;
+static void terrabuff_render_column(unsigned,unsigned);
+static ump_task terrabuff_render_task = {
+  terrabuff_render_column,
+  0, /* Set dynamically */
+  0  /* Adjusted dynamically */
+};
+
 void terrabuff_render(canvas*restrict dst,
                       terrabuff*restrict this,
                       const rendering_context*restrict ctxt) {
-  const rendering_context_invariant*restrict context =
-    (const rendering_context_invariant*restrict)ctxt;
-  screen_yz lbuff_front[dst->w+1], lbuff_back[dst->w+1];
-  /* Track points (X coordinates) that already have lines. This way, we can
-   * avoid drawing the same line segment over and over.
-   */
-  char line_points[dst->w];
-  unsigned scan, x, line_thickness;
-  coord_offset texture_x_offset;
+  unsigned x;
 
-  texture_x_offset = (-(signed)dst->w) * 314159 / 200000 *
-    context->long_yrot / context->proj->fov;
-  line_thickness = 1 + dst->h / 1024;
-  memset(line_points, 0, dst->w);
-
-  ump_join();
+  render_dst = dst;
+  render_this = this;
+  render_ctxt = ctxt;
 
   /* Generate the coloured version of the texture */
   for (x = 0; x < TEXSZ * dst->h; ++x)
     this->texture_coloured[x] = modulate(texture[x], 16, 100, 24);
+
+  terrabuff_render_task.num_divisions =
+    (dst->w + RENDER_COL_W - 1) / RENDER_COL_W;
+  if (terrabuff_render_task.num_divisions <
+      terrabuff_render_task.divisions_for_master)
+    terrabuff_render_task.divisions_for_master =
+      terrabuff_render_task.num_divisions;
+
+  ump_join();
+  /* Eventually will be async */
+  ump_run_sync(&terrabuff_render_task);
+}
+
+static void terrabuff_render_column(unsigned ordinal, unsigned pcount) {
+  canvas*restrict dst = render_dst;
+  terrabuff*restrict this = render_this;
+  coord_offset xmin = ordinal * RENDER_COL_W;
+  coord_offset xmax =
+    (xmin + RENDER_COL_W < dst->w? xmin + RENDER_COL_W : dst->w);
+  const rendering_context_invariant*restrict context =
+    (const rendering_context_invariant*restrict)render_ctxt;
+  screen_yz lbuff_front[RENDER_COL_W+1], lbuff_back[RENDER_COL_W+1];
+  /* Track points (X coordinates) that already have lines. This way, we can
+   * avoid drawing the same line segment over and over.
+   */
+  char line_points[RENDER_COL_W+1];
+  unsigned scan, x, line_thickness;
+  coord_offset texture_x_offset;
+
+  if (xmin >= xmax) return;
+
+  texture_x_offset = (-(signed)dst->w) * 314159 / 200000 *
+    context->long_yrot / context->proj->fov + xmin;
+  line_thickness = 1 + dst->h / 1024;
+  memset(line_points, 0, sizeof(line_points));
 
   /* Render from the bottom up. First, initialise the front-yz buffer to have
    * the minimum Y coordinate at all points, so that the bottom level never
@@ -482,7 +521,7 @@ void terrabuff_render(canvas*restrict dst,
    * When done, draw a line across the entire back buffer to add contrast to
    * the sky and to be consistent with how the rest of the drawing looks.
    */
-  for (x = 0; x <= dst->w; ++x) {
+  for (x = 0; x <= lenof(lbuff_front); ++x) {
     lbuff_back[x].y = 0x7FFFFFFF;
     lbuff_back[x].z = 0x7FFFFFFF;
     /* Also initialise the front buffer, since some off-screen circumstances
@@ -495,17 +534,18 @@ void terrabuff_render(canvas*restrict dst,
     interpolate_all(lbuff_front,
                     this->points + this->scap*scan + this->boundaries[scan].low,
                     this->boundaries[scan].high - this->boundaries[scan].low,
-                    0, dst->w);
+                    xmin, xmax);
 
     fill_area_between(dst, lbuff_front, lbuff_back,
                       texture_x_offset + 31*scan*scan + 75*scan,
                       this->texture_coloured,
-                      0, dst->w);
+                      xmin, xmax);
     draw_segments(dst, line_points, lbuff_front, lbuff_back,
-                  0, dst->w, line_thickness);
+                  xmin, xmax, line_thickness);
 
-    collapse_buffer(line_points, lbuff_back, lbuff_front, dst->w);
+    collapse_buffer(line_points, lbuff_back, lbuff_front, xmax - xmin + 1);
   }
 
-  draw_line_with_thickness(dst, lbuff_back, 0, dst->w, 0, line_thickness);
+  draw_line_with_thickness(dst, lbuff_back, 0, xmax - xmin, xmin,
+                           line_thickness);
 }
