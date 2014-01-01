@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -107,12 +107,18 @@ void ump_run_sync(ump_task*);
  * amount is always less than the other workers.
  *
  * After this call, no other ump_* functions may be called other than
- * ump_join().
+ * ump_join() and ump_is_finished().
  */
 void ump_run_async(ump_task*);
 /**
  * Blocks the calling thread until the current task, if any, has completed.
  */
 void ump_join(void);
+/**
+ * Checks whether the most recently assigned task is still in-progress. If it
+ * is, returns 0. If it has completed, returns 1, and it is safe to call other
+ * ump_ functions again.
+ */
+int ump_is_finished(void);
 
 #endif /* MICROMP_H_ */

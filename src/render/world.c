@@ -148,10 +148,12 @@ static void render_basic_world_terrain(
 
 #define MAJOR_MAX 512
 #define RENDER_SLOTS (MAJOR_MAX*MAJOR_MAX*2)
+#define MINIMUM_UMP_BATCH 32
 static void render_basic_world_terrain_features_slot(unsigned,unsigned);
 static canvas*restrict terrain_features_dst;
 static const basic_world*restrict terrain_features_world;
 static const rendering_context*restrict terrain_features_context;
+static unsigned terrain_features_slot_offset;
 static struct {
   void (*f)(canvas*restrict, const basic_world*restrict,
             const rendering_context*restrict,
@@ -172,7 +174,7 @@ static void render_basic_world_terrain_features(
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;
   coord x, z, ctx, ctz;
-  unsigned major, major_max, type, slot = 0;
+  unsigned major, major_max, type, slot = 0, prev_render = 0;
   signed minor, minor_min;
   signed major_axis_x, major_axis_z;
   signed minor_axis_x, minor_axis_z;
@@ -228,7 +230,7 @@ static void render_basic_world_terrain_features(
           terrain_features_slots[slot].z = z;
           ++slot;
 
-          if (slot == RENDER_SLOTS) goto render;
+          if (slot == RENDER_SLOTS) goto render_final;
         }
       } else {
         if (has_rendered)
@@ -241,18 +243,35 @@ static void render_basic_world_terrain_features(
     minor_min -= 16;
     if (minor_min < -(signed)major_max)
       minor_min = 1-(signed)major_max;
+
+    /* Send a batch to the uMP workers if they are ready and we have enough
+     * slots filled.
+     */
+    if (slot - prev_render >= MINIMUM_UMP_BATCH && ump_is_finished()) {
+      terrain_features_dst = dst;
+      terrain_features_world = world;
+      terrain_features_context = context;
+      terrain_features_slot_offset = prev_render;
+      terrain_features_task.num_divisions = slot - prev_render;
+      terrain_features_task.divisions_for_master = 0;
+      ump_run_async(&terrain_features_task);
+      prev_render = slot;
+    }
   }
 
-  render:
+  render_final:
+  ump_join();
   terrain_features_dst = dst;
   terrain_features_world = world;
   terrain_features_context = context;
-  terrain_features_task.num_divisions = slot;
-  ump_join();
+  terrain_features_task.num_divisions = slot - prev_render;
+  terrain_features_slot_offset = prev_render;
   ump_run_sync(&terrain_features_task);
 }
 
 static void render_basic_world_terrain_features_slot(unsigned ix, unsigned n) {
+  ix += terrain_features_slot_offset;
+
   (*terrain_features_slots[ix].f)(
     terrain_features_dst,
     terrain_features_world,
