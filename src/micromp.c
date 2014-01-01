@@ -221,3 +221,7 @@ void ump_join(void) {
 int ump_is_finished(void) {
   return !SDL_AtomicGet(&num_busy_workers);
 }
+
+unsigned ump_num_workers(void) {
+  return num_workers;
+}

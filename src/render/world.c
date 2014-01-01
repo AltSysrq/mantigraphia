@@ -147,50 +147,42 @@ static void render_basic_world_terrain(
 }
 
 #define MAJOR_MAX 512
-#define RENDER_SLOTS (MAJOR_MAX*MAJOR_MAX*2)
-#define MINIMUM_UMP_BATCH 32
-static void render_basic_world_terrain_features_slot(unsigned,unsigned);
-static canvas*restrict terrain_features_dst;
-static const basic_world*restrict terrain_features_world;
-static const rendering_context*restrict terrain_features_context;
-static unsigned terrain_features_slot_offset;
-static struct {
-  void (*f)(canvas*restrict, const basic_world*restrict,
-            const rendering_context*restrict,
-            coord, coord);
-  coord x, z;
-} terrain_features_slots[RENDER_SLOTS];
-static ump_task terrain_features_task = {
-  render_basic_world_terrain_features_slot,
-  0, /* Set dynamically */
-  0  /* Unused (Synchronous) */
-};
 
-static void render_basic_world_terrain_features(
+static void render_basic_world_terrain_features_slice(
   canvas* dst,
   const basic_world*restrict world,
-  const rendering_context*restrict context)
+  const rendering_context*restrict context,
+  coord_offset xmin, coord_offset xmax)
 {
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;
   coord x, z, ctx, ctz;
-  unsigned major, major_max, type, slot = 0, prev_render = 0;
+  unsigned major, major_max, type;
   signed minor, minor_min;
   signed major_axis_x, major_axis_z;
   signed minor_axis_x, minor_axis_z;
   signed dx, dz;
   signed long long fov_lcos, fov_lsin, fov_rcos, fov_rsin;
   int has_rendered;
+  signed long long left_bound, right_bound;
 
   ctx = proj->camera[0] / TILE_SZ;
   ctz = proj->camera[2] / TILE_SZ;
   /* Calculate vectors for the FOV relative to the current direction, so that
    * we can quickly test whether tiles are visible according to (X,Z) coords.
    */
-  fov_lcos = zo_cos(-proj->yrot + proj->fov/2);
-  fov_lsin = zo_sin(-proj->yrot + proj->fov/2);
-  fov_rcos = zo_cos(-proj->yrot - proj->fov/2);
-  fov_rsin = zo_sin(-proj->yrot - proj->fov/2);
+  left_bound = ((signed)dst->w/2) - xmin;
+  left_bound *= 0xFFFF & (signed)proj->fov;
+  left_bound /= dst->w;
+  left_bound -= proj->yrot;
+  right_bound = ((signed)dst->w/2) - xmax;
+  right_bound *= 0xFFFF & (signed)proj->fov;
+  right_bound /= dst->w;
+  right_bound -= proj->yrot;
+  fov_lcos = zo_cos(left_bound);
+  fov_lsin = zo_sin(left_bound);
+  fov_rcos = zo_cos(right_bound);
+  fov_rsin = zo_sin(right_bound);
 
   if (abs(proj->yrot_cos) > abs(proj->yrot_sin)) {
     major_axis_x = 0;
@@ -219,19 +211,14 @@ static void render_basic_world_terrain_features(
       z = (ctz + dz) & (world->zmax-1);
 
       /* Check whether within fov */
-      if (dx*fov_lcos + dz*fov_lsin <= 0 &&
-          dx*fov_rcos + dz*fov_rsin >= 0) {
+      if (zo_scale(dx,fov_lcos) + zo_scale(dz,fov_lsin) <= 0 &&
+          zo_scale(dx,fov_rcos) + zo_scale(dz,fov_rsin) >= 0) {
         has_rendered = 1;
 
         type = world->tiles[basic_world_offset(world, x, z)].elts[0].type;
-        if (terrain_renderers[type]) {
-          terrain_features_slots[slot].f = terrain_renderers[type];
-          terrain_features_slots[slot].x = x;
-          terrain_features_slots[slot].z = z;
-          ++slot;
+        if (terrain_renderers[type])
+          (*terrain_renderers[type])(dst, world, context, x, z);
 
-          if (slot == RENDER_SLOTS) goto render_final;
-        }
       } else {
         if (has_rendered)
           break;
@@ -243,41 +230,45 @@ static void render_basic_world_terrain_features(
     minor_min -= 16;
     if (minor_min < -(signed)major_max)
       minor_min = 1-(signed)major_max;
-
-    /* Send a batch to the uMP workers if they are ready and we have enough
-     * slots filled.
-     */
-    if (slot - prev_render >= MINIMUM_UMP_BATCH && ump_is_finished()) {
-      terrain_features_dst = dst;
-      terrain_features_world = world;
-      terrain_features_context = context;
-      terrain_features_slot_offset = prev_render;
-      terrain_features_task.num_divisions = slot - prev_render;
-      terrain_features_task.divisions_for_master = 0;
-      ump_run_async(&terrain_features_task);
-      prev_render = slot;
-    }
   }
-
-  render_final:
-  ump_join();
-  terrain_features_dst = dst;
-  terrain_features_world = world;
-  terrain_features_context = context;
-  terrain_features_task.num_divisions = slot - prev_render;
-  terrain_features_slot_offset = prev_render;
-  ump_run_sync(&terrain_features_task);
 }
 
-static void render_basic_world_terrain_features_slot(unsigned ix, unsigned n) {
-  ix += terrain_features_slot_offset;
+static void render_basic_world_terrain_features_slice_ump(unsigned ordinal,
+                                                          unsigned count);
 
-  (*terrain_features_slots[ix].f)(
-    terrain_features_dst,
-    terrain_features_world,
-    terrain_features_context,
-    terrain_features_slots[ix].x,
-    terrain_features_slots[ix].z);
+static ump_task render_basic_world_terrain_features_task = {
+  render_basic_world_terrain_features_slice_ump,
+  0, /* Set to number of workers */
+  0, /* Unused (Synchronous) */
+};
+static canvas*restrict render_basic_world_terrain_features_dst;
+static const basic_world*restrict render_basic_world_terrain_features_world;
+static const rendering_context*restrict
+    render_basic_world_terrain_features_context;
+
+static void render_basic_world_terrain_features_slice_ump(unsigned ordinal,
+                                                          unsigned count) {
+  canvas*restrict dst = render_basic_world_terrain_features_dst;
+
+  render_basic_world_terrain_features_slice(
+    dst,
+    render_basic_world_terrain_features_world,
+    render_basic_world_terrain_features_context,
+    ordinal * dst->w / count,
+    (ordinal+1) * dst->w / count);
+}
+
+static void render_basic_world_terrain_features(
+  canvas*restrict dst,
+  const basic_world*restrict world,
+  const rendering_context*restrict context)
+{
+  render_basic_world_terrain_features_task.num_divisions = ump_num_workers()+1;
+  render_basic_world_terrain_features_dst = dst;
+  render_basic_world_terrain_features_world = world;
+  render_basic_world_terrain_features_context = context;
+  ump_join();
+  ump_run_sync(&render_basic_world_terrain_features_task);
 }
 
 void render_basic_world(canvas* dst,

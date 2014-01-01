@@ -107,7 +107,7 @@ void ump_run_sync(ump_task*);
  * amount is always less than the other workers.
  *
  * After this call, no other ump_* functions may be called other than
- * ump_join() and ump_is_finished().
+ * ump_join() or any functions that merely query state.
  */
 void ump_run_async(ump_task*);
 /**
@@ -120,5 +120,9 @@ void ump_join(void);
  * ump_ functions again.
  */
 int ump_is_finished(void);
+/**
+ * Returns the number of background worker threads are running in uMP.
+ */
+unsigned ump_num_workers(void);
 
 #endif /* MICROMP_H_ */
