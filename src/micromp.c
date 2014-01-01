@@ -194,7 +194,7 @@ void ump_join(void) {
   }
 
   /* If this was async, adjust distribution for master */
-  if (!current_task_is_sync) {
+  if (!current_task_is_sync && current_task) {
     if (done_early) {
       /* The master got to join() only after all the other work was done. Try
        * to give less work to the master so it can join earlier.
@@ -216,6 +216,9 @@ void ump_join(void) {
       }
     }
   }
+
+  /* Unset the task so we don't readjust if another join() is called */
+  current_task = NULL;
 }
 
 int ump_is_finished(void) {
