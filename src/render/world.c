@@ -172,11 +172,14 @@ static void render_basic_world_terrain_features_slice(
    * we can quickly test whether tiles are visible according to (X,Z) coords.
    */
   left_bound = ((signed)dst->w/2) - xmin;
-  left_bound *= 0xFFFF & (signed)proj->fov;
+  /* Would be fov/2, but we need to give some wiggle room for rounding errors
+   * when calculating the projection.
+   */
+  left_bound *= 0xFFFF & (signed)(proj->fov*78/128);
   left_bound /= dst->w;
   left_bound -= proj->yrot;
   right_bound = ((signed)dst->w/2) - xmax;
-  right_bound *= 0xFFFF & (signed)proj->fov;
+  right_bound *= 0xFFFF & (signed)(proj->fov*78/128);
   right_bound /= dst->w;
   right_bound -= proj->yrot;
   fov_lcos = zo_cos(left_bound);
