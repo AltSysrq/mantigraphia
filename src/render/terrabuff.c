@@ -204,28 +204,30 @@ typedef struct {
 /* Prevent inlining of our static functions so that we can get profiling data
  * on each individual one.
  */
-static void interpolate(screen_yz*restrict, vo3*restrict, coord_offset)
+static void interpolate(screen_yz*restrict, vo3*restrict,
+                        coord_offset, coord_offset)
 __attribute__((noinline));
 static void interpolate_all(screen_yz*restrict, vo3*restrict,
-                            unsigned, coord_offset)
+                            unsigned, coord_offset, coord_offset)
 __attribute__((noinline));
 static void draw_line(canvas*restrict, const screen_yz*restrict,
-                      unsigned, unsigned, signed)
+                      unsigned, unsigned, unsigned, signed)
 __attribute__((noinline));
 static void draw_line_with_thickness(canvas*restrict, const screen_yz*restrict,
-                                     unsigned, unsigned, unsigned)
+                                     unsigned, unsigned, unsigned, unsigned)
 __attribute__((noinline));
 static void draw_segments(canvas*restrict,
                           char*restrict,
                           const screen_yz*restrict,
                           const screen_yz*restrict,
-                          unsigned)
+                          unsigned, unsigned, unsigned);
 __attribute__((noinline));
 static void fill_area_between(canvas*restrict,
                               const screen_yz*restrict,
                               const screen_yz*restrict,
                               coord_offset,
-                              const canvas_pixel*restrict)
+                              const canvas_pixel*restrict,
+                              unsigned, unsigned)
 __attribute__((noinline));
 static void collapse_buffer(char*restrict,
                             screen_yz*restrict, const screen_yz*restrict,
@@ -234,7 +236,7 @@ __attribute__((noinline));
 #endif /* PROFILE */
 
 static void interpolate(screen_yz*restrict dst, vo3*restrict points,
-                        coord_offset xmax) {
+                        coord_offset xmin, coord_offset xmax) {
   /* Use a Catmull-Rom spline for Y, linear for Z */
   coord_offset x0 = points[1][0], x1 = points[2][0];
   coord_offset y0 = points[1][1], y1 = points[2][1];
@@ -247,9 +249,9 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
   fraction idx;
 
   if (!dx) {
-    if (x0 >=0 && x0 < xmax) {
-      dst[x0].y = y0;
-      dst[x0].z = z0;
+    if (x0 >= xmin && x0 < xmax) {
+      dst[x0-xmin].y = y0;
+      dst[x0-xmin].z = z0;
     }
     return;
   }
@@ -277,7 +279,7 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
     t2 = precise_fraction_fmul(t1, t1);
     t3 = precise_fraction_fmul(t2, t1);
 
-    dst[x].y = precise_fraction_sred(
+    dst[x-xmin].y = precise_fraction_sred(
       + 2 * precise_fraction_smul(y0, t3)
       - 3 * precise_fraction_smul(y0, t2)
       + precise_fraction_sexp(y0)
@@ -292,26 +294,27 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
         precise_fraction_sred(
           + precise_fraction_smul(m1n, t3)
           - precise_fraction_smul(m1n, t2)), m1d));
-    dst[x].z = fraction_smul((x-x0)*z1 + (x1-x)*z0, idx);
+    dst[x-xmin].z = fraction_smul((x-x0)*z1 + (x1-x)*z0, idx);
   }
 }
 
 static void interpolate_all(screen_yz*restrict dst,
                             vo3*restrict points,
                             unsigned num_points,
+                            coord_offset xmin,
                             coord_offset xmax) {
   unsigned i;
 
-#pragma omp parallel for
   for (i = 1; i < num_points-2; ++i)
-    if (points[i+1][0] >= 0 && points[i][0] < xmax)
-      interpolate(dst, points + (i-1), xmax);
+    if (points[i+1][0] >= xmin && points[i][0] < xmax)
+      interpolate(dst, points + (i-1), xmin, xmax);
 }
 
 #define LINE_COLOUR (argb(255,12,12,12))
 static void draw_line(canvas*restrict dst,
                       const screen_yz*restrict along,
                       unsigned x0, unsigned x1,
+                      unsigned xoff,
                       signed yoff) {
   unsigned x, off;
   coord_offset y0, y1, yl, yh, y;
@@ -328,7 +331,7 @@ static void draw_line(canvas*restrict dst,
     }
 
     for (y = yl; y <= yh; ++y) {
-      off = canvas_offset(dst, x, y);
+      off = canvas_offset(dst, x+xoff, y);
       dst->px[off] = LINE_COLOUR;
       dst->depth[off] = along[x].z;
     }
@@ -338,14 +341,15 @@ static void draw_line(canvas*restrict dst,
 static void draw_line_with_thickness(canvas*restrict dst,
                                      const screen_yz*restrict along,
                                      unsigned x0, unsigned x1,
+                                     unsigned xoff,
                                      unsigned thickness) {
   unsigned t;
 
-  draw_line(dst, along, x0, x1, 0);
+  draw_line(dst, along, x0, x1, xoff, 0);
 
-  for (t = 0; t < thickness && t < x1; ++t) {
-    draw_line(dst, along, x0+t, x1-t, +(signed)t);
-    draw_line(dst, along, x0+t, x1-t, -(signed)t);
+  for (t = 0; t < thickness; ++t) {
+    draw_line(dst, along, x0, x1, xoff, +(signed)t);
+    draw_line(dst, along, x0, x1, xoff, -(signed)t);
   }
 }
 
@@ -353,19 +357,20 @@ static void draw_segments(canvas*restrict dst,
                           char*restrict line_points,
                           const screen_yz*restrict front,
                           const screen_yz*restrict back,
+                          unsigned xmin, unsigned xmax,
                           unsigned thickness) {
   unsigned x0, x1;
 
-  for (x0 = 0; x0 < dst->w; ++x0) {
+  for (x0 = 0; x0 < xmax-xmin; ++x0) {
     if (back[x0].y <= front[x0].y && !line_points[x0]) {
       line_points[x0] = 1;
       x1 = x0+1;
-      while (x1 < dst->w && back[x1].y <= front[x1].y && !line_points[x1]) {
+      while (x1 < xmax-xmin && back[x1].y <= front[x1].y && !line_points[x1]) {
         line_points[x1] = 1;
         ++x1;
       }
 
-      draw_line_with_thickness(dst, back, x0, x1, thickness);
+      draw_line_with_thickness(dst, back, x0, x1, xmin, thickness);
       x0 = x1;
       line_points[x1] = 1;
     }
@@ -376,7 +381,8 @@ static void fill_area_between(canvas*restrict dst,
                               const screen_yz*restrict front,
                               const screen_yz*restrict back,
                               coord_offset tex_x_off,
-                              const canvas_pixel*restrict texture_coloured) {
+                              const canvas_pixel*restrict texture_coloured,
+                              unsigned x0, unsigned x1) {
   coord_offset y, y0, y1;
   unsigned x;
   register unsigned w = dst->w;
@@ -384,16 +390,15 @@ static void fill_area_between(canvas*restrict dst,
   register const canvas_pixel*restrict tex;
   register unsigned*restrict depth;
 
-#pragma omp parallel for private(y,y0,y1,px,tex,depth)
-  for (x = 0; x < dst->w; ++x) {
+  for (x = 0; x < x1-x0; ++x) {
     if (front[x].y < back[x].y) {
       y0 = front[x].y;
       y1 = back[x].y;
       if (y0 < 0) y0 = 0;
       if (y1 >= (signed)dst->h) y1 = (signed)dst->h-1;
 
-      px = dst->px + canvas_offset(dst, x, y0);
-      depth = dst->depth + canvas_offset(dst, x, y0);
+      px = dst->px + canvas_offset(dst, x + x0, y0);
+      depth = dst->depth + canvas_offset(dst, x + x0, y0);
       tex = texture_coloured + ((y0-front[x].y) & TEXMASK) +
         TEXSZ*((x+tex_x_off) & TEXMASK);
 
@@ -461,7 +466,6 @@ void terrabuff_render(canvas*restrict dst,
   ump_join();
 
   /* Generate the coloured version of the texture */
-#pragma omp parallel for
   for (x = 0; x < TEXSZ * dst->h; ++x)
     this->texture_coloured[x] = modulate(texture[x], 16, 100, 24);
 
@@ -491,15 +495,17 @@ void terrabuff_render(canvas*restrict dst,
     interpolate_all(lbuff_front,
                     this->points + this->scap*scan + this->boundaries[scan].low,
                     this->boundaries[scan].high - this->boundaries[scan].low,
-                    dst->w);
+                    0, dst->w);
 
     fill_area_between(dst, lbuff_front, lbuff_back,
                       texture_x_offset + 31*scan*scan + 75*scan,
-                      this->texture_coloured);
-    draw_segments(dst, line_points, lbuff_front, lbuff_back, line_thickness);
+                      this->texture_coloured,
+                      0, dst->w);
+    draw_segments(dst, line_points, lbuff_front, lbuff_back,
+                  0, dst->w, line_thickness);
 
     collapse_buffer(line_points, lbuff_back, lbuff_front, dst->w);
   }
 
-  draw_line_with_thickness(dst, lbuff_back, 0, dst->w, line_thickness);
+  draw_line_with_thickness(dst, lbuff_back, 0, dst->w, 0, line_thickness);
 }
