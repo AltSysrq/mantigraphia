@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -481,8 +481,7 @@ void terrabuff_render(canvas*restrict dst,
       terrabuff_render_task.num_divisions;
 
   ump_join();
-  /* Eventually will be async */
-  ump_run_sync(&terrabuff_render_task);
+  ump_run_async(&terrabuff_render_task);
 }
 
 static void terrabuff_render_column(unsigned ordinal, unsigned pcount) {

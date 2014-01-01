@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@
 #include <stdlib.h>
 
 #include "../coords.h"
+#include "../micromp.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
 #include "../world/world.h"
@@ -145,6 +146,24 @@ static void render_basic_world_terrain(
   terrabuff_render(dst, terra, context);
 }
 
+#define MAJOR_MAX 512
+#define RENDER_SLOTS (MAJOR_MAX*MAJOR_MAX*2)
+static void render_basic_world_terrain_features_slot(unsigned,unsigned);
+static canvas*restrict terrain_features_dst;
+static const basic_world*restrict terrain_features_world;
+static const rendering_context*restrict terrain_features_context;
+static struct {
+  void (*f)(canvas*restrict, const basic_world*restrict,
+            const rendering_context*restrict,
+            coord, coord);
+  coord x, z;
+} terrain_features_slots[RENDER_SLOTS];
+static ump_task terrain_features_task = {
+  render_basic_world_terrain_features_slot,
+  0, /* Set dynamically */
+  0  /* Unused (Synchronous) */
+};
+
 static void render_basic_world_terrain_features(
   canvas* dst,
   const basic_world*restrict world,
@@ -153,7 +172,7 @@ static void render_basic_world_terrain_features(
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;
   coord x, z, ctx, ctz;
-  unsigned major, major_max, type;
+  unsigned major, major_max, type, slot = 0;
   signed minor, minor_min;
   signed major_axis_x, major_axis_z;
   signed minor_axis_x, minor_axis_z;
@@ -183,50 +202,68 @@ static void render_basic_world_terrain_features(
     minor_axis_x = 0;
   }
 
-  if (world->xmax/2-1 < 512)
+  if (world->xmax/2-1 < MAJOR_MAX)
     major_max = world->xmax/2-1;
   else
-    major_max = 512;
+    major_max = MAJOR_MAX;
 
-#pragma omp parallel private(minor,minor_min,has_rendered,dx,dz,x,z,type)
-  {
-    minor_min = -32;
-#pragma omp for
-    for (major = 0; major < major_max; ++major) {
-      has_rendered = 0;
-      for (minor = minor_min; minor < (signed)major_max; ++minor) {
-        dx = major*major_axis_x + minor*minor_axis_x;
-        dz = major*major_axis_z + minor*minor_axis_z;
-        x = (ctx + dx) & (world->xmax-1);
-        z = (ctz + dz) & (world->zmax-1);
+  minor_min = -32;
+  for (major = 0; major < major_max; ++major) {
+    has_rendered = 0;
+    for (minor = minor_min; minor < (signed)major_max; ++minor) {
+      dx = major*major_axis_x + minor*minor_axis_x;
+      dz = major*major_axis_z + minor*minor_axis_z;
+      x = (ctx + dx) & (world->xmax-1);
+      z = (ctz + dz) & (world->zmax-1);
 
-        /* Check whether within fov */
-        if (dx*fov_lcos + dz*fov_lsin <= 0 &&
-            dx*fov_rcos + dz*fov_rsin >= 0) {
-          has_rendered = 1;
+      /* Check whether within fov */
+      if (dx*fov_lcos + dz*fov_lsin <= 0 &&
+          dx*fov_rcos + dz*fov_rsin >= 0) {
+        has_rendered = 1;
 
-          type = world->tiles[basic_world_offset(world, x, z)].elts[0].type;
-          if (terrain_renderers[type])
-            (*terrain_renderers[type])(
-              dst, world, context, x, z);
-        } else {
-          if (has_rendered)
-            break;
-          else
-            minor_min = minor;
+        type = world->tiles[basic_world_offset(world, x, z)].elts[0].type;
+        if (terrain_renderers[type]) {
+          terrain_features_slots[slot].f = terrain_renderers[type];
+          terrain_features_slots[slot].x = x;
+          terrain_features_slots[slot].z = z;
+          ++slot;
+
+          if (slot == RENDER_SLOTS) goto render;
         }
+      } else {
+        if (has_rendered)
+          break;
+        else
+          minor_min = minor;
       }
-
-      minor_min -= 16;
-      if (minor_min < -(signed)major_max)
-        minor_min = 1-(signed)major_max;
     }
-  } /* end parallel */
+
+    minor_min -= 16;
+    if (minor_min < -(signed)major_max)
+      minor_min = 1-(signed)major_max;
+  }
+
+  render:
+  terrain_features_dst = dst;
+  terrain_features_world = world;
+  terrain_features_context = context;
+  terrain_features_task.num_divisions = slot;
+  ump_join();
+  ump_run_sync(&terrain_features_task);
+}
+
+static void render_basic_world_terrain_features_slot(unsigned ix, unsigned n) {
+  (*terrain_features_slots[ix].f)(
+    terrain_features_dst,
+    terrain_features_world,
+    terrain_features_context,
+    terrain_features_slots[ix].x,
+    terrain_features_slots[ix].z);
 }
 
 void render_basic_world(canvas* dst,
                         const basic_world*restrict world,
                         const rendering_context*restrict context) {
   render_basic_world_terrain(dst, world, context);
-  /*render_basic_world_terrain_features(dst, world, context);*/
+  render_basic_world_terrain_features(dst, world, context);
 }
