@@ -521,7 +521,7 @@ static void terrabuff_render_column(unsigned ordinal, unsigned pcount) {
    * When done, draw a line across the entire back buffer to add contrast to
    * the sky and to be consistent with how the rest of the drawing looks.
    */
-  for (x = 0; x <= lenof(lbuff_front); ++x) {
+  for (x = 0; x < lenof(lbuff_front); ++x) {
     lbuff_back[x].y = 0x7FFFFFFF;
     lbuff_back[x].z = 0x7FFFFFFF;
     /* Also initialise the front buffer, since some off-screen circumstances
