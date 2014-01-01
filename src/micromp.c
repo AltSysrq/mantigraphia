@@ -119,6 +119,8 @@ void ump_init(unsigned num_threads) {
   unsigned i;
   char thread_name[32];
 
+  num_workers = num_threads;
+
   if (!(completion_notification = SDL_CreateCond()))
     errx(EX_SOFTWARE, "Unable to create completion cond: %s", SDL_GetError());
 
@@ -202,8 +204,6 @@ void ump_join(void) {
        */
       if (current_task->divisions_for_master > 0) {
         --current_task->divisions_for_master;
-        printf("Rebalanced divisions_for_master to %d\n",
-               current_task->divisions_for_master);
       }
     } else {
       /* The master got to join() before the other work was done. Try to give
@@ -216,8 +216,6 @@ void ump_join(void) {
        */
       if (current_task->divisions_for_master < current_task->num_divisions) {
         ++current_task->divisions_for_master;
-        printf("Rebalanced divisions_for_master to %d\n",
-               current_task->divisions_for_master);
       }
     }
   }
