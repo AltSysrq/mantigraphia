@@ -38,7 +38,7 @@
 static unsigned num_workers;
 static SDL_atomic_t num_busy_workers;
 static SDL_cond* completion_notification, * assignment_notification;
-static SDL_mutex* completion_mutex, * assignment_mutex;
+static SDL_mutex* mutex;
 static ump_task* current_task;
 static SDL_atomic_t current_task_id;
 static int current_task_is_sync;
@@ -71,18 +71,17 @@ static int ump_main(void* vspec) {
 
   while (1) {
     /* Wait for assignment */
-    if (SDL_LockMutex(assignment_mutex))
+    if (SDL_LockMutex(mutex))
       errx(EX_SOFTWARE, "Unable to lock mutex: %s", SDL_GetError());
 
     while (prev_task == SDL_AtomicGet(&current_task_id)) {
-      if (SDL_CondWait(assignment_notification, assignment_mutex))
+      if (SDL_CondWait(assignment_notification, mutex))
         errx(EX_SOFTWARE, "Unable to wait on condition: %s", SDL_GetError());
     }
 
-    SDL_AtomicAdd(&num_busy_workers, +1);
     prev_task = SDL_AtomicGet(&current_task_id);
 
-    if (SDL_UnlockMutex(assignment_mutex))
+    if (SDL_UnlockMutex(mutex))
       errx(EX_SOFTWARE, "Unable to unlock mutex: %s", SDL_GetError());
 
     /* Calculate work boundaries */
@@ -102,7 +101,7 @@ static int ump_main(void* vspec) {
     exec_region(lower_bound, upper_bound);
 
     /* Done. Notify of completion and go back to waiting for assignment */
-    if (SDL_LockMutex(completion_mutex))
+    if (SDL_LockMutex(mutex))
       errx(EX_SOFTWARE, "Unable to lock mutex: %s", SDL_GetError());
 
     SDL_AtomicAdd(&num_busy_workers, -1);
@@ -110,7 +109,7 @@ static int ump_main(void* vspec) {
       errx(EX_SOFTWARE, "Unable to broadcast completion notification: %s",
            SDL_GetError());
 
-    if (SDL_UnlockMutex(completion_mutex))
+    if (SDL_UnlockMutex(mutex))
       errx(EX_SOFTWARE, "Unable to unlock mutex: %s", SDL_GetError());
   }
 }
@@ -124,14 +123,11 @@ void ump_init(unsigned num_threads) {
   if (!(completion_notification = SDL_CreateCond()))
     errx(EX_SOFTWARE, "Unable to create completion cond: %s", SDL_GetError());
 
-  if (!(completion_mutex = SDL_CreateMutex()))
-    errx(EX_SOFTWARE, "Unable to create completion mutex: %s", SDL_GetError());
+  if (!(mutex = SDL_CreateMutex()))
+    errx(EX_SOFTWARE, "Unable to create mutex: %s", SDL_GetError());
 
   if (!(assignment_notification = SDL_CreateCond()))
     errx(EX_SOFTWARE, "Unable to create assignment cond: %s", SDL_GetError());
-
-  if (!(assignment_mutex = SDL_CreateMutex()))
-    errx(EX_SOFTWARE, "Unable to create assignment mutex: %s", SDL_GetError());
 
   for (i = 0; i < num_threads; ++i) {
     thread_specs[i].ordinal = i;
@@ -143,18 +139,19 @@ void ump_init(unsigned num_threads) {
 }
 
 static void ump_run(ump_task* task, int sync) {
-  if (SDL_LockMutex(assignment_mutex))
+  if (SDL_LockMutex(mutex))
     errx(EX_SOFTWARE, "Unable to lock mutex: %s", SDL_GetError());
 
   current_task_is_sync = sync;
   current_task = task;
+  SDL_AtomicAdd(&num_busy_workers, +num_workers);
   SDL_AtomicAdd(&current_task_id, +1);
 
   if (SDL_CondBroadcast(assignment_notification))
     errx(EX_SOFTWARE, "Unable to broadcast assignment notification: %s",
          SDL_GetError());
 
-  if (SDL_UnlockMutex(assignment_mutex))
+  if (SDL_UnlockMutex(mutex))
     errx(EX_SOFTWARE, "Unable to unlock mutex: %s", SDL_GetError());
 
   if (sync) {
@@ -183,16 +180,16 @@ void ump_join(void) {
 
   if (!done_early) {
     /* Need to wait for others */
-    if (SDL_LockMutex(completion_mutex))
+    if (SDL_LockMutex(mutex))
       errx(EX_SOFTWARE, "Unable to lock mutex: %s", SDL_GetError());
 
     while (SDL_AtomicGet(&num_busy_workers)) {
-      if (SDL_CondWait(completion_notification, completion_mutex))
+      if (SDL_CondWait(completion_notification, mutex))
         errx(EX_SOFTWARE, "Unable to wait on completion cond: %s",
              SDL_GetError());
     }
 
-    if (SDL_UnlockMutex(completion_mutex))
+    if (SDL_UnlockMutex(mutex))
       errx(EX_SOFTWARE, "Unable to unlock mutex: %s", SDL_GetError());
   }
 
