@@ -44,6 +44,7 @@
 #include "render/terrabuff.h"
 #include "game-state.h"
 #include "cosine-world.h"
+#include "micromp.h"
 
 static game_state* update(game_state*);
 static void draw(canvas*, game_state*, SDL_Texture*, SDL_Renderer*);
@@ -86,6 +87,7 @@ int main(void) {
 
   SDL_GetWindowSize(screen, (int*)&ww, (int*)&wh);
 
+  ump_init(SDL_GetCPUCount()-1);
   parchment_init();
   brush_load();
   mouselook_init(screen);
@@ -136,8 +138,14 @@ static game_state* update(game_state* state) {
 
 static void draw(canvas* canv, game_state* state,
                  SDL_Texture* texture, SDL_Renderer* renderer) {
+  unsigned draw_start, draw_end;
+
   canvas_clear(canv);
+  draw_start = SDL_GetTicks();
   (*state->draw)(state, canv);
+  draw_end = SDL_GetTicks();
+
+  printf("Drawing took %d ms\n", draw_end-draw_start);
 
   canvas_blit(texture, canv);
   SDL_RenderCopy(renderer, texture, NULL, NULL);

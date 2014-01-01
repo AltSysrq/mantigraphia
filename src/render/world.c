@@ -228,5 +228,5 @@ void render_basic_world(canvas* dst,
                         const basic_world*restrict world,
                         const rendering_context*restrict context) {
   render_basic_world_terrain(dst, world, context);
-  render_basic_world_terrain_features(dst, world, context);
+  /*render_basic_world_terrain_features(dst, world, context);*/
 }

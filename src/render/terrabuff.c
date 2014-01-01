@@ -33,6 +33,7 @@
 #include "../alloc.h"
 #include "../defs.h"
 #include "../frac.h"
+#include "../micromp.h"
 #include "../graphics/canvas.h"
 #include "../graphics/linear-paint-tile.h"
 #include "../graphics/perspective.h"
@@ -456,6 +457,8 @@ void terrabuff_render(canvas*restrict dst,
     context->long_yrot / context->proj->fov;
   line_thickness = 1 + dst->h / 1024;
   memset(line_points, 0, dst->w);
+
+  ump_join();
 
   /* Generate the coloured version of the texture */
 #pragma omp parallel for

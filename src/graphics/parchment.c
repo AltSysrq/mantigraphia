@@ -38,6 +38,7 @@
 
 #include "../alloc.h"
 #include "canvas.h"
+#include "micromp.h"
 #include "parchment.h"
 
 #define PARCHMENT_DIM 2048
@@ -85,10 +86,39 @@ void parchment_delete(parchment* this) {
   free(this);
 }
 
+#define DRAW_ROW_SZ 64
+static canvas*restrict parchment_draw_row_dst;
+static const parchment*restrict parchment_draw_row_this;
+static void parchment_draw_row(unsigned,unsigned);
+static ump_task parchment_drawing_task = {
+  parchment_draw_row,
+  0, /* To be filled in */
+  0 /* Calculate automatically */
+};
+
 void parchment_draw(canvas* dst, const parchment* this) {
-  unsigned y, yo, xo, cnt, off;
-#pragma omp parallel for private(y,yo,xo,cnt,off)
-  for (yo = 0; yo < dst->h; ++yo) {
+  parchment_draw_row_dst = dst;
+  parchment_draw_row_this = this;
+  parchment_drawing_task.num_divisions =
+    (dst->h + DRAW_ROW_SZ - 1) / DRAW_ROW_SZ;
+  if (parchment_drawing_task.num_divisions <
+      parchment_drawing_task.divisions_for_master)
+    parchment_drawing_task.divisions_for_master =
+      parchment_drawing_task.num_divisions;
+
+  ump_run_async(&parchment_drawing_task);
+}
+
+static void parchment_draw_row(unsigned i, unsigned n) {
+  canvas*restrict dst = parchment_draw_row_dst;
+  const parchment*restrict this = parchment_draw_row_this;
+
+  unsigned y, yo, xo, cnt, off, min, max;
+
+  min = i * DRAW_ROW_SZ;
+  max = min + DRAW_ROW_SZ;
+
+  for (yo = min; yo < max && yo < dst->h; ++yo) {
     y = (yo + this->ty/1024) & PARCHMENT_MASK;
 
     for (xo = 0; xo < dst->w; xo += cnt) {
