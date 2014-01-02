@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,7 @@ static void render_grass(canvas*restrict dst, const basic_world*restrict world,
                               TILE_SZ*world->zmax));
 
   pencil_init(&pencil);
-  pencil.colour = argb(255, 32, 140, 24);
+  pencil.colour = argb(255, 32, 108, 24);
   pencil.thickness = ZO_SCALING_FACTOR_MAX / 639;
 
   dm_init(&penproj);
@@ -82,12 +82,12 @@ static void render_grass(canvas*restrict dst, const basic_world*restrict world,
   base_x = tx * TILE_SZ;
   base_z = tz * TILE_SZ;
 
-  for (i = 0; i < 1+63 / (1+dist/TILE_SZ/4); ++i) {
+  for (i = 0; i < 1+8 / (1+dist/TILE_SZ/4); ++i) {
     from[0] = base_x + (lcgrand(&rand) & (TILE_SZ-1));
     from[2] = base_z + (lcgrand(&rand) & (TILE_SZ-1));
     from[1] = terrain_base_y(world, from[0], from[2]);
     to[0] = from[0];
-    to[1] = from[1] + 128*MILLIMETRE + (lcgrand(&rand) % (128*MILLIMETRE));
+    to[1] = from[1] + 128*MILLIMETRE + (lcgrand(&rand) % (2560*MILLIMETRE));
     to[2] = from[2];
 
     dm_proj_draw_line(dst, &penproj,
