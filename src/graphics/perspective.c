@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,6 +71,19 @@ void perspective_xlate(vo3 dst,
   rty[0] = zo_scale(tx[0], this->yrot_cos) - zo_scale(tx[2], this->yrot_sin);
   rty[1] = tx[1];
   rty[2] = zo_scale(tx[2], this->yrot_cos) + zo_scale(tx[0], this->yrot_sin);
+  /* This is obviously not perspective-correct, as far as real life is
+   * concerned. There are two deformations we apply here:
+   *
+   * 1. Tall objects in the distance appear taller. This mimics many paintings
+   *    which have distant mountains with absurd slopes. (And we don't want to
+   *    *actually* have slopes like that.)
+   *
+   * 2. Space curves upward quadratically with distance. The effect here is
+   *    much less pronounced than in reference paintings, but it's disorienting
+   *    if it is too strong anyway.
+   */
+  rty[1] += (src[1]*(signed long long)(-rty[2]))/METRE/1024
+         +  (((signed long long)rty[2]/16384)*rty[2]/METRE);
   /* Rotate X */
   dst[0] = rty[0];
   dst[1] = zo_scale(rty[1], this->rxrot_cos) - zo_scale(rty[2], this->rxrot_sin);

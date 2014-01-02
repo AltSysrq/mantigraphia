@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,9 @@
  * Provides parameters describing how to project world coordinates into
  * orthogonal screen coordinates. This includes both camera information and
  * projection/screen information.
+ *
+ * Note that perspective translation and projection is by design *not* correct
+ * according to normal cartesian space.
  */
 typedef struct {
   /**
