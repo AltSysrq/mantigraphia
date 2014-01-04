@@ -203,7 +203,7 @@ static void wisp_apply(canvas*restrict dst, const wisp*restrict this,
   coord far_mid = global_far_mid + zshift;
   coord_offset xmax = dst->w;
   coord_offset wx, wy;
-  coord dim, x0, x1, y0, y1, xl, xr, xw, x, y;
+  coord dim, x0, x1, y0, y1, xl, xr, xw, y;
 
   if (!this->visibility) return;
 
@@ -224,8 +224,7 @@ static void wisp_apply(canvas*restrict dst, const wisp*restrict this,
     xw = fisqrt(ww*ww/4 - ww*ww*(wy-y)*(wy-y)/wh/wh);
     xl = (wx > (signed)(x0 + xw)? wx - xw : x0);
     xr = ((signed)(wx + xw) < (signed)x1? wx + xw : x1);
-    for (x = xl; x < xr; ++x)
-      canvas_write(dst, x, y, 0xFFFFFFFF, far_mid);
+    parchment_draw_subrow(dst, bg, xl, xr, y, far_mid);
   }
 }
 

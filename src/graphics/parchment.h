@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,14 @@ void parchment_delete(parchment*);
  * depth is untouched.
  */
 void parchment_draw(canvas*, const parchment*);
+
+/**
+ * Conditionally updates a row of the given canvas between the given X
+ * boundaries (inclusive and exclusive, respectively), subject to a depth test
+ * of the given constant Z coordinate.
+ */
+void parchment_draw_subrow(canvas*restrict, const parchment*restrict,
+                           coord x0, coord x1, coord y, coord z);
 
 /**
  * Updates the transformation of the parchment according to the old and new

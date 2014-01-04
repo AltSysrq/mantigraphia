@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -132,6 +132,18 @@ static void parchment_draw_row(unsigned i, unsigned n) {
              texture + off,
              sizeof(canvas_pixel) * cnt);
     }
+  }
+}
+
+void parchment_draw_subrow(canvas*restrict dst, const parchment*restrict this,
+                           coord x0, coord x1, coord y, coord z) {
+  coord px, py, x;
+
+  py = (y + this->ty/1024) & PARCHMENT_MASK;
+
+  for (x = x0; x < x1; ++x) {
+    px = (x + this->tx/1024) & PARCHMENT_MASK;
+    canvas_write(dst, x, y, texture[py*PARCHMENT_DIM + px], z);
   }
 }
 
