@@ -45,7 +45,6 @@
 #include "world/generate.h"
 #include "render/world.h"
 #include "render/context.h"
-#include "render/fog.h"
 #include "control/mouselook.h"
 
 #include "cosine-world.h"
@@ -59,7 +58,6 @@ typedef struct {
   mouselook_state look;
   parchment* bg;
   basic_world* world;
-  fog_effect* fog;
   rendering_context*restrict context;
 
   int moving_forward, moving_backward, moving_left, moving_right;
@@ -87,7 +85,6 @@ game_state* cosine_world_new(void) {
     { 0, 0 },
     parchment_new(),
     basic_world_new(SIZE, SIZE, SIZE/256, SIZE/256),
-    fog_effect_new(4096, fraction_of(8), fraction_of(16), 0),
     rendering_context_new(),
     0,0,0,0
   };
@@ -105,7 +102,6 @@ game_state* cosine_world_new(void) {
 static void cosine_world_delete(cosine_world_state* this) {
   parchment_delete(this->bg);
   basic_world_delete(this->world);
-  fog_effect_delete(this->fog);
   rendering_context_delete(this->context);
   free(this);
 }
@@ -116,8 +112,6 @@ static void cosine_world_init_world(cosine_world_state* this) {
 
 #define SPEED (4*METRES_PER_SECOND)
 static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
-  fog_effect_update(this->fog, et);
-
   if (this->moving_forward) {
     this->x -= zo_sinms(this->look.yrot, et * SPEED);
     this->z -= zo_cosms(this->look.yrot, et * SPEED);
@@ -173,8 +167,6 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
 
   parchment_draw(dst, this->bg);
   render_basic_world(dst, this->world, this->context);
-  fog_effect_apply(dst, this->fog, this->bg,
-                   32*METRE, 256*METRE, 512*METRE, 2048*METRE);
 }
 
 static void cosine_world_key(cosine_world_state* this,

@@ -31,7 +31,6 @@ render/context.c \
 render/terrabuff.c \
 render/world.c \
 render/terrain.c \
-render/fog.c \
 control/mouselook.c \
 flower-pot.c \
 cosine-world.c
