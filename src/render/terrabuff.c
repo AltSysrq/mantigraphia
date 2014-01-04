@@ -246,7 +246,6 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
   coord_offset x;
   coord_offset m0n, m1n;
   precise_fraction pidx, t1, t2, t3, m0d, m1d;
-  fraction idx;
 
   if (!dx) {
     if (x0 >= xmin && x0 <= xmax) {
@@ -273,7 +272,6 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
   m1n = clamps(-16384, points[3][1] - points[1][1], +16383);
 
   pidx = precise_fraction_of(dx);
-  idx = fraction_of(dx);
   for (x = xl; x <= xh; ++x) {
     t1 = (x-x0) * pidx;
     t2 = precise_fraction_fmul(t1, t1);
@@ -294,7 +292,7 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
         precise_fraction_sred(
           + precise_fraction_smul(m1n, t3)
           - precise_fraction_smul(m1n, t2)), m1d));
-    dst[x-xmin].z = fraction_smul((x-x0)*z1 + (x1-x)*z0, idx);
+    dst[x-xmin].z = ((x-x0)*(long long)z1 + (x1-x)*(long long)z0) / dx;
   }
 }
 
