@@ -51,11 +51,10 @@
  * planes by a value determined by its Z-distance. Anything nearer the near
  * plane is always fully visible and has no effect on the fog; anything behind
  * the far plane is assumed invisible. Pixels between the near and far planes
- * are said to "pierce" the fog. A "middle" region is implicitly defined to lie
- * one- and two-thirds between the near and far planes. Items between the near
- * and far-middle planes pierce the fog, but are not occluded by it. Items
- * between the far-middle and far planes pierce the fog, but may be occluded by
- * it.
+ * are said to "pierce" the fog. A "middle" region is defined to lie somewhere
+ * between the near and far planes. Items between the near and far-middle
+ * planes pierce the fog, but are not occluded by it. Items between the
+ * far-middle and far planes pierce the fog, but may be occluded by it.
  *
  * Fog piercing, which maximises at the middle plane, causes the boundaries of
  * a wisp to recede. The strength of piercing for a particular wisp is based on
@@ -97,6 +96,7 @@ void fog_effect_update(fog_effect*, chronon et);
  * the given parchment.
  */
 void fog_effect_apply(canvas*, fog_effect*, const parchment*,
-                      coord near, coord far);
+                      coord near, coord near_mid,
+                      coord far_mid, coord far);
 
 #endif /* RENDER_FOG_H_ */

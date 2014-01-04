@@ -144,7 +144,7 @@ static void wisp_occlude(wisp*restrict this, const canvas*restrict c,
   fraction imidnear = fraction_of(near_mid - near);
   fraction ifarmid  = fraction_of(far - far_mid);
   fraction zmul;
-  int is_visible = 1;
+  int is_visible = 0;
   const canvas_depth*restrict depth;
 
   /* The overall visibility of a wisp is simply the minimum visibility derived
@@ -160,7 +160,7 @@ static void wisp_occlude(wisp*restrict this, const canvas*restrict c,
    * and the visibility is (dist/maxdist). For the more general case,
    * visibility is computed as
    *
-   *   1.0 - (maxdist - zmul*dist)/maxdist
+   *   1.0 - zmul*(maxdist - dist)/maxdist
    *
    * where zmul scales linearly from 0.0 to 1.0 between (near,near_mid) and
    * (far_mid,far). This formula has a couple important properties:
@@ -200,7 +200,7 @@ static void wisp_occlude(wisp*restrict this, const canvas*restrict c,
         }
 
         visibility = fraction_of(1) -
-          (maxdist - fraction_umul(abs(x-wx) + abs(y-wy), zmul)) * imaxdist;
+          (fraction_umul(maxdist - abs(x-wx) + abs(y-wy), zmul)) * imaxdist;
 
         if (visibility < min_visibility)
           min_visibility = visibility;
@@ -245,9 +245,8 @@ static void wisp_apply(canvas*restrict dst, const wisp*restrict this,
 
 void fog_effect_apply(canvas* dst, fog_effect* this,
                       const parchment* bg,
-                      coord near, coord far) {
-  coord near_mid = near + (far-near)/3;
-  coord far_mid = near + 2*(far-near)/3;
+                      coord near, coord near_mid,
+                      coord far_mid, coord far) {
   coord dim = (dst->w > dst->h? dst->w : dst->h);
   unsigned ww = fraction_umul(dim, this->wisp_w);
   unsigned wh = fraction_umul(dim, this->wisp_h);

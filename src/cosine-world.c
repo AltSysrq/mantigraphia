@@ -173,7 +173,8 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
 
   parchment_draw(dst, this->bg);
   render_basic_world(dst, this->world, this->context);
-  fog_effect_apply(dst, this->fog, this->bg, 512*METRE, 1024*METRE);
+  fog_effect_apply(dst, this->fog, this->bg,
+                   32*METRE, 256*METRE, 512*METRE, 2048*METRE);
 }
 
 static void cosine_world_key(cosine_world_state* this,
