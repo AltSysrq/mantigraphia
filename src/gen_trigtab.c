@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,11 @@ int main(void) {
     printf("  %d,\n", val);
   }
 
+  printf("};\n");
+
+  printf("const unsigned char fisqrt_table[FISQRT_CNT] = {\n");
+  for (i = 0; i < FISQRT_CNT; ++i)
+    printf("  %d,\n", (unsigned char)sqrt((float)i));
   printf("};\n");
 
   return 0;

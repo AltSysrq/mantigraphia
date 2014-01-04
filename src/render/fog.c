@@ -116,8 +116,9 @@ static void wisp_occlude(wisp*restrict this, const canvas*restrict c,
   coord_offset zshift = fraction_smul(global_far_mid - global_near_mid,
                                       this->z_dist);
   coord near_mid = global_near_mid + zshift, far_mid = global_far_mid + zshift;
-  coord xmax = c->w, ymax = c->h;
-  coord dim, wx, wy, x0, x1, y0, y1, x, y;
+  coord_offset xmax = c->w, ymax = c->h;
+  coord_offset wx, wy;
+  coord dim, x0, x1, y0, y1, x, y;
   fraction min_visibility = fraction_of(1), visibility;
   coord maxdist = ww/2 + wh/2;
   fraction imaxdist = fraction_of(maxdist);
@@ -162,9 +163,9 @@ static void wisp_occlude(wisp*restrict this, const canvas*restrict c,
   wx = this->x * dim / BOUNDS;
   wy = this->y * dim / BOUNDS;
   x0 = (wx - (signed)ww/2 > 0?    (coord)(wx - ww/2) : 0);
-  x1 = (wx + (signed)ww/2 < xmax? (coord)(wx + ww/2) : xmax);
+  x1 = (wx + (signed)ww/2 < xmax? (coord)(wx + ww/2) : (coord)xmax);
   y0 = (wy - (signed)wh/2 > 0?    (coord)(wy - wh/2) : 0);
-  y1 = (wy + (signed)wh/2 < ymax? (coord)(wy + wh/2) : ymax);
+  y1 = (wy + (signed)wh/2 < ymax? (coord)(wy + wh/2) : (coord)ymax);
 
   for (y = y0; y < y1; ++y) {
     depth = c->depth + canvas_offset(c, x0, y);
@@ -194,14 +195,15 @@ static void wisp_occlude(wisp*restrict this, const canvas*restrict c,
 static void wisp_apply(canvas*restrict dst, const wisp*restrict this,
                        const parchment*restrict bg,
                        unsigned ww, unsigned wh,
-                       unsigned ymin, unsigned ymax,
+                       signed ymin, signed ymax,
                        coord global_near_mid,
                        coord global_far_mid) {
   coord_offset zshift = fraction_smul(global_far_mid - global_near_mid,
                                       this->z_dist);
   coord far_mid = global_far_mid + zshift;
-  coord xmax = dst->w;
-  coord dim, wx, wy, x0, x1, y0, y1, x, y;
+  coord_offset xmax = dst->w;
+  coord_offset wx, wy;
+  coord dim, x0, x1, y0, y1, xl, xr, xw, x, y;
 
   if (!this->visibility) return;
 
@@ -213,14 +215,18 @@ static void wisp_apply(canvas*restrict dst, const wisp*restrict this,
   if (!ww/2 || !wh/2) return;
 
   x0 = (wx - (signed)ww/2 > 0?    (coord)(wx - ww/2) : 0);
-  x1 = (wx + (signed)ww/2 < xmax? (coord)(wx + ww/2) : xmax);
-  y0 = (wy - (signed)wh/2 > ymin? (coord)(wy - wh/2) : ymin);
-  y1 = (wy + (signed)wh/2 < ymax? (coord)(wy + wh/2) : ymax);
+  x1 = (wx + (signed)ww/2 < xmax? (coord)(wx + ww/2) : (coord)xmax);
+  y0 = (wy - (signed)wh/2 > ymin? (coord)(wy - wh/2) : (coord)ymin);
+  y1 = (wy + (signed)wh/2 < ymax? (coord)(wy + wh/2) : (coord)ymax);
 
-  /* TODO: Oval instead of box, parchment instead of white */
-  for (y = y0; y < y1; ++y)
-    for (x = x0; x < x1; ++x)
+  /* TODO: parchment instead of white */
+  for (y = y0; y < y1; ++y) {
+    xw = fisqrt(ww*ww/4 - ww*ww*(wy-y)*(wy-y)/wh/wh);
+    xl = (wx > (signed)(x0 + xw)? wx - xw : x0);
+    xr = ((signed)(wx + xw) < (signed)x1? wx + xw : x1);
+    for (x = xl; x < xr; ++x)
       canvas_write(dst, x, y, 0xFFFFFFFF, far_mid);
+  }
 }
 
 #define WISP_OCCLUSION_STRIDE UMP_CACHE_LINE_SZ

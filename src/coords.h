@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -190,6 +190,14 @@ static inline void cossinms(signed* x, signed* y, angle ang, signed dist) {
 }
 
 unsigned isqrt(unsigned long long);
+
+#define FISQRT_CNT 4096
+extern const unsigned char fisqrt_table[FISQRT_CNT];
+
+/* Like isqrt(), but result is undefined if input >= FISQRT_CNT */
+static inline unsigned fisqrt(unsigned short i) {
+  return fisqrt_table[i];
+}
 
 static inline unsigned cmagnitude(const vc3 coords) {
   return isqrt(
