@@ -191,7 +191,7 @@ static void select_terrain(basic_world* world, mersenne_twister* twister) {
           }
         }
 
-        if (maxy - miny > TILE_SZ/2)
+        if (maxy - miny > TILE_SZ/2 || (twist(twister) & 7))
           world->tiles[i].elts[0].type = STONE;
         else
           world->tiles[i].elts[0].type = GRASS;
