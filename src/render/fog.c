@@ -55,7 +55,6 @@ struct fog_effect_s {
   signed xmin, xmax, ymin, ymax;
   unsigned num_wisps;
 
-  /* Sorted ascending by Y coordinate */
   wisp wisps[1];
 };
 
@@ -78,10 +77,6 @@ fog_effect* fog_effect_new(unsigned num_wisps,
   this->ymax = BOUNDS+fraction_smul(BOUNDS, wisp_h);
   for (i = 0; i < num_wisps; ++i) {
     this->wisps[i].x = twist(&this->twister) % BOUNDS;
-    /* Instead of randomising the Y coordinates, initialise them to a simple
-     * ascending progression. This way we don't need to worry about sorting a
-     * completely unsorted list.
-     */
     this->wisps[i].y = BOUNDS * i / num_wisps;
     this->wisps[i].z_dist = twist(&this->twister) % ZDIST_MAX;
     randomise_direction(this->wisps+i, this);
@@ -99,19 +94,6 @@ static void randomise_direction(wisp* this, fog_effect* fog) {
   cossinms(&this->vx, &this->vy, direction, SPEED);
 }
 
-static void sort_wisps(wisp* wisps, unsigned n) {
-  /* Insertion sort, as the wisps will always be nearly sorted alreavy */
-  unsigned i, j;
-  wisp tmp;
-  for (i = 1; i < n; ++i) {
-    for (j = i-1; j < n && wisps[j].y > wisps[i].y; --j) {
-      memcpy(&tmp, wisps+i, sizeof(wisp));
-      memcpy(wisps+i, wisps+j, sizeof(wisp));
-      memcpy(wisps+j, &tmp, sizeof(wisp));
-    }
-  }
-}
-
 void fog_effect_update(fog_effect* this, chronon et) {
   unsigned i, t;
   for (i = 0; i < this->num_wisps; ++i) {
@@ -125,8 +107,6 @@ void fog_effect_update(fog_effect* this, chronon et) {
         randomise_direction(this->wisps+i, this);
     }
   }
-
-  sort_wisps(this->wisps, this->num_wisps);
 }
 
 static void wisp_occlude(wisp*restrict this, const canvas*restrict c,
@@ -243,18 +223,73 @@ static void wisp_apply(canvas*restrict dst, const wisp*restrict this,
       canvas_write(dst, x, y, 0xFFFFFFFF, far_mid);
 }
 
+#define WISP_OCCLUSION_STRIDE UMP_CACHE_LINE_SZ
+static canvas* wisp_apply_dst;
+static fog_effect* wisp_apply_this;
+static const parchment* wisp_apply_bg;
+static coord wisp_apply_near, wisp_apply_near_mid,
+  wisp_apply_far_mid, wisp_apply_far;
+static void wisp_occlude_stride(unsigned, unsigned);
+static void wisp_apply_stripe(unsigned, unsigned);
+static ump_task wisp_occlude_task = {
+  wisp_occlude_stride,
+  0, /* Calculated dynamically */
+  0, /* Unused (synchronous) */
+};
+static ump_task wisp_apply_task = {
+  wisp_apply_stripe,
+  0, /* Calculated dynamically */
+  0, /* Unused (synchronous) */
+};
+
 void fog_effect_apply(canvas* dst, fog_effect* this,
                       const parchment* bg,
                       coord near, coord near_mid,
                       coord far_mid, coord far) {
+  wisp_apply_dst = dst;
+  wisp_apply_this = this;
+  wisp_apply_bg = bg;
+  wisp_apply_near = near;
+  wisp_apply_near_mid = near_mid;
+  wisp_apply_far_mid = far_mid;
+  wisp_apply_far = far;
+
+  ump_join();
+  wisp_occlude_task.num_divisions =
+    (this->num_wisps + WISP_OCCLUSION_STRIDE - 1) / WISP_OCCLUSION_STRIDE;
+  ump_run_sync(&wisp_occlude_task);
+  wisp_apply_task.num_divisions = 1 + ump_num_workers();
+  ump_run_sync(&wisp_apply_task);
+}
+
+static void wisp_occlude_stride(unsigned ix, unsigned count) {
+  unsigned first = ix * WISP_OCCLUSION_STRIDE;
+  coord near = wisp_apply_near, near_mid = wisp_apply_near_mid,
+    far_mid = wisp_apply_far_mid, far = wisp_apply_far;
+  canvas*restrict dst = wisp_apply_dst;
+  fog_effect*restrict this = wisp_apply_this;
   coord dim = (dst->w > dst->h? dst->w : dst->h);
   unsigned ww = fraction_umul(dim, this->wisp_w);
   unsigned wh = fraction_umul(dim, this->wisp_h);
   unsigned i;
 
-  for (i = 0; i < this->num_wisps; ++i)
+  for (i = first; i < first+WISP_OCCLUSION_STRIDE &&
+         i < this->num_wisps; ++i)
     wisp_occlude(this->wisps+i, dst, ww, wh, near, near_mid, far_mid, far);
+}
+
+static void wisp_apply_stripe(unsigned ix, unsigned count) {
+  coord near_mid = wisp_apply_near_mid, far_mid = wisp_apply_far_mid;
+  canvas*restrict dst = wisp_apply_dst;
+  const fog_effect*restrict this = wisp_apply_this;
+  const parchment*restrict bg = wisp_apply_bg;
+  coord dim = (dst->w > dst->h? dst->w : dst->h);
+  unsigned ww = fraction_umul(dim, this->wisp_w);
+  unsigned wh = fraction_umul(dim, this->wisp_h);
+  unsigned i;
+  unsigned ymin = ix * dst->h / count;
+  unsigned ymax = (ix+1) * dst->h / count;
 
   for (i = 0; i < this->num_wisps; ++i)
-    wisp_apply(dst, this->wisps+i, bg, ww, wh, 0, dst->h, near_mid, far_mid);
+    wisp_apply(dst, this->wisps+i, bg, ww, wh, ymin, ymax, near_mid, far_mid);
 }
