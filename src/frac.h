@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,13 @@ typedef unsigned fraction;
 
 static inline fraction fraction_of(unsigned denominator) {
   return FRACTION_BASE / denominator;
+}
+
+static inline fraction fraction_of2(unsigned numerator, unsigned denominator) {
+  unsigned long long tmp = numerator;
+  tmp *= FRACTION_BASE;
+  tmp /= denominator;
+  return tmp;
 }
 
 static inline unsigned fraction_umul(unsigned numerator, fraction mult) {
