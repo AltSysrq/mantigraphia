@@ -31,6 +31,7 @@
 
 #include <stdlib.h>
 
+#include "../alloc.h"
 #include "../coords.h"
 #include "../micromp.h"
 #include "../graphics/canvas.h"
@@ -45,14 +46,29 @@
 #define SLICE_CAP 256
 #define SCAN_CAP 128
 
-RENDERING_CONTEXT_STRUCT(render_basic_world, terrabuff*)
+/* Our rendering context needs one terrabuff per thread. */
+RENDERING_CONTEXT_STRUCT(render_basic_world, terrabuff**)
 
 void render_basic_world_context_ctor(rendering_context*restrict context) {
-  *render_basic_world_getm(context) = terrabuff_new(SLICE_CAP, SCAN_CAP);
+  terrabuff** buffers;
+  unsigned i;
+
+  buffers = xmalloc(sizeof(terrabuff*) * (ump_num_workers()+1));
+
+  for (i = 0; i < ump_num_workers() + 1; ++i)
+    buffers[i] = terrabuff_new(SLICE_CAP, SCAN_CAP);
+
+  *render_basic_world_getm(context) = buffers;
 }
 
 void render_basic_world_context_dtor(rendering_context*restrict context) {
-  terrabuff_delete(*render_basic_world_get(context));
+  unsigned i;
+  terrabuff** buffers = *render_basic_world_get(context);
+
+  for (i = 0; i < ump_num_workers() + 1; ++i)
+    terrabuff_delete(buffers[i]);
+
+  free(buffers);
 }
 
 static inline terrabuff_slice angle_to_slice(angle ang) {
@@ -138,16 +154,48 @@ static void put_point(terrabuff* dst, const vc3 centre,
                 xmax);
 }
 
-static void render_basic_world_terrain(
-  canvas* dst,
-  const basic_world*restrict world,
-  const rendering_context*restrict context)
+static canvas* render_basic_world_terrain_dst;
+static const basic_world*restrict render_basic_world_terrain_world;
+static const rendering_context*restrict render_basic_world_terrain_context;
+static void render_basic_world_terrain_subrange(unsigned, unsigned);
+static ump_task render_basic_world_terrain_task = {
+  render_basic_world_terrain_subrange,
+  0, /* Dynamic (num workers) */
+  0, /* Unused (synchronous) */
+};
+
+static void render_basic_world_terrain(canvas* dst,
+                                       const basic_world*restrict world,
+                                       const rendering_context*restrict context)
 {
+  terrabuff** buffers = *render_basic_world_get(context);
+  unsigned i;
+
+  render_basic_world_terrain_dst = dst;
+  render_basic_world_terrain_world = world;
+  render_basic_world_terrain_context = context;
+  render_basic_world_terrain_task.num_divisions = 1 + ump_num_workers();
+  ump_join();
+  ump_run_sync(&render_basic_world_terrain_task);
+
+  for (i = 1; i < 1 + ump_num_workers(); ++i)
+    terrabuff_merge(buffers[0], buffers[i]);
+
+  terrabuff_render(dst, buffers[0], context);
+}
+
+static void render_basic_world_terrain_subrange(unsigned ix, unsigned count) {
+  canvas* dst = render_basic_world_terrain_dst;
+  const basic_world*restrict world = render_basic_world_terrain_world;
+  const rendering_context*restrict context = render_basic_world_terrain_context;
+
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;
-  terrabuff* terra = *render_basic_world_get(context);
+  terrabuff* terra = render_basic_world_get(context)[0][ix];
   unsigned scan = 0;
   terrabuff_slice smin, scurr, smax;
+  terrabuff_slice absolute_smin, absolute_smax, absolute_range;
+  terrabuff_slice local_smin, local_smax;
   unsigned char level = 0;
   coord_offset distance = 1 * METRE, distance_incr = 1 * METRE;
 
@@ -155,17 +203,45 @@ static void render_basic_world_terrain(
    * better boundaries after the first scan.
    */
   scurr = angle_to_slice(proj->yrot);
-  smin = (scurr - SLICE_CAP/4) & (SLICE_CAP-1);
-  smax = (scurr + SLICE_CAP/4) & (SLICE_CAP-1);
+  absolute_smin = (scurr - SLICE_CAP/4) & (SLICE_CAP-1);
+  absolute_smax = (scurr + SLICE_CAP/4) & (SLICE_CAP-1);
+  absolute_range = (absolute_smax - absolute_smin) & (SLICE_CAP-1);
 
-  terrabuff_clear(terra, smin, smax);
+  /* Limit the current thread to the slices to which it is dedicated. For now,
+   * just distribute slices linearly, but we'll want something better since
+   * this gives the middle threads a tonne to do and the outer ones virtually
+   * nothing.
+   */
+  local_smin = (absolute_smin + ix * absolute_range / count) & (SLICE_CAP-1);
+  local_smax = (absolute_smin + (ix+1)*absolute_range / count) & (SLICE_CAP-1);
+
+  terrabuff_clear(terra, absolute_smin, absolute_smax);
+  smin = local_smin;
+  smax = local_smax;
+
   while (scan < SCAN_CAP && world &&
          (distance >> level) / TILE_SZ < (signed)world->xmax/2) {
+    terrabuff_bounds_override(terra, smin, smax);
+
     for (scurr = smin; scurr != smax; scurr = (scurr+1) & (SLICE_CAP-1))
       put_point(terra, proj->camera, scurr, distance, distance_incr,
                 world, level, proj, dst->w);
 
     if (!terrabuff_next(terra, &smin, &smax)) break;
+
+    /* Clamp smin and smax to local constraints. Local minimum and maximum are
+     * forced unless this thread is on the edge.
+     */
+    if (ix)
+      smin = local_smin;
+    if (ix+1 != count)
+      smax = local_smax;
+
+    /* Stop if smin > smax */
+    if (((smax - smin) & (SLICE_CAP-1)) > SLICE_CAP/2) {
+      terrabuff_cancel_scan(terra);
+      break;
+    }
 
     ++scan;
     distance += distance_incr;
@@ -177,8 +253,6 @@ static void render_basic_world_terrain(
       world = SLIST_NEXT(world, next);
     }
   }
-
-  terrabuff_render(dst, terra, context);
 }
 
 #define MAJOR_MAX 512

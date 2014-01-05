@@ -69,11 +69,13 @@ static int ump_main(void* vspec) {
 
   memcpy(&spec, vspec, sizeof(spec));
 
-  while (1) {
-    /* Wait for assignment */
-    if (SDL_LockMutex(mutex))
-      errx(EX_SOFTWARE, "Unable to lock mutex: %s", SDL_GetError());
+  if (SDL_LockMutex(mutex))
+    errx(EX_SOFTWARE, "Unable to lock mutex: %s", SDL_GetError());
 
+  while (1) {
+    /* Mutex locked at this point */
+
+    /* Wait for assignment */
     while (prev_task == SDL_AtomicGet(&current_task_id)) {
       if (SDL_CondWait(assignment_notification, mutex))
         errx(EX_SOFTWARE, "Unable to wait on condition: %s", SDL_GetError());
@@ -109,8 +111,7 @@ static int ump_main(void* vspec) {
       errx(EX_SOFTWARE, "Unable to broadcast completion notification: %s",
            SDL_GetError());
 
-    if (SDL_UnlockMutex(mutex))
-      errx(EX_SOFTWARE, "Unable to unlock mutex: %s", SDL_GetError());
+    /* Leave mutex locked as loop entrance needs it */
   }
 }
 

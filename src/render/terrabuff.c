@@ -29,6 +29,9 @@
 #include <config.h>
 #endif
 
+#include <assert.h>
+#include <string.h>
+
 #include "../coords.h"
 #include "../alloc.h"
 #include "../defs.h"
@@ -79,8 +82,8 @@ void terrabuff_init(void) {
 
 /**
  * Tracks the boundaries of relevant slices at a given scan. The low index is
- * the last point to the left of the canvas, whereas the right index is one
- * past the first point to the right of the drawable area.
+ * the pennultimate point to the left of the canvas, whereas the right index is
+ * two past the first point to the right of the drawable area.
  */
 typedef struct {
   terrabuff_slice low, high;
@@ -172,6 +175,17 @@ int terrabuff_next(terrabuff* this, terrabuff_slice* l, terrabuff_slice* r) {
   return low + 4 < high;
 }
 
+void terrabuff_bounds_override(terrabuff* this,
+                               terrabuff_slice l, terrabuff_slice h) {
+  this->boundaries[this->scan].low  = (l - this->soff) & (this->scap-1);
+  this->boundaries[this->scan].high = (h - this->soff) & (this->scap-1);
+  this->scurr = this->boundaries[this->scan].low;
+}
+
+void terrabuff_cancel_scan(terrabuff* this) {
+  --this->scan;
+}
+
 void terrabuff_put(terrabuff* this, const vo3 where, canvas_pixel colour,
                    coord_offset xmax) {
   /* Update boundaries */
@@ -196,6 +210,36 @@ void terrabuff_put(terrabuff* this, const vo3 where, canvas_pixel colour,
       this->points[this->scan*this->scap + this->scurr-1].where[0];
 
   ++this->scurr;
+}
+
+void terrabuff_merge(terrabuff*restrict this, const terrabuff*restrict that) {
+  unsigned i, off;
+
+  /* Merge shared scans */
+  for (i = 0; i < this->scan && i < that->scan; ++i) {
+    assert(this->boundaries[i].high == that->boundaries[i].low);
+    off = i * this->scap;
+
+    /* Copy slices in that higher than in this */
+    memcpy(this->points + off + this->boundaries[i].high,
+           that->points + off + that->boundaries[i].low,
+           sizeof(scan_point) * (that->boundaries[i].high -
+                                 that->boundaries[i].low));
+    this->boundaries[i].high = that->boundaries[i].high;
+  }
+
+  /* Add scans solely from that */
+  if (this->scan < that->scan) {
+    memcpy(this->boundaries + this->scan,
+           that->boundaries + this->scan,
+           sizeof(scan_boundary) * (that->scan - this->scan));
+    for (i = this->scan; i < that->scan; ++i)
+      memcpy(this->points + i * this->scap + this->boundaries[i].low,
+             that->points + i * this->scap + this->boundaries[i].low,
+             sizeof(scan_point) * (this->boundaries[i].high -
+                                   this->boundaries[i].low));
+    this->scan = that->scan;
+  }
 }
 
 typedef struct {

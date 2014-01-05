@@ -88,9 +88,28 @@ void terrabuff_clear(terrabuff*, terrabuff_slice l, terrabuff_slice h);
  * the subsequent scan.
  *
  * Returns whether is is possible to continue scanning, respective to available
- * slices. The return value does not take the current scan into account.
+ * slices. The return value does not take the current scan into account (ie, it
+ * will return true even if at capacity).
  */
 int terrabuff_next(terrabuff*, terrabuff_slice* l, terrabuff_slice* h);
+
+/**
+ * Overrides the boundaries that will be used for the scan which is about to
+ * commence, allowing the caller to provide a region differing from what was
+ * required from terrabuff_next() or input to terrabuff_clear().
+ *
+ * This is only useful if multiple terrabuffs are used for multi-thread
+ * rendering: Each thread can put a cap on its l and h values to produce a
+ * partial terrabuff, then merge then with terrabuff_merge().
+ */
+void terrabuff_bounds_override(terrabuff*,
+                               terrabuff_slice l, terrabuff_slice h);
+
+/**
+ * Cancels the most recent scan in the given terrabuff, so that it will not be
+ * considered for rendering or merging.
+ */
+void terrabuff_cancel_scan(terrabuff*);
 
 /**
  * Informs the terrabuff of the orthogonal screen coordinates of a terrain
@@ -99,6 +118,15 @@ int terrabuff_next(terrabuff*, terrabuff_slice* l, terrabuff_slice* h);
  */
 void terrabuff_put(terrabuff*, const vo3 where, canvas_pixel colour,
                    coord_offset xmax);
+
+/**
+ * Merges one terrabuff into another. For this to work correctly, the two
+ * terrabuffs must have adjacent non-overlapping slices, and must have been
+ * initialised with equivalent parameters to terrabuff_new() and
+ * terrabuff_clear(). Furthermore, the left terrabuff must have strictly lower
+ * slices for all scans that both buffers share.
+ */
+void terrabuff_merge(terrabuff*restrict, const terrabuff*restrict);
 
 /**
  * Renders the buffered terrain into the given canvas.
