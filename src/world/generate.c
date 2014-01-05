@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,9 +40,10 @@
 
 /* XXX These eventually belong with terrain */
 #define SNOW 0
-#define GRASS 2
 #define STONE 1
-#define GRAVEL 3
+#define GRASS 2
+#define BARE_GRASS 3
+#define GRAVEL 4
 
 static void initialise(basic_world*);
 static void randomise(basic_world*, signed, mersenne_twister*);
@@ -191,8 +192,10 @@ static void select_terrain(basic_world* world, mersenne_twister* twister) {
           }
         }
 
-        if (maxy - miny > TILE_SZ/2 || (twist(twister) & 7))
+        if (maxy - miny > TILE_SZ/2)
           world->tiles[i].elts[0].type = STONE;
+        else if (twist(twister) & 7)
+          world->tiles[i].elts[0].type = BARE_GRASS;
         else
           world->tiles[i].elts[0].type = GRASS;
       }

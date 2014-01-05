@@ -69,6 +69,14 @@ static inline angle slice_to_angle(terrabuff_slice slice) {
   return 65536 - zx;
 }
 
+static const unsigned char terrain_colours[][3] = {
+  { 255, 255, 255 },
+  { 100, 100, 100 },
+  {  24, 100,  16 },
+  {  24, 100,  16 },
+  { 100,  86,  20 },
+};
+
 static void put_point(terrabuff* dst, const vc3 centre,
                       terrabuff_slice slice,
                       coord_offset distance, coord_offset sample_len,
@@ -79,7 +87,9 @@ static void put_point(terrabuff* dst, const vc3 centre,
   coord tx, tz;
   coord_offset sox, soz;
   unsigned long long altitude_sum = 0;
+  unsigned red_sum = 0, green_sum = 0, blue_sum = 0;
   unsigned sample_cnt = 0;
+  unsigned off, type;
   int clamped = 0;
 
   point[0] = centre[0] - zo_sinms(slice_to_angle(slice), distance);
@@ -88,11 +98,18 @@ static void put_point(terrabuff* dst, const vc3 centre,
   tz = (point[2] >> level) & (world->zmax*TILE_SZ - 1);
   sample_len >>= level;
 
-  for (soz = -sample_len/2; soz <= sample_len/2; soz += TILE_SZ) {
-    for (sox = -sample_len/2; sox <= sample_len/2; sox += TILE_SZ) {
+  for (soz = -sample_len; soz <= sample_len; soz += TILE_SZ) {
+    for (sox = -sample_len; sox <= sample_len; sox += TILE_SZ) {
       altitude_sum += terrain_base_y(world,
                                      (tx + sox) & (world->xmax*TILE_SZ - 1),
                                      (tz + soz) & (world->zmax*TILE_SZ - 1));
+      off = basic_world_offset(world,
+                               (tx + sox)/TILE_SZ & (world->xmax - 1),
+                               (tz + soz)/TILE_SZ & (world->zmax - 1));
+      type = world->tiles[off].elts[0].type;
+      red_sum   += terrain_colours[type][0];
+      green_sum += terrain_colours[type][1];
+      blue_sum  += terrain_colours[type][2];
       ++sample_cnt;
     }
   }
@@ -116,7 +133,8 @@ static void put_point(terrabuff* dst, const vc3 centre,
     projected[1] = 65536;
 
   terrabuff_put(dst, projected,
-                /* TODO */ argb(255,24,100,16),
+                argb(255, red_sum / sample_cnt, green_sum / sample_cnt,
+                     blue_sum / sample_cnt),
                 xmax);
 }
 
