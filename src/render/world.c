@@ -70,19 +70,34 @@ static inline angle slice_to_angle(terrabuff_slice slice) {
 }
 
 static void put_point(terrabuff* dst, const vc3 centre,
-                      terrabuff_slice slice, coord_offset distance,
+                      terrabuff_slice slice,
+                      coord_offset distance, coord_offset sample_len,
                       const basic_world*restrict world, unsigned char level,
                       const perspective* proj, unsigned xmax) {
   vc3 point;
   vo3 relative, projected;
   coord tx, tz;
+  coord_offset sox, soz;
+  unsigned long long altitude_sum = 0;
+  unsigned sample_cnt = 0;
   int clamped = 0;
 
   point[0] = centre[0] - zo_sinms(slice_to_angle(slice), distance);
   point[2] = centre[2] - zo_cosms(slice_to_angle(slice), distance);
   tx = (point[0] >> level) & (world->xmax*TILE_SZ - 1);
   tz = (point[2] >> level) & (world->zmax*TILE_SZ - 1);
-  point[1] = terrain_base_y(world, tx, tz);
+  sample_len >>= level;
+
+  for (soz = -sample_len/2; soz <= sample_len/2; soz += TILE_SZ) {
+    for (sox = -sample_len/2; sox <= sample_len/2; sox += TILE_SZ) {
+      altitude_sum += terrain_base_y(world,
+                                     (tx + sox) & (world->xmax*TILE_SZ - 1),
+                                     (tz + soz) & (world->zmax*TILE_SZ - 1));
+      ++sample_cnt;
+    }
+  }
+
+  point[1] = altitude_sum / sample_cnt;
 
   /* To ensure that every point can project, clamp relative Z coordinates to
    * the effective near clipping plane. This provides an acceptable
@@ -127,8 +142,8 @@ static void render_basic_world_terrain(
   while (scan < SCAN_CAP && world &&
          (distance >> level) / TILE_SZ < (signed)world->xmax/2) {
     for (scurr = smin; scurr != smax; scurr = (scurr+1) & (SLICE_CAP-1))
-      put_point(terra, proj->camera, scurr, distance, world, level,
-                proj, dst->w);
+      put_point(terra, proj->camera, scurr, distance, distance_incr,
+                world, level, proj, dst->w);
 
     if (!terrabuff_next(terra, &smin, &smax)) break;
 
