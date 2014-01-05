@@ -207,10 +207,9 @@ static void render_basic_world_terrain_subrange(unsigned ix, unsigned count) {
   absolute_smax = (scurr + SLICE_CAP/4) & (SLICE_CAP-1);
   absolute_range = (absolute_smax - absolute_smin) & (SLICE_CAP-1);
 
-  /* Limit the current thread to the slices to which it is dedicated. For now,
-   * just distribute slices linearly, but we'll want something better since
-   * this gives the middle threads a tonne to do and the outer ones virtually
-   * nothing.
+  /* Limit the current thread to the slices to which it is dedicated. Work is
+   * distributed quadratically, since threads in the centre will generally
+   * render long ranges, whereas those on the edges will terminate early.
    */
   local_smin = (absolute_smin + ix * absolute_range / count) & (SLICE_CAP-1);
   local_smax = (absolute_smin + (ix+1)*absolute_range / count) & (SLICE_CAP-1);
@@ -238,7 +237,7 @@ static void render_basic_world_terrain_subrange(unsigned ix, unsigned count) {
       smax = local_smax;
 
     /* Stop if smin > smax */
-    if (((smax - smin) & (SLICE_CAP-1)) > SLICE_CAP/2) {
+    if (((smax - smin) & (SLICE_CAP-1)) > SLICE_CAP/2 || smax == smin) {
       terrabuff_cancel_scan(terra);
       break;
     }
