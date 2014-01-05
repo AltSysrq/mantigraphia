@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -97,7 +97,8 @@ int terrabuff_next(terrabuff*, terrabuff_slice* l, terrabuff_slice* h);
  * feture for the given scan/slice pair, incrementing the slice. xmax is the
  * maximum (exclusive) X coordinate of the drawable area.
  */
-void terrabuff_put(terrabuff*, const vo3 where, coord_offset xmax);
+void terrabuff_put(terrabuff*, const vo3 where, canvas_pixel colour,
+                   coord_offset xmax);
 
 /**
  * Renders the buffered terrain into the given canvas.

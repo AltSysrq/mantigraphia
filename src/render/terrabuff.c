@@ -86,6 +86,11 @@ typedef struct {
   terrabuff_slice low, high;
 } scan_boundary;
 
+typedef struct {
+  vo3 where;
+  canvas_pixel colour;
+} scan_point;
+
 struct terrabuff_s {
   /**
    * The capacity of this buffer.
@@ -117,7 +122,7 @@ struct terrabuff_s {
    * Points written into the terrabuff. Indexed by (scan*scap+scurr). Part of
    * the same memory allocation as the terrabuff itself.
    */
-  vo3*restrict points;
+  scan_point*restrict points;
   /**
    * For faster rendering, we recolour the texture before writing the
    * pixels. Only TEXSZ*canvas->h is filled, since that is the maximum coordinate
@@ -129,10 +134,10 @@ struct terrabuff_s {
 terrabuff* terrabuff_new(terrabuff_slice scap, unsigned scancap) {
   terrabuff* this = xmalloc(sizeof(terrabuff) +
                             sizeof(scan_boundary) * scancap +
-                            sizeof(vo3) * scap * scancap);
+                            sizeof(scan_point) * scap * scancap);
   this->scap = scap;
   this->boundaries = (scan_boundary*)(this + 1);
-  this->points = (vo3*)(this->boundaries + scancap);
+  this->points = (scan_point*)(this->boundaries + scancap);
 
   return this;
 }
@@ -173,7 +178,8 @@ int terrabuff_next(terrabuff* this, terrabuff_slice* l, terrabuff_slice* r) {
   return low + 4 < high;
 }
 
-void terrabuff_put(terrabuff* this, const vo3 where, coord_offset xmax) {
+void terrabuff_put(terrabuff* this, const vo3 where, canvas_pixel colour,
+                   coord_offset xmax) {
   /* Update boundaries */
   if (where[0] < 0) {
     this->next_low = this->scurr;
@@ -181,17 +187,19 @@ void terrabuff_put(terrabuff* this, const vo3 where, coord_offset xmax) {
     this->next_high = this->scurr+3;
   }
 
-  memcpy(this->points[this->scan*this->scap + this->scurr], where, sizeof(vo3));
+  memcpy(this->points[this->scan*this->scap + this->scurr].where, where,
+         sizeof(vo3));
+  this->points[this->scan*this->scap + this->scurr].colour = colour;
 
-  /* Nominall, X coordinates need to be strictly ascending. However, in extreme
-   * cases, off-screen points sometimes move the other way. It is safe to
-   * silently patch such circumstances, since the points don't contribute to
+  /* Nominally, X coordinates need to be strictly ascending. However, in
+   * extreme cases, off-screen points sometimes move the other way. It is safe
+   * to silently patch such circumstances, since the points don't contribute to
    * the display significantly.
    */
   if (this->scurr > this->boundaries[this->scan].low &&
-      where[0] <= this->points[this->scan*this->scap + this->scurr-1][0])
-    this->points[this->scan*this->scap + this->scurr][0] = 1 +
-      this->points[this->scan*this->scap + this->scurr-1][0];
+      where[0] <= this->points[this->scan*this->scap + this->scurr-1].where[0])
+    this->points[this->scan*this->scap + this->scurr].where[0] = 1 +
+      this->points[this->scan*this->scap + this->scurr-1].where[0];
 
   ++this->scurr;
 }
@@ -204,10 +212,10 @@ typedef struct {
 /* Prevent inlining of our static functions so that we can get profiling data
  * on each individual one.
  */
-static void interpolate(screen_yz*restrict, vo3*restrict,
+static void interpolate(screen_yz*restrict, scan_point*restrict,
                         coord_offset, coord_offset)
 __attribute__((noinline));
-static void interpolate_all(screen_yz*restrict, vo3*restrict,
+static void interpolate_all(screen_yz*restrict, scan_point*restrict,
                             unsigned, coord_offset, coord_offset)
 __attribute__((noinline));
 static void draw_line(canvas*restrict, const screen_yz*restrict,
@@ -235,12 +243,12 @@ static void collapse_buffer(char*restrict,
 __attribute__((noinline));
 #endif /* PROFILE */
 
-static void interpolate(screen_yz*restrict dst, vo3*restrict points,
+static void interpolate(screen_yz*restrict dst, scan_point*restrict points,
                         coord_offset xmin, coord_offset xmax) {
   /* Use a Catmull-Rom spline for Y, linear for Z */
-  coord_offset x0 = points[1][0], x1 = points[2][0];
-  coord_offset y0 = points[1][1], y1 = points[2][1];
-  coord_offset z0 = points[1][2], z1 = points[2][2];
+  coord_offset x0 = points[1].where[0], x1 = points[2].where[0];
+  coord_offset y0 = points[1].where[1], y1 = points[2].where[1];
+  coord_offset z0 = points[1].where[2], z1 = points[2].where[2];
   coord_offset xl = (x0 >= xmin? x0 : xmin), xh = (x1 < xmax? x1 : xmax);
   coord_offset dx = x1 - x0;
   coord_offset x;
@@ -266,10 +274,10 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
    *
    * We calculate here the tangents m0 and m1 as rationals, ie, m0 = m0n/m0d.
    */
-  m0d = precise_fraction_of(points[2][0] - points[0][0]);
-  m1d = precise_fraction_of(points[3][0] - points[1][0]);
-  m0n = clamps(-16384, points[2][1] - points[0][1], +16383);
-  m1n = clamps(-16384, points[3][1] - points[1][1], +16383);
+  m0d = precise_fraction_of(points[2].where[0] - points[0].where[0]);
+  m1d = precise_fraction_of(points[3].where[0] - points[1].where[0]);
+  m0n = clamps(-16384, points[2].where[1] - points[0].where[1], +16383);
+  m1n = clamps(-16384, points[3].where[1] - points[1].where[1], +16383);
 
   pidx = precise_fraction_of(dx);
   for (x = xl; x <= xh; ++x) {
@@ -297,14 +305,14 @@ static void interpolate(screen_yz*restrict dst, vo3*restrict points,
 }
 
 static void interpolate_all(screen_yz*restrict dst,
-                            vo3*restrict points,
+                            scan_point*restrict points,
                             unsigned num_points,
                             coord_offset xmin,
                             coord_offset xmax) {
   unsigned i;
 
   for (i = 1; i < num_points-2; ++i)
-    if (points[i+1][0] >= xmin && points[i][0] <= xmax)
+    if (points[i+1].where[0] >= xmin && points[i].where[0] <= xmax)
       interpolate(dst, points + (i-1), xmin, xmax);
 }
 
