@@ -123,12 +123,6 @@ struct terrabuff_s {
    * the same memory allocation as the terrabuff itself.
    */
   scan_point*restrict points;
-  /**
-   * For faster rendering, we recolour the texture before writing the
-   * pixels. Only TEXSZ*canvas->h is filled, since that is the maximum coordinate
-   * that we ever actually attempt to draw.
-   */
-  canvas_pixel texture_coloured[TEXSZ*TEXSZ*TEXTURE_REPETITION];
 };
 
 terrabuff* terrabuff_new(terrabuff_slice scap, unsigned scancap) {
@@ -206,6 +200,7 @@ void terrabuff_put(terrabuff* this, const vo3 where, canvas_pixel colour,
 
 typedef struct {
   coord_offset y, z;
+  unsigned char colour_left[3], colour_right[3], colour_gradient;
 } screen_yz;
 
 #ifdef PROFILE
@@ -234,7 +229,6 @@ static void fill_area_between(canvas*restrict,
                               const screen_yz*restrict,
                               const screen_yz*restrict,
                               coord_offset,
-                              const canvas_pixel*restrict,
                               unsigned, unsigned)
 __attribute__((noinline));
 static void collapse_buffer(char*restrict,
@@ -245,10 +239,14 @@ __attribute__((noinline));
 
 static void interpolate(screen_yz*restrict dst, scan_point*restrict points,
                         coord_offset xmin, coord_offset xmax) {
-  /* Use a Catmull-Rom spline for Y, linear for Z */
+  /* Use a Catmull-Rom spline for Y, linear for Z.
+   * Colours are not interpolated; each paint line abruptly switches from the
+   * left to the right colour somwhere between the points.
+   */
   coord_offset x0 = points[1].where[0], x1 = points[2].where[0];
   coord_offset y0 = points[1].where[1], y1 = points[2].where[1];
   coord_offset z0 = points[1].where[2], z1 = points[2].where[2];
+  canvas_pixel c0 = points[1].colour,   c1 = points[2].colour;
   coord_offset xl = (x0 >= xmin? x0 : xmin), xh = (x1 < xmax? x1 : xmax);
   coord_offset dx = x1 - x0;
   coord_offset x;
@@ -301,6 +299,13 @@ static void interpolate(screen_yz*restrict dst, scan_point*restrict points,
           + precise_fraction_smul(m1n, t3)
           - precise_fraction_smul(m1n, t2)), m1d));
     dst[x-xmin].z = ((x-x0)*(long long)z1 + (x1-x)*(long long)z0) / dx;
+    dst[x-xmin].colour_left[0] = get_red(c0);
+    dst[x-xmin].colour_left[1] = get_green(c0);
+    dst[x-xmin].colour_left[2] = get_blue(c0);
+    dst[x-xmin].colour_right[0] = get_red(c1);
+    dst[x-xmin].colour_right[1] = get_green(c1);
+    dst[x-xmin].colour_right[2] = get_blue(c1);
+    dst[x-xmin].colour_gradient = (x - x0) * 256 / dx;
   }
 }
 
@@ -387,11 +392,27 @@ static void draw_segments(canvas*restrict dst,
   }
 }
 
+
+static inline unsigned char mod8(unsigned char a, unsigned char b) {
+  unsigned short prod = a;
+  prod *= b;
+  return prod >> 8;
+}
+
+static inline canvas_pixel modulate(canvas_pixel raw,
+                                    unsigned char r,
+                                    unsigned char g,
+                                    unsigned char b) {
+  return argb(get_alpha(r),
+              mod8(get_red(raw), r),
+              mod8(get_green(raw), g),
+              mod8(get_blue(raw), b));
+}
+
 static void fill_area_between(canvas*restrict dst,
                               const screen_yz*restrict front,
                               const screen_yz*restrict back,
                               coord_offset tex_x_off,
-                              const canvas_pixel*restrict texture_coloured,
                               unsigned x0, unsigned x1) {
   coord_offset y, y0, y1;
   unsigned x;
@@ -409,11 +430,14 @@ static void fill_area_between(canvas*restrict dst,
 
       px = dst->px + canvas_offset(dst, x + x0, y0);
       depth = dst->depth + canvas_offset(dst, x + x0, y0);
-      tex = texture_coloured + ((y0-front[x].y) & TEXMASK) +
+      tex = texture + ((y0-front[x].y) & TEXMASK) +
         TEXSZ*((x+tex_x_off) & TEXMASK);
 
       for (y = y0; y <= y1; ++y) {
-        *px = *tex;
+        *px = modulate(*tex,
+                       front[x].colour_left[0],
+                       front[x].colour_left[1],
+                       front[x].colour_left[2]);
         *depth = front[x].z + 65536;
 
         px += w;
@@ -439,22 +463,6 @@ static void collapse_buffer(char* line_points,
   }
 }
 
-static inline unsigned char mod8(unsigned char a, unsigned char b) {
-  unsigned short prod = a;
-  prod *= b;
-  return prod >> 8;
-}
-
-static inline canvas_pixel modulate(canvas_pixel raw,
-                                    unsigned char r,
-                                    unsigned char g,
-                                    unsigned char b) {
-  return argb(get_alpha(r),
-              mod8(get_red(raw), r),
-              mod8(get_green(raw), g),
-              mod8(get_blue(raw), b));
-}
-
 #define RENDER_COL_W (4 * UMP_CACHE_LINE_SZ / sizeof(canvas_depth))
 static canvas*restrict render_dst;
 static terrabuff*restrict render_this;
@@ -469,15 +477,9 @@ static ump_task terrabuff_render_task = {
 void terrabuff_render(canvas*restrict dst,
                       terrabuff*restrict this,
                       const rendering_context*restrict ctxt) {
-  unsigned x;
-
   render_dst = dst;
   render_this = this;
   render_ctxt = ctxt;
-
-  /* Generate the coloured version of the texture */
-  for (x = 0; x < TEXSZ * dst->h; ++x)
-    this->texture_coloured[x] = modulate(texture[x], 16, 100, 24);
 
   terrabuff_render_task.num_divisions =
     (dst->w + RENDER_COL_W - 1) / RENDER_COL_W;
@@ -543,7 +545,6 @@ static void terrabuff_render_column(unsigned ordinal, unsigned pcount) {
 
     fill_area_between(dst, lbuff_front, lbuff_back,
                       texture_x_offset + 31*scan*scan + 75*scan,
-                      this->texture_coloured,
                       xmin, xmax);
     draw_segments(dst, line_points, lbuff_front, lbuff_back,
                   xmin, xmax, line_thickness);

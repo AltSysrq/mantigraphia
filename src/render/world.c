@@ -115,7 +115,9 @@ static void put_point(terrabuff* dst, const vc3 centre,
   if (clamped)
     projected[1] = 65536;
 
-  terrabuff_put(dst, projected, /* TODO */ 0, xmax);
+  terrabuff_put(dst, projected,
+                /* TODO */ argb(255,24,100,16),
+                xmax);
 }
 
 static void render_basic_world_terrain(
