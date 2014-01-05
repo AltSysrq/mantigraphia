@@ -416,6 +416,7 @@ static void fill_area_between(canvas*restrict dst,
                               unsigned x0, unsigned x1) {
   coord_offset y, y0, y1;
   unsigned x;
+  const unsigned char*restrict colour;
   register unsigned w = dst->w;
   register canvas_pixel*restrict px;
   register const canvas_pixel*restrict tex;
@@ -434,10 +435,12 @@ static void fill_area_between(canvas*restrict dst,
         TEXSZ*((x+tex_x_off) & TEXMASK);
 
       for (y = y0; y <= y1; ++y) {
-        *px = modulate(*tex,
-                       front[x].colour_left[0],
-                       front[x].colour_left[1],
-                       front[x].colour_left[2]);
+        if (front[x].colour_gradient + (0xF & *tex)*8 < 128)
+          colour = front[x].colour_left;
+        else
+          colour = front[x].colour_right;
+
+        *px = modulate(*tex, colour[0], colour[1], colour[2]);
         *depth = front[x].z + 65536;
 
         px += w;
