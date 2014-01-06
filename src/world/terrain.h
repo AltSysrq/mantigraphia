@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,14 @@
 #include "world.h"
 #include "../coords.h"
 
+enum terrain_type {
+  terrain_type_snow = 0,
+  terrain_type_stone,
+  terrain_type_grass,
+  terrain_type_bare_grass,
+  terrain_type_gravel
+};
+
 /**
  * Returns the base Y coordinate of the terrain at the given world X and Z
  * coordinates. While every terrain tile element nominally has a single exact
@@ -45,5 +53,13 @@ coord terrain_base_y(const basic_world*, coord x, coord z);
  * particular magnitude.
  */
 void terrain_basic_normal(vo3 normal, const basic_world*, coord tx, coord tz);
+
+/**
+ * Determines the colour for the terrain at the given world coordinates. This
+ * is linearly interpolated across tiles, taking on the tile's exact value at
+ * each tile's origin.
+ */
+void terrain_colour(unsigned char rgb[3],
+                    const basic_world*, coord x, coord z);
 
 #endif /* WORLD_TERRAIN_H_ */

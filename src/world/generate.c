@@ -38,13 +38,6 @@
 #include "terrain.h"
 #include "generate.h"
 
-/* XXX These eventually belong with terrain */
-#define SNOW 0
-#define STONE 1
-#define GRASS 2
-#define BARE_GRASS 3
-#define GRAVEL 4
-
 static void initialise(basic_world*);
 static void randomise(basic_world*, signed, mersenne_twister*);
 static void rmp_up(basic_world* large, const basic_world* small,
@@ -89,7 +82,7 @@ static void initialise(basic_world* world) {
 
   max = world->xmax * world->zmax;
   for (i = 0; i < max; ++i) {
-    world->tiles[i].elts[0].type = GRASS;
+    world->tiles[i].elts[0].type = terrain_type_grass;
     world->tiles[i].elts[0].thickness = 0;
   }
 }
@@ -101,7 +94,7 @@ static void randomise(basic_world* world,
 
   max = world->xmax * world->zmax;
   for (i = 0; i < max; ++i) {
-    world->tiles[i].elts[0].type = GRASS;
+    world->tiles[i].elts[0].type = terrain_type_grass;
     world->tiles[i].elts[0].thickness = 0;
     world->tiles[i].elts[0].altitude =
       twist(twister) & (4*(1 << level) - 1);
@@ -174,7 +167,7 @@ static void select_terrain(basic_world* world, mersenne_twister* twister) {
       /* Sometimes patches of snow, depending on altitude */
       if (((signed)(twist(twister)/2)) <
           world->tiles[i].elts[0].altitude * TILE_YMUL) {
-        world->tiles[i].elts[0].type = SNOW;
+        world->tiles[i].elts[0].type = terrain_type_snow;
       } else {
         /* Stone if max dy*2 > dx, grass otherwise */
         miny = 32767 * TILE_YMUL;
@@ -193,11 +186,11 @@ static void select_terrain(basic_world* world, mersenne_twister* twister) {
         }
 
         if (maxy - miny > TILE_SZ/2)
-          world->tiles[i].elts[0].type = STONE;
+          world->tiles[i].elts[0].type = terrain_type_stone;
         else if (twist(twister) & 7)
-          world->tiles[i].elts[0].type = BARE_GRASS;
+          world->tiles[i].elts[0].type = terrain_type_bare_grass;
         else
-          world->tiles[i].elts[0].type = GRASS;
+          world->tiles[i].elts[0].type = terrain_type_grass;
       }
     }
   }

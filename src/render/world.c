@@ -85,14 +85,6 @@ static inline angle slice_to_angle(terrabuff_slice slice) {
   return 65536 - zx;
 }
 
-static const unsigned char terrain_colours[][3] = {
-  { 255, 255, 255 },
-  { 100, 100, 100 },
-  {  24, 100,  16 },
-  {  24, 100,  16 },
-  { 100,  86,  20 },
-};
-
 static void put_point(terrabuff* dst, const vc3 centre,
                       terrabuff_slice slice,
                       coord_offset distance, coord_offset sample_len,
@@ -105,7 +97,7 @@ static void put_point(terrabuff* dst, const vc3 centre,
   unsigned long long altitude_sum = 0;
   unsigned red_sum = 0, green_sum = 0, blue_sum = 0;
   unsigned sample_cnt = 0;
-  unsigned off, type;
+  unsigned char colour[3];
   int clamped = 0;
 
   point[0] = centre[0] - zo_sinms(slice_to_angle(slice), distance);
@@ -119,13 +111,12 @@ static void put_point(terrabuff* dst, const vc3 centre,
       altitude_sum += terrain_base_y(world,
                                      (tx + sox) & (world->xmax*TILE_SZ - 1),
                                      (tz + soz) & (world->zmax*TILE_SZ - 1));
-      off = basic_world_offset(world,
-                               (tx + sox)/TILE_SZ & (world->xmax - 1),
-                               (tz + soz)/TILE_SZ & (world->zmax - 1));
-      type = world->tiles[off].elts[0].type;
-      red_sum   += terrain_colours[type][0];
-      green_sum += terrain_colours[type][1];
-      blue_sum  += terrain_colours[type][2];
+      terrain_colour(colour, world,
+                     (tx + sox) & (world->xmax*TILE_SZ - 1),
+                     (tz + soz) & (world->zmax*TILE_SZ - 1));
+      red_sum   += colour[0];
+      green_sum += colour[1];
+      blue_sum  += colour[2];
       ++sample_cnt;
     }
   }

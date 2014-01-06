@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,14 @@
 #include "world.h"
 #include "terrain.h"
 
+static const unsigned char terrain_colours[][3] = {
+  { 255, 255, 255 },
+  { 100, 100, 100 },
+  {  24, 100,  16 },
+  {  24, 100,  16 },
+  { 100,  86,  20 },
+};
+
 static inline coord_offset altitude(const basic_world* world,
                                     coord tx, coord tz) {
   return world->tiles[basic_world_offset(world, tx, tz)].elts[0].altitude *
@@ -53,6 +61,35 @@ coord terrain_base_y(const basic_world* world, coord wx, coord wz) {
   coord y1 = ((TILE_SZ-ox)*y01 + ox*y11) / TILE_SZ;
 
   return ((TILE_SZ-oz)*y0 + oz*y1) / TILE_SZ;
+}
+
+static const unsigned char* colour_of(const basic_world* world,
+                                      coord x, coord z) {
+  return terrain_colours[
+    world->tiles[
+      basic_world_offset(world, x, z)
+    ].elts[0].type];
+}
+
+void terrain_colour(unsigned char dst[3],
+                    const basic_world* world,
+                    coord wx, coord wz) {
+  unsigned long long ox = wx % TILE_SZ, oz = wz % TILE_SZ;
+  coord x = wx / TILE_SZ;
+  coord z = wz / TILE_SZ;
+  coord x2 = (x+1) & (world->xmax-1), z2 = (z+1) & (world->zmax-1);
+  const unsigned char* c00 = colour_of(world, x, z),
+                     * c01 = colour_of(world, x, z2),
+                     * c10 = colour_of(world, x2, z),
+                     * c11 = colour_of(world, x2, z2);
+  unsigned char c0[3], c1[3];
+  unsigned i;
+
+  for (i = 0; i < 3; ++i) {
+    c0[i] = ((TILE_SZ-ox)*c00[i] + ox*c10[i]) / TILE_SZ;
+    c1[i] = ((TILE_SZ-ox)*c01[i] + ox*c11[i]) / TILE_SZ;
+    dst[i] = ((TILE_SZ-oz)*c0[i] + oz*c1[i]) / TILE_SZ;
+  }
 }
 
 void terrain_basic_normal(vo3 dst, const basic_world* world,
