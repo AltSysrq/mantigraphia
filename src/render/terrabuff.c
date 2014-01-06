@@ -52,11 +52,15 @@
  * functions need to traverse it vertically. It is repeated TEXTURE_REPETITION
  * times so that the shader can blindly increment a pointer to it and never go
  * off the edge.
+ *
+ * Since the texture is greyscale only, it is stored as 8-bit linear greyscale
+ * instead of ARGB.
  */
-static canvas_pixel texture[TEXSZ*TEXSZ*TEXTURE_REPETITION];
+static unsigned char texture[TEXSZ*TEXSZ*TEXTURE_REPETITION];
 
 void terrabuff_init(void) {
   unsigned i;
+  canvas_pixel* tmp;
 
   static const canvas_pixel pallet[] = {
     argb(255,255,255,255),
@@ -71,13 +75,27 @@ void terrabuff_init(void) {
     argb(255,0,0,0),
   };
 
-  linear_paint_tile_render(texture, TEXSZ, TEXSZ,
+  /* Allocate temporary heap space to store the ARGB texture */
+  tmp = xmalloc(sizeof(canvas_pixel)*TEXSZ*TEXSZ);
+
+  linear_paint_tile_render(tmp, TEXSZ, TEXSZ,
                            /* Inverted parm order due to column-major order */
                            1, TEXSZ/4,
                            pallet, lenof(pallet));
 
+  /* Convert to greyscale.
+   * All pixels are grey already, so we can just grab the blue channel and call
+   * it good.
+   */
+  for (i = 0; i < TEXSZ*TEXSZ; ++i)
+    texture[i] = get_blue(tmp[i]);
+
+  /* Done with temporary */
+  free(tmp);
+
+  /* Create duplicates */
   for (i = 1; i < TEXTURE_REPETITION; ++i)
-    memcpy(texture + i*TEXSZ*TEXSZ, texture, TEXSZ*TEXSZ*sizeof(canvas_pixel));
+    memcpy(texture + i*TEXSZ*TEXSZ, texture, TEXSZ*TEXSZ);
 }
 
 /**
@@ -149,6 +167,8 @@ void terrabuff_clear(terrabuff* this, terrabuff_slice l, terrabuff_slice r) {
   this->soff = l;
   this->boundaries[0].low = 0;
   this->boundaries[0].high = (r-l) & (this->scap-1);
+  this->next_low = 0;
+  this->next_high = (r-l) & (this->scap-1);
 }
 
 int terrabuff_next(terrabuff* this, terrabuff_slice* l, terrabuff_slice* r) {
@@ -443,14 +463,14 @@ static inline unsigned char mod8(unsigned char a, unsigned char b) {
   return prod >> 8;
 }
 
-static inline canvas_pixel modulate(canvas_pixel raw,
+static inline canvas_pixel modulate(unsigned char grey,
                                     unsigned char r,
                                     unsigned char g,
                                     unsigned char b) {
-  return argb(get_alpha(r),
-              mod8(get_red(raw), r),
-              mod8(get_green(raw), g),
-              mod8(get_blue(raw), b));
+  return argb(255,
+              mod8(grey, r),
+              mod8(grey, g),
+              mod8(grey, b));
 }
 
 static void fill_area_between(canvas*restrict dst,
@@ -463,7 +483,7 @@ static void fill_area_between(canvas*restrict dst,
   const unsigned char*restrict colour;
   register unsigned w = dst->w;
   register canvas_pixel*restrict px;
-  register const canvas_pixel*restrict tex;
+  register const unsigned char*restrict tex;
   register unsigned*restrict depth;
 
   for (x = 0; x < x1-x0; ++x) {
