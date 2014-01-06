@@ -37,6 +37,7 @@
 #include "alloc.h"
 #include "coords.h"
 #include "defs.h"
+#include "micromp.h"
 
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
@@ -167,6 +168,7 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
 
   parchment_draw(dst, this->bg);
   render_basic_world(dst, this->world, this->context);
+  ump_join();
 }
 
 static void cosine_world_key(cosine_world_state* this,
