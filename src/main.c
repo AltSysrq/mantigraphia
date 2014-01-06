@@ -145,7 +145,8 @@ static void draw(canvas* canv, game_state* state,
   (*state->draw)(state, canv);
   draw_end = SDL_GetTicks();
 
-  printf("Drawing took %d ms\n", draw_end-draw_start);
+  printf("Drawing took %3d ms (%3d FPS)\n", draw_end-draw_start,
+         1000 / (draw_end-draw_start));
 
   canvas_blit(texture, canv);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
