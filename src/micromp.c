@@ -35,6 +35,8 @@
 
 #include "micromp.h"
 
+/* Define UMP_NO_THREADING to do everything single-threaded. */
+
 static unsigned num_workers;
 static SDL_atomic_t num_busy_workers;
 static SDL_cond* completion_notification, * assignment_notification;
@@ -121,6 +123,10 @@ void ump_init(unsigned num_threads) {
 
   num_workers = num_threads;
 
+#ifdef UMP_NO_THREADING
+  return;
+#endif
+
   if (!(completion_notification = SDL_CreateCond()))
     errx(EX_SOFTWARE, "Unable to create completion cond: %s", SDL_GetError());
 
@@ -140,6 +146,11 @@ void ump_init(unsigned num_threads) {
 }
 
 static void ump_run(ump_task* task, int sync) {
+#ifdef UMP_NO_THREADING
+  current_task_is_sync = 1;
+  current_task = task;
+  exec_region(0, task->num_divisions);
+#else
   if (SDL_LockMutex(mutex))
     errx(EX_SOFTWARE, "Unable to lock mutex: %s", SDL_GetError());
 
@@ -165,6 +176,7 @@ static void ump_run(ump_task* task, int sync) {
     exec_region(0, task->divisions_for_master);
     /* Don't wait, return now */
   }
+#endif
 }
 
 
@@ -177,6 +189,9 @@ void ump_run_async(ump_task* task) {
 }
 
 void ump_join(void) {
+#ifdef UMP_NO_THREADING
+  return;
+#else
   int done_early = !SDL_AtomicGet(&num_busy_workers);
 
   if (!done_early) {
@@ -220,10 +235,15 @@ void ump_join(void) {
 
   /* Unset the task so we don't readjust if another join() is called */
   current_task = NULL;
+#endif /* UMP_NO_THREADING */
 }
 
 int ump_is_finished(void) {
+#ifdef UMP_NO_THREADING
+  return 1;
+#else
   return !SDL_AtomicGet(&num_busy_workers);
+#endif
 }
 
 unsigned ump_num_workers(void) {
