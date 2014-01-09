@@ -48,10 +48,8 @@
 #define TEXTURE_REPETITION (16384/TEXSZ)
 
 /**
- * Texture to use for drawing. This is actually column-major, since drawing
- * functions need to traverse it vertically. It is repeated TEXTURE_REPETITION
- * times so that the shader can blindly increment a pointer to it and never go
- * off the edge.
+ * Texture to use for drawing. It is repeated TEXTURE_REPETITION times so that
+ * the shader can blindly increment a pointer to it and never go off the edge.
  *
  * Since the texture is greyscale only, it is stored as 8-bit linear greyscale
  * instead of ARGB.
@@ -79,8 +77,7 @@ void terrabuff_init(void) {
   tmp = xmalloc(sizeof(canvas_pixel)*TEXSZ*TEXSZ);
 
   linear_paint_tile_render(tmp, TEXSZ, TEXSZ,
-                           /* Inverted parm order due to column-major order */
-                           1, TEXSZ/4,
+                           TEXSZ/4, 1,
                            pallet, lenof(pallet));
 
   /* Convert to greyscale.
@@ -481,36 +478,38 @@ static void fill_area_between(canvas*restrict dst,
   coord_offset y, y0, y1;
   unsigned x;
   const unsigned char*restrict colour;
-  register unsigned w = dst->w;
-  register canvas_pixel*restrict px;
-  register const unsigned char*restrict tex;
-  register unsigned*restrict depth;
+  canvas_pixel*restrict px;
+  unsigned grey;
+  unsigned*restrict depth;
 
+  /* Calculate Y boundaries */
+  y0 = 65536;
+  y1 = 0;
   for (x = 0; x < x1-x0; ++x) {
-    if (front[x].y < back[x].y) {
-      y0 = front[x].y;
-      y1 = back[x].y;
-      if (y0 < 0) y0 = 0;
-      if (y1 >= (signed)dst->h) y1 = (signed)dst->h-1;
+    if (back [x].y > y1) y1 = back [x].y;
+    if (front[x].y < y0) y0 = front[x].y;
+  }
 
-      px = dst->px + canvas_offset(dst, x + x0, y0);
-      depth = dst->depth + canvas_offset(dst, x + x0, y0);
-      tex = texture + ((y0-front[x].y) & TEXMASK) +
-        TEXSZ*((x+tex_x_off) & TEXMASK);
+  if (y0 < 0) y0 = 0;
+  if (y1 >= (signed)dst->h) y1 = dst->h - 1;
 
-      for (y = y0; y <= y1; ++y) {
-        if (front[x].colour_gradient + (0xF & *tex)*8 < 128)
-          colour = front[x].colour_left;
-        else
-          colour = front[x].colour_right;
+  for (y = y0; y <= y1; ++y) {
+    px    = dst->px    + canvas_offset(dst, x0, y);
+    depth = dst->depth + canvas_offset(dst, x0, y);
 
-        *px = modulate(*tex, colour[0], colour[1], colour[2]);
-        *depth = front[x].z + 65536;
+    for (x = 0; x < x1-x0; ++x, ++px, ++depth) {
+      if (y < front[x].y || y > back[x].y) continue;
 
-        px += w;
-        depth += w;
-        ++tex;
-      }
+      *depth = front[x].z;
+      grey = texture[((x+tex_x_off+x0) & TEXMASK) +
+                     ((y-front[x].y) & TEXMASK)*TEXSZ];
+
+      if (front[x].colour_gradient + (0xF & grey)*8 < 128)
+        colour = front[x].colour_left;
+      else
+        colour = front[x].colour_right;
+
+      *px = modulate(grey, colour[0], colour[1], colour[2]);
     }
   }
 }
