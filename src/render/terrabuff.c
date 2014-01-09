@@ -493,7 +493,7 @@ static void fill_area_between(canvas*restrict dst,
       if (y < front[x].y || y > back[x].y) continue;
 
       *depth = front[x].z;
-      grey = texture[((x+tex_x_off+x0) & TEXMASK) +
+      grey = texture[((x+tex_x_off) & TEXMASK) +
                      ((y-front[x].y) & TEXMASK)*TEXSZ];
 
       if (front[x].colour_gradient + (0xF & grey)*8 < 128)
