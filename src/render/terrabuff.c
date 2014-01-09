@@ -45,16 +45,12 @@
 
 #define TEXSZ 256
 #define TEXMASK (TEXSZ-1)
-#define TEXTURE_REPETITION (16384/TEXSZ)
 
 /**
- * Texture to use for drawing. It is repeated TEXTURE_REPETITION times so that
- * the shader can blindly increment a pointer to it and never go off the edge.
- *
- * Since the texture is greyscale only, it is stored as 8-bit linear greyscale
- * instead of ARGB.
+ * Texture to use for drawing. Since the texture is greyscale only, it is
+ * stored as 8-bit linear greyscale instead of ARGB.
  */
-static unsigned char texture[TEXSZ*TEXSZ*TEXTURE_REPETITION];
+static unsigned char texture[TEXSZ*TEXSZ];
 
 void terrabuff_init(void) {
   unsigned i;
@@ -89,10 +85,6 @@ void terrabuff_init(void) {
 
   /* Done with temporary */
   free(tmp);
-
-  /* Create duplicates */
-  for (i = 1; i < TEXTURE_REPETITION; ++i)
-    memcpy(texture + i*TEXSZ*TEXSZ, texture, TEXSZ*TEXSZ);
 }
 
 /**
