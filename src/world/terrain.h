@@ -30,6 +30,7 @@
 
 #include "world.h"
 #include "../coords.h"
+#include "../simd.h"
 
 enum terrain_type {
   terrain_type_snow = 0,
@@ -58,8 +59,11 @@ void terrain_basic_normal(vo3 normal, const basic_world*, coord tx, coord tz);
  * Determines the colour for the terrain at the given world coordinates. This
  * is linearly interpolated across tiles, taking on the tile's exact value at
  * each tile's origin.
+ *
+ * The return value contains four 32-bit integers representing red, green, and
+ * blue, respectively, ranging between 0 and 255, inclusive. The fourth integer
+ * has no particular value.
  */
-void terrain_colour(unsigned char rgb[3],
-                    const basic_world*, coord x, coord z);
+simd4 terrain_colour(const basic_world*, coord x, coord z);
 
 #endif /* WORLD_TERRAIN_H_ */

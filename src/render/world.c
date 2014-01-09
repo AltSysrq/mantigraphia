@@ -97,7 +97,7 @@ static void put_point(terrabuff* dst, const vc3 centre,
   unsigned long long altitude_sum = 0;
   unsigned red_sum = 0, green_sum = 0, blue_sum = 0;
   unsigned sample_cnt = 0;
-  unsigned char colour[3];
+  simd4 colour;
   int clamped = 0;
 
   point[0] = centre[0] - zo_sinms(slice_to_angle(slice), distance);
@@ -111,12 +111,12 @@ static void put_point(terrabuff* dst, const vc3 centre,
       altitude_sum += terrain_base_y(world,
                                      (tx + sox) & (world->xmax*TILE_SZ - 1),
                                      (tz + soz) & (world->zmax*TILE_SZ - 1));
-      terrain_colour(colour, world,
-                     (tx + sox) & (world->xmax*TILE_SZ - 1),
-                     (tz + soz) & (world->zmax*TILE_SZ - 1));
-      red_sum   += colour[0];
-      green_sum += colour[1];
-      blue_sum  += colour[2];
+      colour = terrain_colour(world,
+                              (tx + sox) & (world->xmax*TILE_SZ - 1),
+                              (tz + soz) & (world->zmax*TILE_SZ - 1));
+      red_sum   += simd_vs(colour, 0);
+      green_sum += simd_vs(colour, 1);
+      blue_sum  += simd_vs(colour, 2);
       ++sample_cnt;
     }
   }
