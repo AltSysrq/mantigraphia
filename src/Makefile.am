@@ -3,8 +3,8 @@ AUTOMAKE_OPTIONS = subdir-objects
 .MAKE.JOB.PREFIX=
 
 AM_CFLAGS=-std=c99 -Wall -D_BSD_SOURCE \
-          $(SDL_CFLAGS) $(SDLIMG_CFLAGS) $(GL_CFLAGS)
-AM_LDFLAGS=$(SDL_LIBS) $(SDLIMG_LIBS) $(GL_LIBS)
+          $(SDL_CFLAGS) $(SDLIMG_CFLAGS) $(GL_CFLAGS) $(GLEW_CFLAGS)
+AM_LDFLAGS=$(SDL_LIBS) $(SDLIMG_LIBS) $(GL_LIBS) $(GLEW_LIBS)
 
 noinst_PROGRAMS = gentrigtab
 bin_PROGRAMS = mantigraphia
@@ -27,6 +27,8 @@ graphics/perspective.c \
 graphics/hull.c \
 graphics/dm-proj.c \
 graphics/fast-brush.c \
+gl/shader_loader.c \
+gl/shaders.c \
 world/basic-world.c \
 world/terrain.c \
 world/props.c \

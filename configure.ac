@@ -19,6 +19,8 @@ AC_SEARCH_LIBS([sin], [c m])
 AC_SEARCH_LIBS([dlopen], [dl])
 PKG_CHECK_MODULES([SDL], [sdl2])
 PKG_CHECK_MODULES([SDLIMG], [SDL2_image])
+PKG_CHECK_MODULES([GL], [gl])
+PKG_CHECK_MODULES([GLEW], [glew])
 
 # Headers
 AC_CHECK_HEADERS([arpa/inet.h inttypes.h malloc.h netinet/in.h stdint.h dnl
