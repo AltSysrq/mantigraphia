@@ -43,7 +43,7 @@
 
 #define PARCHMENT_DIM 2048
 #define PARCHMENT_MASK (PARCHMENT_DIM-1)
-#define PARCHMENT_FILE "share/extern/canvas.jpg"
+#define PARCHMENT_FILE "share/extern/parchment.jpg"
 
 static canvas_pixel texture[PARCHMENT_DIM*PARCHMENT_DIM];
 
