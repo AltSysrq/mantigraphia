@@ -24,6 +24,7 @@ graphics/linear-paint-tile.c \
 graphics/perspective.c \
 graphics/hull.c \
 graphics/dm-proj.c \
+graphics/turtle.c \
 world/world.c \
 world/terrain.c \
 world/generate.c \

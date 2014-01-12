@@ -37,13 +37,17 @@ typedef signed simd4 __attribute__((vector_size(16)));
 
 #define simd_init4(a,b,c,d) { a,b,c,d }
 #define simd_addvv(a,b) ((a)+(b))
+#define simd_subvv(a,b) ((a)-(b))
 #define simd_mulvs(a,b) ((a)*simd_inits(b))
 #define simd_divvs(a,b) ((a)/simd_inits(b))
+#define simd_shra(v,s) ((v)>>simd_inits(s))
 #define simd_vs(a,ix) ((a)[ix])
-
-static inline simd4 simd_inits(signed s) {
-  simd4 ret = simd_init4(s,s,s,s);
-  return ret;
+static inline int simd_eq(simd4 a, simd4 b) {
+  return
+    a[0] == b[0] &&
+    a[1] == b[1] &&
+    a[2] == b[2] &&
+    a[3] == b[3];
 }
 
 #else
@@ -61,6 +65,13 @@ static inline simd4 simd_addvv(simd4 a, simd4 b) {
                        a.v[3] + b.v[3]);
   return r;
 }
+static inline simd4 simd_subvv(simd4 a, simd4 b) {
+  simd4 r = simd_init4(a.v[0] - b.v[0],
+                       a.v[1] - b.v[1],
+                       a.v[2] - b.v[2],
+                       a.v[3] - b.v[3]);
+  return r;
+}
 static inline simd4 simd_mulvs(simd4 a, signed b) {
   simd4 r = simd_init4(a.v[0] * b,
                        a.v[1] * b,
@@ -75,6 +86,42 @@ static inline simd4 simd_divvs(simd4 a, signed b) {
                        a.v[3] / b);
   return r;
 }
-#endif /* Not GCC or clang */
+static inline int simd_eq(simd4 a, simd4 b) {
+  return
+    a.v[0] == b.v[0] &&
+    a.v[1] == b.v[1] &&
+    a.v[2] == b.v[2] &&
+    a.v[3] == b.v[3];
+}
+static inline simd4 simd_shra(simd4 v, unsigned char shift) {
+  simd4 ret = simd_init4(v.v[0] >> shift,
+                         v.v[1] >> shift,
+                         v.v[2] >> shift,
+                         v.v[3] >> shift);
+  return ret;
+}
+#endif /* Not GCC>=4.7 or clang */
+
+
+static inline simd4 simd_inits(signed s) {
+  simd4 ret = simd_init4(s,s,s,s);
+  return ret;
+}
+
+static inline simd4 simd_initl(signed a, signed b, signed c, signed d) {
+  simd4 ret = simd_init4(a,b,c,d);
+  return ret;
+}
+
+static inline simd4 simd_of_vo4(const signed v[4]) {
+  return simd_initl(v[0], v[1], v[2], v[3]);
+}
+
+static inline void simd_to_vo4(signed d[4], simd4 s) {
+  d[0] = simd_vs(s, 0);
+  d[1] = simd_vs(s, 1);
+  d[2] = simd_vs(s, 2);
+  d[3] = simd_vs(s, 3);
+}
 
 #endif /* SIMD_H_ */
