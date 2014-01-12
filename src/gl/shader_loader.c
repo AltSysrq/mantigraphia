@@ -82,7 +82,7 @@ void load_shader(GLuint* shader, const char* basename) {
       errx(EX_DATAERR, "Shader %s failed to compile.\n%s", filename, buffer);
     } else {
       errx(EX_DATAERR, "Shader %s failed to compile, but no error information"
-           " is available");
+           " is available", filename);
     }
   }
 }
