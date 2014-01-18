@@ -11,6 +11,7 @@ PKG_PROG_PKG_CONFIG()
 
 # Checks for programs.
 AC_PROG_CC
+AM_PROG_CC_C_O
 
 # Checks for libraries.
 AC_SEARCH_LIBS([errc], [c bsd])
