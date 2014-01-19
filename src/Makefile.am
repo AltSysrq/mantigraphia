@@ -33,6 +33,7 @@ render/terrabuff.c \
 render/world.c \
 render/terrain.c \
 render/lsystem.c \
+render/draw-queue.c \
 control/mouselook.c \
 flower-pot.c \
 cosine-world.c
