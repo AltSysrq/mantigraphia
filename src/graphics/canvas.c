@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,8 @@ canvas* canvas_new(unsigned width, unsigned height) {
 
   this->w = width;
   this->h = height;
+  this->pitch = width;
+  this->ox = this->oy = 0;
   this->px = (canvas_pixel*)(this + 1);
   this->depth = (canvas_depth*)(this->px + width*height);
   return this;
@@ -65,17 +67,14 @@ void canvas_blit(SDL_Texture* dst, const canvas* this) {
   SDL_UpdateTexture(dst, NULL, this->px, this->w * sizeof(canvas_pixel));
 }
 
-void canvas_merge_into(canvas*restrict dst, const canvas*restrict src) {
-  unsigned max = dst->w * dst->h;
-  unsigned i;
-
-  /* If needed, this could be made more efficient on AMD64 by reading depth
-   * information in 64-bit chunks. That probably won't be necessary though.
-   */
-  for (i = 0; i < max; ++i) {
-    if (src->depth[i] < dst->depth[i]) {
-      dst->depth[i] = src->depth[i];
-      dst->px[i] = src->px[i];
-    }
-  }
+void canvas_slice(canvas* slice, const canvas* backing,
+                  unsigned x, unsigned y,
+                  unsigned w, unsigned h) {
+  slice->w = w;
+  slice->h = h;
+  slice->pitch = backing->pitch;
+  slice->ox = x + backing->ox;
+  slice->oy = y + backing->oy;
+  slice->px = backing->px + canvas_offset(backing, x, y);
+  slice->depth = backing->depth + canvas_offset(backing, x, y);
 }

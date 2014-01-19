@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,17 @@ typedef struct {
    */
   unsigned w, h;
   /**
+   * The number of pixels that must be advanced to progress down one row of
+   * pixels. This is distinct from w, which merely indicates the number of
+   * pixels in each row.
+   */
+  unsigned pitch;
+  /**
+   * The logical screen coordinates of the origin of this canvas. This is only
+   * to be used for adjusting screen-texture coordinates.
+   */
+  unsigned ox, oy;
+  /**
    * The colour information on the canvas. Offsets can be calculated with
    * canvas_offset(). Alpha components in these pixels have no meaning.
    */
@@ -75,12 +86,30 @@ typedef struct {
 /**
  * Allocates a new canvas of the given size. The pixel and depth information in
  * the canvas is undefined.
+ *
+ * Canvases to be the targets of slicing (the slice argument of canvas_slice())
+ * should not be allocated with this call, since their backing store would then
+ * be wasted.
  */
 canvas* canvas_new(unsigned width, unsigned height);
 /**
  * Frees the memory associated with the given canvas.
  */
 void canvas_delete(canvas*);
+
+/**
+ * Initialises slice to point to a rectangle within backing, such that the top
+ * left of slice corresponds to the point (x,y) in backing, and the dimensions
+ * of slice are (w,h).
+ *
+ * All operations upon either slice or backing are reflected in the other,
+ * provided that it involves part of the selected region (ie, they share
+ * memory). It is the callers responsibility to ensure that slice is not used
+ * after backing is freed.
+ */
+void canvas_slice(canvas* slice, const canvas* backing,
+                  unsigned x, unsigned y,
+                  unsigned w, unsigned h);
 
 /**
  * Clears the given canvas. This resets all depth information to ~0. It leaves
@@ -92,18 +121,13 @@ void canvas_clear(canvas*);
  * Blits the given canvas onto the given SDL_Texture.
  */
 void canvas_blit(SDL_Texture*, const canvas*);
-/**
- * Merges src into dst, respecting depth information. Both canvases must be the
- * same size.
- */
-void canvas_merge_into(canvas*restrict dst, const canvas*restrict src);
 
 /**
  * Calculates the array offset within the given canvas for the given pixel
  * coordinates.
  */
 static inline unsigned canvas_offset(const canvas* c, unsigned x, unsigned y) {
-  return y * c->w + x;
+  return y * c->pitch + x;
 }
 
 #ifdef PROFILE
