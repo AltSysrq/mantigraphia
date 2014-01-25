@@ -27,6 +27,7 @@ graphics/dm-proj.c \
 graphics/turtle.c \
 world/world.c \
 world/terrain.c \
+world/props.c \
 world/generate.c \
 render/context.c \
 render/terrabuff.c \
