@@ -43,6 +43,7 @@
 #include "graphics/parchment.h"
 #include "world/basic-world.h"
 #include "world/terrain.h"
+#include "world/props.h"
 #include "world/generate.h"
 #include "render/basic-world.h"
 #include "render/context.h"
@@ -51,6 +52,7 @@
 #include "cosine-world.h"
 
 #define SIZE 4096
+#define NUM_GRASS (1024*1024)
 
 typedef struct {
   game_state vtab;
@@ -59,6 +61,7 @@ typedef struct {
   mouselook_state look;
   parchment* bg;
   basic_world* world;
+  world_prop* grass;
   rendering_context*restrict context;
 
   int moving_forward, moving_backward, moving_left, moving_right;
@@ -86,6 +89,7 @@ game_state* cosine_world_new(void) {
     { 0, 0 },
     parchment_new(),
     basic_world_new(SIZE, SIZE, SIZE/256, SIZE/256),
+    xmalloc(NUM_GRASS * sizeof(world_prop)),
     rendering_context_new(),
     0,0,0,0
   };
@@ -109,6 +113,8 @@ static void cosine_world_delete(cosine_world_state* this) {
 
 static void cosine_world_init_world(cosine_world_state* this) {
   world_generate(this->world, 3);
+  grass_generate(this->grass, NUM_GRASS, this->world, 7);
+  props_sort_x(this->grass, NUM_GRASS);
 }
 
 #define SPEED (4*METRES_PER_SECOND)

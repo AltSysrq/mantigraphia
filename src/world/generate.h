@@ -29,7 +29,10 @@
 #define WORLD_GENERATE_H_
 
 #include "basic-world.h"
+#include "props.h"
 
 void world_generate(basic_world*, unsigned seed);
+void grass_generate(world_prop*, unsigned count,
+                    const basic_world*, unsigned seed);
 
 #endif /* WORLD_GENERATE_H_ */

@@ -201,3 +201,30 @@ static void create_path_to_from(basic_world* world, mersenne_twister* twister,
                                 coord xfrom, coord zfrom) {
   /* TODO */
 }
+
+void grass_generate(world_prop* props, unsigned count,
+                    const basic_world* world, unsigned seed) {
+  mersenne_twister twister;
+  unsigned i;
+  coord x, z, wx, wz;
+
+  twister_seed(&twister, seed);
+
+  for (i = 0; i < count; ++i) {
+    do {
+      x = twist(&twister) & (world->xmax*TILE_SZ - 1);
+      z = twist(&twister) & (world->zmax*TILE_SZ - 1);
+      wx = x / TILE_SZ;
+      wz = z / TILE_SZ;
+
+      /* Can only place grass in non-bare grass tiles */
+    } while (terrain_type_grass !=
+             world->tiles[basic_world_offset(world, wx, wz)].elts[0].type);
+
+    props[i].x = x;
+    props[i].z = z;
+    props[i].type = 0;
+    props[i].variant = twist(&twister);
+    props[i].yrot = twist(&twister);
+  }
+}
