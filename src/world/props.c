@@ -34,26 +34,26 @@
 #include "props.h"
 
 static int prop_compare(const void* a, const void* b) {
-  coord ax = ((const world_prop*)a)->x, bx = ((const world_prop*)b)->x;
-  if (ax < bx) return -1;
-  if (ax > bx) return +1;
+  coord az = ((const world_prop*)a)->z, bz = ((const world_prop*)b)->z;
+  if (az < bz) return -1;
+  if (az > bz) return +1;
   return 0;
 }
 
-void props_sort_x(world_prop* props, unsigned count) {
+void props_sort_z(world_prop* props, unsigned count) {
   qsort(props, count, sizeof(world_prop), prop_compare);
 }
 
-unsigned props_bsearch_x(const world_prop* props, coord x,
+unsigned props_bsearch_z(const world_prop* props, coord z,
                          unsigned l, unsigned h) {
   unsigned m;
-  coord px;
+  coord pz;
 
   while (l < h) {
     m = (l+h) / 2;
-    px = props[m].x;
+    pz = props[m].z;
 
-    if (px <= x)
+    if (pz <= z)
       /* Look later in the array */
       l = m+1;
     else

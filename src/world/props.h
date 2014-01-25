@@ -37,7 +37,7 @@ typedef unsigned char prop_variant;
  * Defines the property of one "prop" within the world. Props are stationary,
  * but possibly destroyable, objects placed within the world. Props with the
  * same visibility distance are generally stored in contiguous arrays sorted by
- * X coordinate.
+ * Z coordinate.
  */
 typedef struct {
   /**
@@ -63,18 +63,18 @@ typedef struct {
 
 /**
  * Sorts the first count elements of the given array of props in-place
- * according to ascending X coordinates.
+ * according to ascending Z coordinates.
  */
-void props_sort_x(world_prop* props, unsigned count);
+void props_sort_z(world_prop* props, unsigned count);
 /**
  * Determines the index of the first element in props between lower_bound
- * (inclusive) and upper_bound (exclusive) whose X coordinate is greater than
- * or equal to the input X coordinate. It may return upper_bound, indicating
- * that all props in the selected range have an X coordinate less than the
+ * (inclusive) and upper_bound (exclusive) whose Z coordinate is greater than
+ * or equal to the input Z coordinate. It may return upper_bound, indicating
+ * that all props in the selected range have an Z coordinate less than the
  * input coordinate.
  */
-unsigned props_bsearch_x(const world_prop* props,
-                         coord x,
+unsigned props_bsearch_z(const world_prop* props,
+                         coord z,
                          unsigned lower_bound,
                          unsigned upper_bound);
 

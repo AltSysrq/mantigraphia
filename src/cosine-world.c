@@ -114,7 +114,7 @@ static void cosine_world_delete(cosine_world_state* this) {
 static void cosine_world_init_world(cosine_world_state* this) {
   world_generate(this->world, 3);
   grass_generate(this->grass, NUM_GRASS, this->world, 7);
-  props_sort_x(this->grass, NUM_GRASS);
+  props_sort_z(this->grass, NUM_GRASS);
 }
 
 #define SPEED (4*METRES_PER_SECOND)
