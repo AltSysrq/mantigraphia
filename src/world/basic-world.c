@@ -35,7 +35,7 @@
 
 #include "../alloc.h"
 #include "../bsd.h"
-#include "world.h"
+#include "basic-world.h"
 
 basic_world* basic_world_new(coord xmax, coord zmax, coord xmin, coord zmin) {
   size_t memory_reqd = 0, bw_mem = offsetof(basic_world, tiles);

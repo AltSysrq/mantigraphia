@@ -25,8 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef WORLD_WORLD_H_
-#define WORLD_WORLD_H_
+#ifndef WORLD_BASIC_WORLD_H_
+#define WORLD_BASIC_WORLD_H_
 
 #include <assert.h>
 
@@ -156,4 +156,4 @@ void basic_world_calc_next(basic_world*);
  */
 void basic_world_patch_next(basic_world*, coord x, coord z);
 
-#endif /* WORLD_WORLD_H_ */
+#endif /* WORLD_BASIC_WORLD_H_ */

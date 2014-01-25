@@ -28,7 +28,7 @@
 #ifndef WORLD_GENERATE_H_
 #define WORLD_GENERATE_H_
 
-#include "world.h"
+#include "basic-world.h"
 
 void world_generate(basic_world*, unsigned seed);
 

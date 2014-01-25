@@ -34,7 +34,7 @@
 
 #include "../coords.h"
 #include "../rand.h"
-#include "world.h"
+#include "basic-world.h"
 #include "terrain.h"
 #include "generate.h"
 

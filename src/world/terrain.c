@@ -31,7 +31,7 @@
 
 #include "../coords.h"
 #include "../simd.h"
-#include "world.h"
+#include "basic-world.h"
 #include "terrain.h"
 
 static const simd4 terrain_colours[] = {

@@ -29,7 +29,7 @@
 #define RENDER_TERRAIN_H_
 
 #include "../graphics/canvas.h"
-#include "../world/world.h"
+#include "../world/basic-world.h"
 #include "context.h"
 
 extern void (*const terrain_renderers[4])(

@@ -36,12 +36,12 @@
 #include "../micromp.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
-#include "../world/world.h"
+#include "../world/basic-world.h"
 #include "../world/terrain.h"
 #include "context.h"
 #include "terrabuff.h"
 #include "terrain.h"
-#include "world.h"
+#include "basic-world.h"
 
 #define SLICE_CAP 256
 #define SCAN_CAP 128

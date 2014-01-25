@@ -34,7 +34,7 @@
 #include <assert.h>
 
 #include "../alloc.h"
-#include "world.h"
+#include "basic-world.h"
 #include "context.h"
 
 static size_t space_for_invariant(size_t);

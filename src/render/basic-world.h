@@ -25,14 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RENDER_WORLD_H_
-#define RENDER_WORLD_H_
+#ifndef RENDER_BASIC_WORLD_H_
+#define RENDER_BASIC_WORLD_H_
 
 #include <stdlib.h>
 
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
-#include "../world/world.h"
+#include "../world/basic-world.h"
 #include "context.h"
 #include "terrabuff.h"
 
@@ -48,4 +48,4 @@ size_t render_basic_world_put_context_offset(size_t);
 void render_basic_world_context_ctor(rendering_context*restrict);
 void render_basic_world_context_dtor(rendering_context*restrict);
 
-#endif /* RENDER_WORLD_H_ */
+#endif /* RENDER_BASIC_WORLD_H_ */

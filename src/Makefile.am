@@ -27,13 +27,13 @@ graphics/perspective.c \
 graphics/hull.c \
 graphics/dm-proj.c \
 graphics/turtle.c \
-world/world.c \
+world/basic-world.c \
 world/terrain.c \
 world/props.c \
 world/generate.c \
 render/context.c \
 render/terrabuff.c \
-render/world.c \
+render/basic-world.c \
 render/terrain.c \
 render/lsystem.c \
 render/draw-queue.c \

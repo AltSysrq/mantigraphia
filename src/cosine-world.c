@@ -41,10 +41,10 @@
 
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
-#include "world/world.h"
+#include "world/basic-world.h"
 #include "world/terrain.h"
 #include "world/generate.h"
-#include "render/world.h"
+#include "render/basic-world.h"
 #include "render/context.h"
 #include "control/mouselook.h"
 

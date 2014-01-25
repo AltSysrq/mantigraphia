@@ -28,7 +28,7 @@
 #ifndef WORLD_TERRAIN_H_
 #define WORLD_TERRAIN_H_
 
-#include "world.h"
+#include "basic-world.h"
 #include "../coords.h"
 #include "../simd.h"
 
