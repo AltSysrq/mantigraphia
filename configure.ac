@@ -16,12 +16,13 @@ AM_PROG_CC_C_O
 # Checks for libraries.
 AC_SEARCH_LIBS([errc], [c bsd])
 AC_SEARCH_LIBS([sin], [c m])
+AC_SEARCH_LIBS([dlopen], [dl])
 PKG_CHECK_MODULES([SDL], [sdl2])
 PKG_CHECK_MODULES([SDLIMG], [SDL2_image])
 
 # Headers
 AC_CHECK_HEADERS([arpa/inet.h inttypes.h malloc.h netinet/in.h stdint.h dnl
-                  stdlib.h string.h sys/socket.h sys/time.h unistd.h])
+                  stdlib.h string.h sys/socket.h sys/time.h unistd.h dlfcn.h])
 AC_CHECK_HEADERS([sys/queue.h bsd/sys/queue.h sys/tree.h bsd/sys/tree.h dnl
                   err.h bsd/err.h sysexits.h bsd/sysexits.h])
 
@@ -37,7 +38,7 @@ AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 
 # Checks for library functions.
-AC_CHECK_FUNCS([memmove memset pow setlocale sqrt])
+AC_CHECK_FUNCS([memmove memset pow setlocale sqrt dlfunc dlerror])
 
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT

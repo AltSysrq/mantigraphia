@@ -29,11 +29,28 @@
 #include <config.h>
 #endif
 
+/* Need to define _GNU_SOURCE on GNU systems to get RTLD_NEXT. BSD gives it to
+ * us for free.
+ */
+#ifndef RTLD_NEXT
+#define _GNU_SOURCE
+#endif
+
 #include <SDL.h>
 #include <SDL_image.h>
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <time.h>
+
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
+
+#if defined(RTLD_NEXT) && defined(HAVE_DLFCN_H) && defined(HAVE_DLFUNC)
+#define ENABLE_SDL_ZAPHOD_MODE_FIX
+#endif
 
 #include "bsd.h"
 
@@ -49,6 +66,68 @@
 static game_state* update(game_state*);
 static void draw(canvas*, game_state*, SDL_Texture*, SDL_Renderer*);
 static int handle_input(game_state*);
+
+#ifdef ENABLE_SDL_ZAPHOD_MODE_FIX
+/* On X11 with "Zaphod mode" multiple displays, all displays have a position of
+ * (0,0), so SDL always uses the same screen regardless of $DISPLAY. Work
+ * around this overriding the internal (!!) function it uses to select display
+ * screens, and providing the correct response for Zaphod mode ourselves. If
+ * not in Zaphod mode, delegate to the original function.
+ */
+int SDL_GetWindowDisplayIndex(SDL_Window* window) {
+  const char* display_name;
+  /* We can consider this thread-safe. SDL only allows window manipulation by
+   * the thread that creates the window, and we only create one window. (And if
+   * we were to create more, they'd also be owned by the main thread anyway.)
+   *
+   * It is worth caching this, since SDL calls this function at least several
+   * times per second. On most systems, getenv() walks a linear list that can
+   * be quite large, and dlfunc() needs to walk a DAG of libraries.
+   */
+  static int screen = -1;
+  static int do_delegate = 0;
+  static int (*delegate)(SDL_Window*);
+  static int delegate_initialised;
+
+  if (screen < 0 && !do_delegate) {
+    display_name = getenv("DISPLAY");
+
+    if (display_name &&
+        1 == sscanf(display_name,
+                    (display_name[0] == ':'? ":%*d.%d" : "%*64s:%*d%d"),
+                    &screen) &&
+        screen > 0)
+      do_delegate = 0;
+    else
+      do_delegate = 1;
+  }
+
+  if (!do_delegate)
+    return screen;
+
+  /* Not on Zaphod mode, delegate to original */
+  if (!delegate_initialised) {
+    delegate =
+      (int(*)(SDL_Window*))dlfunc(RTLD_NEXT, "SDL_GetWindowDisplayIndex");
+    delegate_initialised = 1;
+
+    if (!delegate) {
+      warnx("Unable to delegate to SDL to choose display, assuming zero. %s",
+#ifdef HAVE_DLERROR
+            dlerror()
+#else
+            "(reason unknown because dlerror() unavailable)"
+#endif
+        );
+    }
+  }
+
+  if (delegate)
+    return (*delegate)(window);
+  else
+    return 0;
+}
+#endif
 
 int main(void) {
   unsigned ww, wh;
