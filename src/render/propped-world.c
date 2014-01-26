@@ -71,27 +71,56 @@ void render_propped_world_context_dtor(rendering_context*restrict context) {
   free(queues);
 }
 
+static const propped_world*restrict render_propped_world_this;
+static const rendering_context*restrict render_propped_world_context;
+static canvas*restrict render_propped_world_dst;
+
+static void render_propped_world_enqueue(unsigned, unsigned);
+static ump_task render_propped_world_enqueue_task = {
+  render_propped_world_enqueue,
+  0, /* Determined dynamically (= num processors) */
+  0, /* Unused (synchronous) */
+};
+
 void render_propped_world(canvas* dst,
                           const propped_world*restrict this,
                           const rendering_context*restrict context) {
   drawing_queue** queues = *render_propped_world_get(context);
-  const perspective*restrict proj =
-    ((const rendering_context_invariant*)context)->proj;
-  coord cx = proj->camera[0], cz = proj->camera[2];
+  unsigned i;
+
+  render_propped_world_this = this;
+  render_propped_world_context = context;
+  render_propped_world_dst = dst;
 
   render_basic_world(dst, this->terrain, context);
 
-  /* TODO: Draw in parallel */
-  drawing_queue_clear(queues[0]);
-  ump_join();
-  render_world_props(queues[0], this->grass.props, this->grass.size,
+  render_propped_world_enqueue_task.num_divisions = ump_num_workers()+1;
+  ump_run_sync(&render_propped_world_enqueue_task);
+
+  /* TODO: Execute in parallel */
+  for (i = 0; i < ump_num_workers(); ++i)
+    drawing_queue_execute(dst, queues[i], 0, 0);
+}
+
+static void render_propped_world_enqueue(unsigned ix, unsigned count) {
+  const rendering_context*restrict context = render_propped_world_context;
+  const propped_world*restrict this = render_propped_world_this;
+
+  drawing_queue* queue = render_propped_world_get(context)[0][ix];
+  const perspective*restrict proj =
+    ((const rendering_context_invariant*)context)->proj;
+  coord cx = proj->camera[0], cz = proj->camera[2];
+  coord_offset zoff_low  = 2 * GRASS_DIST * ix / count - GRASS_DIST;
+  coord_offset zoff_high = 2 * GRASS_DIST * (ix+1) / count - GRASS_DIST;
+
+  drawing_queue_clear(queue);
+  render_world_props(queue, this->grass.props, this->grass.size,
                      this->terrain,
                      (cx - GRASS_DIST) & (this->terrain->xmax * TILE_SZ - 1),
                      (cx + GRASS_DIST) & (this->terrain->xmax * TILE_SZ - 1),
-                     (cz - GRASS_DIST) & (this->terrain->zmax * TILE_SZ - 1),
-                     (cz + GRASS_DIST) & (this->terrain->zmax * TILE_SZ - 1),
+                     (cz + zoff_low  ) & (this->terrain->zmax * TILE_SZ - 1),
+                     (cz + zoff_high ) & (this->terrain->zmax * TILE_SZ - 1),
                      GRASS_DISTSQ_SHIFT,
                      grass_prop_renderers,
                      context);
-  drawing_queue_execute(dst, queues[0], 0, 0);
 }
