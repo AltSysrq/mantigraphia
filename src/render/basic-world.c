@@ -40,7 +40,6 @@
 #include "../world/terrain.h"
 #include "context.h"
 #include "terrabuff.h"
-#include "terrain.h"
 #include "basic-world.h"
 
 #define SLICE_CAP 256

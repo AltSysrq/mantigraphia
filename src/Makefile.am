@@ -34,7 +34,6 @@ world/generate.c \
 render/context.c \
 render/terrabuff.c \
 render/basic-world.c \
-render/terrain.c \
 render/props.c \
 render/lsystem.c \
 render/draw-queue.c \
