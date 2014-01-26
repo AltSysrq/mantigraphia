@@ -47,8 +47,8 @@ void render_world_props(drawing_queue* dst,
                         const rendering_context*restrict context) {
   unsigned lower_bound, upper_bound, i;
   coord tmp, cx, cz;
-  coord_offset dx, dz;
-  coord dist;
+  signed long long dx, dz;
+  unsigned long long dist;
   int inverted_x_test;
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;

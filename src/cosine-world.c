@@ -47,12 +47,17 @@
 #include "world/generate.h"
 #include "render/basic-world.h"
 #include "render/context.h"
+#include "render/draw-queue.h"
+#include "render/props.h"
+#include "render/grass-props.h"
 #include "control/mouselook.h"
 
 #include "cosine-world.h"
 
 #define SIZE 4096
 #define NUM_GRASS (1024*1024)
+#define GRASS_DIST (128*METRE)
+#define GRASS_DISTSQ_SHIFT (2*(7+16-6))
 
 typedef struct {
   game_state vtab;
@@ -62,6 +67,7 @@ typedef struct {
   parchment* bg;
   basic_world* world;
   world_prop* grass;
+  drawing_queue* dq;
   rendering_context*restrict context;
 
   int moving_forward, moving_backward, moving_left, moving_right;
@@ -90,6 +96,7 @@ game_state* cosine_world_new(void) {
     parchment_new(),
     basic_world_new(SIZE, SIZE, SIZE/256, SIZE/256),
     xmalloc(NUM_GRASS * sizeof(world_prop)),
+    drawing_queue_new(),
     rendering_context_new(),
     0,0,0,0
   };
@@ -108,6 +115,8 @@ static void cosine_world_delete(cosine_world_state* this) {
   parchment_delete(this->bg);
   basic_world_delete(this->world);
   rendering_context_delete(this->context);
+  free(this->grass);
+  free(this->dq);
   free(this);
 }
 
@@ -174,7 +183,17 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
 
   parchment_draw(dst, this->bg);
   render_basic_world(dst, this->world, this->context);
+  drawing_queue_clear(this->dq);
   ump_join();
+  render_world_props(this->dq, this->grass, NUM_GRASS, this->world,
+                     (this->x - GRASS_DIST) & (this->world->xmax * TILE_SZ - 1),
+                     (this->x + GRASS_DIST) & (this->world->xmax * TILE_SZ - 1),
+                     (this->z - GRASS_DIST) & (this->world->zmax * TILE_SZ - 1),
+                     (this->z + GRASS_DIST) & (this->world->zmax * TILE_SZ - 1),
+                     GRASS_DISTSQ_SHIFT,
+                     grass_prop_renderers,
+                     this->context);
+  drawing_queue_execute(dst, this->dq, 0, 0);
 }
 
 static void cosine_world_key(cosine_world_state* this,
