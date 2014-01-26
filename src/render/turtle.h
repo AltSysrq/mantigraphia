@@ -30,16 +30,17 @@
 
 #include "../simd.h"
 #include "../coords.h"
-#include "../graphics/abstract.h"
 #include "../graphics/perspective.h"
+#include "draw-queue.h"
 
 /**
- * A turtle allows for rapid drawing of 3D objects by means of relative
- * movement. A turtle is initialised to a single point in world space. This
- * point is projected to relative space, and a vector space representing
- * relative space around the point is computed. All further drawing operations
- * are computed by translating distance vectors into the turtle's vector space
- * before projection into screen space, and by manipulating the vector space.
+ * A turtle allows for rapid drawing of 3D objects into a drawing_queue by
+ * means of relative movement. A turtle is initialised to a single point in
+ * world space. This point is projected to relative space, and a vector space
+ * representing relative space around the point is computed. All further
+ * drawing operations are computed by translating distance vectors into the
+ * turtle's vector space before projection into screen space, and by
+ * manipulating the vector space.
  *
  * Since the turtle assumes that relative space is linear with respect to world
  * space, it can avoid the comparitively expensive projection translation
@@ -50,9 +51,6 @@
  * Precision in turtle space is reduced by a factor (conventionally
  * TURTLE_UNIT) in order to reduce the necessity of bitshifts in internal
  * computation.
- *
- * While the turtle provides convenience functions for calling drawing
- * primitives, it is itself not a drawing_method.
  */
 typedef struct turtle_state_s turtle_state;
 
@@ -161,22 +159,23 @@ void turtle_rotate_axes(simd4*restrict x, simd4*restrict y, angle);
 int turtle_scale_down(turtle_state*, unsigned shift);
 
 /**
- * Draws a line from the previous point to the current point of the given
- * turtle, using the given drawing method and weights.
+ * Puts the current point into the given drawing queue as a
+ * single-point-shift. No action is taken if the current point cannot be
+ * projected into screen space.
  *
- * No action is taken if either of the points has a negative Z coordinate.
+ * Returns whether the point was inserted into the drawing queue.
  */
-void turtle_line(void* accum, const drawing_method*,
-                 const turtle_state*,
-                 zo_scaling_factor from_weight,
-                 zo_scaling_factor to_weight);
+int turtle_put_point(drawing_queue_burst*, const turtle_state*,
+                     zo_scaling_factor weight);
 /**
- * Draws a point at the current point of the given turtle, using the given
- * drawing method and weight.
+ * Puts the current and previous points into the drawing queue as a to-from
+ * pair, respectively. No action is taken if either point cannot be projected
+ * into screen space.
  *
- * No action is taken if the point has a negative Z coordinate.
+ * Returns whether anything was inserted into the drawing queue.
  */
-void turtle_point(void* accum, const drawing_method*,
-                  const turtle_state*, zo_scaling_factor);
+int turtle_put_points(drawing_queue_burst*, const turtle_state*,
+                      zo_scaling_factor from_weight,
+                      zo_scaling_factor to_weight);
 
 #endif /* RENDER_TURTLE_H_ */

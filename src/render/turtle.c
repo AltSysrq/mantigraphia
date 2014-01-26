@@ -33,8 +33,8 @@
 
 #include "../simd.h"
 #include "../coords.h"
-#include "../graphics/perspective.h"
 #include "../graphics/abstract.h"
+#include "draw-queue.h"
 #include "turtle.h"
 
 int turtle_init(turtle_state* this, const perspective* proj,
@@ -114,10 +114,22 @@ int turtle_scale_down(turtle_state* this, unsigned shift) {
     !simd_eq(zero, this->space.z);
 }
 
-void turtle_line(void* accum, const drawing_method* meth,
-                 const turtle_state* this,
-                 zo_scaling_factor from_weight,
-                 zo_scaling_factor to_weight) {
+int turtle_put_point(drawing_queue_burst* dst, const turtle_state* this,
+                     zo_scaling_factor weight) {
+  coord_offset rwhere[4];
+  vo3 where;
+
+  simd_to_vo4(rwhere, this->pos.curr);
+  if (!perspective_proj_rel(where, rwhere, this->proj))
+    return 0;
+
+  drawing_queue_put_point(dst, where, weight);
+  return 1;
+}
+
+int turtle_put_points(drawing_queue_burst* dst, const turtle_state* this,
+                      zo_scaling_factor from_weight,
+                      zo_scaling_factor to_weight) {
   coord_offset rfrom[4], rto[4];
   vo3 from, to;
 
@@ -126,20 +138,8 @@ void turtle_line(void* accum, const drawing_method* meth,
 
   if (!perspective_proj_rel(from, rfrom, this->proj) ||
       !perspective_proj_rel(to, rto, this->proj))
-    return;
+    return 0;
 
-  dm_draw_line(accum, meth, from, from_weight, to, to_weight);
-}
-
-void turtle_point(void* accum, const drawing_method* meth,
-                  const turtle_state* this,
-                  zo_scaling_factor weight) {
-  coord_offset rwhere[4];
-  vo3 where;
-
-  simd_to_vo4(where, this->pos.curr);
-  if (!perspective_proj_rel(where, rwhere, this->proj))
-    return;
-
-  dm_draw_point(accum, meth, where, weight);
+  drawing_queue_put_points(dst, from, from_weight, to, to_weight);
+  return 1;
 }
