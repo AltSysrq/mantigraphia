@@ -25,13 +25,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef GRAPHICS_TURTLE_H_
-#define GRAPHICS_TURTLE_H_
+#ifndef RENDER_TURTLE_H_
+#define RENDER_TURTLE_H_
 
 #include "../simd.h"
 #include "../coords.h"
-#include "abstract.h"
-#include "perspective.h"
+#include "../graphics/abstract.h"
+#include "../graphics/perspective.h"
 
 /**
  * A turtle allows for rapid drawing of 3D objects by means of relative
@@ -179,4 +179,4 @@ void turtle_line(void* accum, const drawing_method*,
 void turtle_point(void* accum, const drawing_method*,
                   const turtle_state*, zo_scaling_factor);
 
-#endif /* GRAPHICS_TURTLE_H_ */
+#endif /* RENDER_TURTLE_H_ */

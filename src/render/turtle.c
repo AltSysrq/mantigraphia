@@ -33,8 +33,8 @@
 
 #include "../simd.h"
 #include "../coords.h"
-#include "perspective.h"
-#include "abstract.h"
+#include "../graphics/perspective.h"
+#include "../graphics/abstract.h"
 #include "turtle.h"
 
 int turtle_init(turtle_state* this, const perspective* proj,

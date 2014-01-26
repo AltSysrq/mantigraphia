@@ -26,12 +26,12 @@ graphics/linear-paint-tile.c \
 graphics/perspective.c \
 graphics/hull.c \
 graphics/dm-proj.c \
-graphics/turtle.c \
 world/basic-world.c \
 world/terrain.c \
 world/props.c \
 world/propped-world.c \
 world/generate.c \
+render/turtle.c \
 render/context.c \
 render/terrabuff.c \
 render/basic-world.c \
