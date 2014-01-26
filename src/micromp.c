@@ -146,6 +146,8 @@ void ump_init(unsigned num_threads) {
 }
 
 static void ump_run(ump_task* task, int sync) {
+  ump_join();
+
 #ifdef UMP_NO_THREADING
   current_task_is_sync = 1;
   current_task = task;

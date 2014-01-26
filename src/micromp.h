@@ -99,6 +99,8 @@ void ump_init(unsigned num_threads);
  * Executes the given task synchronously. The calling thread will perform a
  * share of work equal to the other workers. When this call returns, the task
  * is guaranteed to be entirely done.
+ *
+ * ump_join() is called implicitly at the start of this function.
  */
 void ump_run_sync(ump_task*);
 /**
@@ -106,8 +108,7 @@ void ump_run_sync(ump_task*);
  * perform some work on the task itself before this call returns, though that
  * amount is always less than the other workers.
  *
- * After this call, no other ump_* functions may be called other than
- * ump_join() or any functions that merely query state.
+ * ump_join() is called implicitly at the start of this function.
  */
 void ump_run_async(ump_task*);
 /**
