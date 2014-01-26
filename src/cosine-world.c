@@ -42,22 +42,18 @@
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
 #include "world/basic-world.h"
+#include "world/propped-world.h"
 #include "world/terrain.h"
 #include "world/props.h"
 #include "world/generate.h"
-#include "render/basic-world.h"
+#include "render/propped-world.h"
 #include "render/context.h"
-#include "render/draw-queue.h"
-#include "render/props.h"
-#include "render/grass-props.h"
 #include "control/mouselook.h"
 
 #include "cosine-world.h"
 
 #define SIZE 4096
 #define NUM_GRASS (1024*1024)
-#define GRASS_DIST (128*METRE)
-#define GRASS_DISTSQ_SHIFT (2*(7+16-6))
 
 typedef struct {
   game_state vtab;
@@ -65,9 +61,7 @@ typedef struct {
   coord x, z;
   mouselook_state look;
   parchment* bg;
-  basic_world* world;
-  world_prop* grass;
-  drawing_queue* dq;
+  propped_world* world;
   rendering_context*restrict context;
 
   int moving_forward, moving_backward, moving_left, moving_right;
@@ -94,9 +88,9 @@ game_state* cosine_world_new(void) {
     0, 0,
     { 0, 0 },
     parchment_new(),
-    basic_world_new(SIZE, SIZE, SIZE/256, SIZE/256),
-    xmalloc(NUM_GRASS * sizeof(world_prop)),
-    drawing_queue_new(),
+    propped_world_new(
+      basic_world_new(SIZE, SIZE, SIZE/256, SIZE/256),
+      NUM_GRASS),
     rendering_context_new(),
     0,0,0,0
   };
@@ -113,17 +107,18 @@ game_state* cosine_world_new(void) {
 
 static void cosine_world_delete(cosine_world_state* this) {
   parchment_delete(this->bg);
-  basic_world_delete(this->world);
+  propped_world_delete(this->world);
   rendering_context_delete(this->context);
-  free(this->grass);
-  free(this->dq);
   free(this);
 }
 
 static void cosine_world_init_world(cosine_world_state* this) {
-  world_generate(this->world, 3);
-  grass_generate(this->grass, NUM_GRASS, this->world, 7);
-  props_sort_z(this->grass, NUM_GRASS);
+  world_generate(this->world->terrain, 3);
+  grass_generate(this->world->grass.props,
+                 this->world->grass.size,
+                 this->world->terrain, 7);
+  props_sort_z(this->world->grass.props,
+               this->world->grass.size);
 }
 
 #define SPEED (4*METRES_PER_SECOND)
@@ -147,8 +142,8 @@ static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
     this->x += zo_cosms(this->look.yrot, et * SPEED);
     this->z -= zo_sinms(this->look.yrot, et * SPEED);
   }
-  this->x &= this->world->xmax*TILE_SZ - 1;
-  this->z &= this->world->zmax*TILE_SZ - 1;
+  this->x &= this->world->terrain->xmax*TILE_SZ - 1;
+  this->z &= this->world->terrain->zmax*TILE_SZ - 1;
 
   if (this->is_running) {
     return (game_state*)this;
@@ -166,10 +161,11 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   context_inv.long_yrot = this->look.yrot;
 
   proj.camera[0] = this->x;
-  proj.camera[1] = terrain_base_y(this->world, this->x, this->z) + 2*METRE;
+  proj.camera[1] = terrain_base_y(this->world->terrain, this->x, this->z) +
+                   2*METRE;
   proj.camera[2] = this->z;
-  proj.torus_w = this->world->xmax * TILE_SZ;
-  proj.torus_h = this->world->zmax * TILE_SZ;
+  proj.torus_w = this->world->terrain->xmax * TILE_SZ;
+  proj.torus_h = this->world->terrain->zmax * TILE_SZ;
   proj.yrot = this->look.yrot;
   proj.yrot_cos = zo_cos(this->look.yrot);
   proj.yrot_sin = zo_sin(this->look.yrot);
@@ -182,18 +178,8 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   rendering_context_set(this->context, &context_inv);
 
   parchment_draw(dst, this->bg);
-  render_basic_world(dst, this->world, this->context);
-  drawing_queue_clear(this->dq);
+  render_propped_world(dst, this->world, this->context);
   ump_join();
-  render_world_props(this->dq, this->grass, NUM_GRASS, this->world,
-                     (this->x - GRASS_DIST) & (this->world->xmax * TILE_SZ - 1),
-                     (this->x + GRASS_DIST) & (this->world->xmax * TILE_SZ - 1),
-                     (this->z - GRASS_DIST) & (this->world->zmax * TILE_SZ - 1),
-                     (this->z + GRASS_DIST) & (this->world->zmax * TILE_SZ - 1),
-                     GRASS_DISTSQ_SHIFT,
-                     grass_prop_renderers,
-                     this->context);
-  drawing_queue_execute(dst, this->dq, 0, 0);
 }
 
 static void cosine_world_key(cosine_world_state* this,

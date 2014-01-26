@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,26 +25,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RENDER_BASIC_WORLD_H_
-#define RENDER_BASIC_WORLD_H_
-
-#include <stdlib.h>
+#ifndef RENDER_PROPPED_WORLD_H_
+#define RENDER_PROPPED_WORLD_H_
 
 #include "../graphics/canvas.h"
-#include "../graphics/perspective.h"
 #include "../world/basic-world.h"
+#include "../world/propped-world.h"
 #include "context.h"
 
 /**
- * Renders all visible tiles in the given basic_world.
+ * Renders the terrain and props of the given propped_world.
  */
-void render_basic_world(
-  canvas* dst,
-  const basic_world*restrict,
-  const rendering_context*restrict context);
+void render_propped_world(
+  canvas*, const propped_world*restrict,
+  const rendering_context*restrict);
 
-size_t render_basic_world_put_context_offset(size_t);
-void render_basic_world_context_ctor(rendering_context*restrict);
-void render_basic_world_context_dtor(rendering_context*restrict);
+size_t render_propped_world_put_context_offset(size_t);
+void render_propped_world_context_ctor(rendering_context*restrict);
+void render_propped_world_context_dtor(rendering_context*restrict);
 
-#endif /* RENDER_BASIC_WORLD_H_ */
+#endif /* RENDER_PROPPED_WORLD_H_ */

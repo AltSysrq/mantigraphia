@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,77 +29,21 @@
 #include <config.h>
 #endif
 
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
-#include "../alloc.h"
+#include "alloc.h"
 #include "basic-world.h"
 #include "propped-world.h"
-#include "context.h"
 
-static size_t space_for_invariant(size_t);
-
-static size_t (*const context_put[])(size_t) = {
-  space_for_invariant,
-  render_basic_world_put_context_offset,
-  render_propped_world_put_context_offset,
-  NULL
-};
-
-static void (*const context_set[])(rendering_context*restrict) = {
-  NULL
-};
-
-static void (*const context_ctor[])(rendering_context*restrict) = {
-  render_basic_world_context_ctor,
-  render_propped_world_context_ctor,
-  NULL
-};
-
-static void (*const context_dtor[])(rendering_context*restrict) = {
-  render_basic_world_context_dtor,
-  render_propped_world_context_dtor,
-  NULL
-};
-
-static size_t space_for_invariant(size_t zero) {
-  assert(!zero);
-  return sizeof(rendering_context_invariant);
-}
-
-rendering_context* rendering_context_new(void) {
-  rendering_context* this;
-  size_t off = 0;
-  unsigned i;
-
-  for (i = 0; context_put[i]; ++i) {
-    off = (*context_put[i])(off);
-    /* Align to pointer */
-    off += sizeof(void*) - 1;
-    off &= ~(sizeof(void*) - 1);
-  }
-
-  this = xmalloc(off);
-  for (i = 0; context_ctor[i]; ++i)
-    (*context_ctor[i])(this);
-
+propped_world* propped_world_new(basic_world* terrain,
+                                 unsigned num_grass) {
+  propped_world* this = xmalloc(
+    sizeof(propped_world) + num_grass*sizeof(world_prop));
+  this->terrain = terrain;
+  this->grass.size = num_grass;
+  this->grass.props = (world_prop*)(this+1);
   return this;
 }
 
-void rendering_context_delete(rendering_context* this) {
-  unsigned i;
-
-  for (i = 0; context_dtor[i]; ++i)
-    (*context_dtor[i])(this);
-
+void propped_world_delete(propped_world* this) {
+  basic_world_delete(this->terrain);
   free(this);
-}
-
-void rendering_context_set(rendering_context*restrict this,
-                           const rendering_context_invariant*restrict inv) {
-  unsigned i;
-  memcpy(this, inv, sizeof(*inv));
-  for (i = 0; context_set[i]; ++i)
-    (*context_set[i])(this);
 }

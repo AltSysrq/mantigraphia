@@ -30,6 +30,7 @@ graphics/turtle.c \
 world/basic-world.c \
 world/terrain.c \
 world/props.c \
+world/propped-world.c \
 world/generate.c \
 render/context.c \
 render/terrabuff.c \
@@ -38,6 +39,7 @@ render/props.c \
 render/lsystem.c \
 render/draw-queue.c \
 render/grass-props.c \
+render/propped-world.c \
 control/mouselook.c \
 flower-pot.c \
 cosine-world.c

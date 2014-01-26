@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,26 +25,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RENDER_BASIC_WORLD_H_
-#define RENDER_BASIC_WORLD_H_
+#ifndef WORLD_PROPPED_WORLD_H_
+#define WORLD_PROPPED_WORLD_H_
 
-#include <stdlib.h>
-
-#include "../graphics/canvas.h"
-#include "../graphics/perspective.h"
-#include "../world/basic-world.h"
-#include "context.h"
+#include "basic-world.h"
+#include "props.h"
 
 /**
- * Renders all visible tiles in the given basic_world.
+ * An array of props which populates a propped_world.
  */
-void render_basic_world(
-  canvas* dst,
-  const basic_world*restrict,
-  const rendering_context*restrict context);
+typedef struct {
+  /**
+   * The props themselves. This memory is owned by the propped_world.
+   */
+  world_prop* props;
+  /**
+   * The number of elements in props.
+   */
+  unsigned size;
+} prop_array;
 
-size_t render_basic_world_put_context_offset(size_t);
-void render_basic_world_context_ctor(rendering_context*restrict);
-void render_basic_world_context_dtor(rendering_context*restrict);
+/**
+ * A propped_world is the cannonical container for a basic_world plus the
+ * arrays of props which populate it.
+ */
+typedef struct {
+  /**
+   * The basic_world representing the terrain and terrain types. Owned by this
+   * propped_world.
+   */
+  basic_world* terrain;
+  /**
+   * The grass prop layer. Grass has a short draw distance, and doesn't
+   * interact with objects within the environment.
+   */
+  prop_array grass;
+} propped_world;
 
-#endif /* RENDER_BASIC_WORLD_H_ */
+/**
+ * Allocates a new propped_world. Memory for all prop arrays is allocated, but
+ * not initialised.
+ *
+ * @param terrain The value for the terrain field of the propped_world. The
+ * basic_world becomes owned by this propped_world.
+ * @param num_grass The size of the grass layer prop_array.
+ */
+propped_world* propped_world_new(basic_world* terrain,
+                                 unsigned num_grass);
+/**
+ * Frees the memory held by the given propped_world, including the associated
+ * basic_world.
+ */
+void propped_world_delete(propped_world*);
+
+#endif /* WORLD_PROPPED_WORLD_H_ */
