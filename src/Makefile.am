@@ -38,6 +38,7 @@ render/terrain.c \
 render/props.c \
 render/lsystem.c \
 render/draw-queue.c \
+render/grass-props.c \
 control/mouselook.c \
 flower-pot.c \
 cosine-world.c
