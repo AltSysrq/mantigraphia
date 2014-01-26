@@ -64,7 +64,7 @@ static void render_grass_prop_simple(drawing_queue* dst,
   base[0] = tip[0] = this->x;
   base[2] = tip[2] = this->z;
   base[1] = terrain_base_y(world, this->x, this->z);
-  tip[1] = base[0] + METRE * level / 64;
+  tip[1] = base[1] + METRE * level / 64;
 
   if (!perspective_proj(pbase, base, proj) ||
       !perspective_proj(ptip, tip, proj))
