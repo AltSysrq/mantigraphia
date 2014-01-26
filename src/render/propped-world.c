@@ -81,13 +81,16 @@ static ump_task render_propped_world_enqueue_task = {
   0, /* Determined dynamically (= num processors) */
   0, /* Unused (synchronous) */
 };
+static void render_propped_world_execute(unsigned, unsigned);
+static ump_task render_propped_world_execute_task = {
+  render_propped_world_execute,
+  0, /* Determined dynamically (= num processors) */
+  0, /* Unused (synchronous) */
+};
 
 void render_propped_world(canvas* dst,
                           const propped_world*restrict this,
                           const rendering_context*restrict context) {
-  drawing_queue** queues = *render_propped_world_get(context);
-  unsigned i;
-
   render_propped_world_this = this;
   render_propped_world_context = context;
   render_propped_world_dst = dst;
@@ -95,11 +98,9 @@ void render_propped_world(canvas* dst,
   render_basic_world(dst, this->terrain, context);
 
   render_propped_world_enqueue_task.num_divisions = ump_num_workers()+1;
+  render_propped_world_execute_task.num_divisions = ump_num_workers()+1;
   ump_run_sync(&render_propped_world_enqueue_task);
-
-  /* TODO: Execute in parallel */
-  for (i = 0; i < ump_num_workers(); ++i)
-    drawing_queue_execute(dst, queues[i], 0, 0);
+  ump_run_sync(&render_propped_world_execute_task);
 }
 
 static void render_propped_world_enqueue(unsigned ix, unsigned count) {
@@ -123,4 +124,31 @@ static void render_propped_world_enqueue(unsigned ix, unsigned count) {
                      GRASS_DISTSQ_SHIFT,
                      grass_prop_renderers,
                      context);
+}
+
+static void render_propped_world_execute(unsigned ix, unsigned count) {
+  canvas*restrict dst = render_propped_world_dst;
+  const rendering_context*restrict context = render_propped_world_context;
+  drawing_queue** queues = *render_propped_world_get(context);
+  unsigned i;
+  canvas slice;
+  unsigned x0, x1;
+
+  /* Rendering vertical slices gives better distribution across threads, even
+   * though it has worse cache performance. This is because the upper parts of
+   * the screen usually have very little to render, but there is no such
+   * consistent discrepency across vertical slices.
+   */
+  x0 = dst->w * ix / count;
+  x1 = dst->w * (ix+1) / count;
+  /* Floor to cache line boundaries */
+  x0 &= ~(UMP_CACHE_LINE_SZ / sizeof(canvas_pixel) - 1);
+  x1 &= ~(UMP_CACHE_LINE_SZ / sizeof(canvas_pixel) - 1);
+  /* Stop now if there's nothing for this thread to do */
+  if (x0 == x1) return;
+
+  canvas_slice(&slice, dst, x0, 0, x1 - x0, dst->h);
+
+  for (i = 0; i < count; ++i)
+    drawing_queue_execute(&slice, queues[i], -(signed)x0, 0);
 }
