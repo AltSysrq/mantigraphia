@@ -94,7 +94,7 @@ int SDL_GetWindowDisplayIndex(SDL_Window* window) {
 
     if (display_name &&
         1 == sscanf(display_name,
-                    (display_name[0] == ':'? ":%*d.%d" : "%*64s:%*d%d"),
+                    (display_name[0] == ':'? ":%*d.%d" : "%*64s:%*d.%d"),
                     &screen) &&
         screen > 0)
       do_delegate = 0;
