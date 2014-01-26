@@ -31,6 +31,16 @@
 
 #include <SDL.h>
 
+#if defined(HAVE_SYS_PARAM_H) && defined(HAVE_SYS_CPUSET_H) &&  \
+  defined(HAVE_CPUSET_SETAFFINITY)
+#define USE_BSD_CPUSET_SETAFFINITY
+#endif
+
+#ifdef USE_BSD_CPUSET_SETAFFINITY
+#include <sys/param.h>
+#include <sys/cpuset.h>
+#endif
+
 #include "bsd.h"
 
 #include "micromp.h"
@@ -64,12 +74,27 @@ static void exec_region(unsigned lower_bound, unsigned upper_bound) {
 }
 
 static int ump_main(void* vspec) {
+#ifdef USE_BSD_CPUSET_SETAFFINITY
+  cpuset_t affinity;
+#endif
   ump_thread_spec spec;
   unsigned work_amt, work_offset;
   unsigned lower_bound, upper_bound, n;
   int prev_task = 0;
+#ifdef UMP_VERBOSE_TIMING
+  unsigned received, completed;
+#endif
 
   memcpy(&spec, vspec, sizeof(spec));
+
+#ifdef USE_BSD_CPUSET_SETAFFINITY
+  /* Pin self to CPU n+1 */
+  CPU_ZERO(&affinity);
+  CPU_SET(spec.ordinal+1, &affinity);
+  if (cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1 /* self */,
+                         sizeof(affinity), &affinity))
+    warn("Unable to set affinity for uMP thread %d", spec.ordinal);
+#endif
 
   if (SDL_LockMutex(mutex))
     errx(EX_SOFTWARE, "Unable to lock mutex: %s", SDL_GetError());
@@ -88,6 +113,11 @@ static int ump_main(void* vspec) {
     if (SDL_UnlockMutex(mutex))
       errx(EX_SOFTWARE, "Unable to unlock mutex: %s", SDL_GetError());
 
+#ifdef UMP_VERBOSE_TIMING
+    received = SDL_GetTicks();
+    printf("uMP thread %d: Got task at %d\n", spec.ordinal, received);
+#endif
+
     /* Calculate work boundaries */
     n = current_task->num_divisions;
     if (current_task_is_sync)
@@ -103,6 +133,12 @@ static int ump_main(void* vspec) {
     upper_bound = work_offset + (spec.ordinal+1) * work_amt / spec.count;
 
     exec_region(lower_bound, upper_bound);
+
+#ifdef UMP_VERBOSE_TIMING
+    completed = SDL_GetTicks();
+    printf("uMP thread %d: Task completed at %d (delta %d)\n",
+           spec.ordinal, completed, completed - received);
+#endif
 
     /* Done. Notify of completion and go back to waiting for assignment */
     if (SDL_LockMutex(mutex))
@@ -120,11 +156,23 @@ static int ump_main(void* vspec) {
 void ump_init(unsigned num_threads) {
   unsigned i;
   char thread_name[32];
+#ifdef USE_BSD_CPUSET_SETAFFINITY
+  cpuset_t affinity;
+#endif
 
   num_workers = num_threads;
 
 #ifdef UMP_NO_THREADING
   return;
+#endif
+
+#ifdef USE_BSD_CPUSET_SETAFFINITY
+  /* Pin main thread to CPU 0 */
+  CPU_ZERO(&affinity);
+  CPU_SET(0, &affinity);
+  if (cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1,
+                         sizeof(affinity), &affinity))
+    warn("Unable to set CPU affinity of main thread");
 #endif
 
   if (!(completion_notification = SDL_CreateCond()))

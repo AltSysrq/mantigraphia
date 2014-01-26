@@ -25,6 +25,12 @@ AC_CHECK_HEADERS([arpa/inet.h inttypes.h malloc.h netinet/in.h stdint.h dnl
                   stdlib.h string.h sys/socket.h sys/time.h unistd.h dlfcn.h])
 AC_CHECK_HEADERS([sys/queue.h bsd/sys/queue.h sys/tree.h bsd/sys/tree.h dnl
                   err.h bsd/err.h sysexits.h bsd/sysexits.h])
+AC_CHECK_HEADERS([sys/param.h])
+AC_CHECK_HEADERS([sys/cpuset.h], [], [], [
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -38,7 +44,8 @@ AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 
 # Checks for library functions.
-AC_CHECK_FUNCS([memmove memset pow setlocale sqrt dlfunc dlerror])
+AC_CHECK_FUNCS([memmove memset pow setlocale sqrt dlfunc dlerror dnl
+                cpuset_setaffinity])
 
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT
