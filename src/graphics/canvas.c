@@ -36,22 +36,23 @@
 #include <string.h>
 
 #include "../alloc.h"
+#include "../micromp.h"
 #include "canvas.h"
 
 SDL_PixelFormat* screen_pixel_format;
 
 canvas* canvas_new(unsigned width, unsigned height) {
   canvas* this = xmalloc(
-    sizeof(canvas) +
-    sizeof(canvas_pixel)*width*height +
+    sizeof(canvas) + UMP_CACHE_LINE_SZ +
+    sizeof(canvas_pixel)*width*height + UMP_CACHE_LINE_SZ +
     sizeof(canvas_depth)*width*height);
 
   this->w = width;
   this->h = height;
   this->pitch = width;
   this->ox = this->oy = 0;
-  this->px = (canvas_pixel*)(this + 1);
-  this->depth = (canvas_depth*)(this->px + width*height);
+  this->px = align_to_cache_line(this + 1);
+  this->depth = align_to_cache_line(this->px + width*height);
   return this;
 }
 

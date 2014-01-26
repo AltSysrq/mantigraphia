@@ -126,4 +126,15 @@ int ump_is_finished(void);
  */
 unsigned ump_num_workers(void);
 
+/**
+ * Returns a pointer such that:
+ *   ret >= input
+ *   ret < input + UMP_CACHE_LINE_SZ
+ *   ret &~ (UMP_CACHE_LINE_SZ-1) == 0
+ *
+ * ie, the input is advanced less than one cache line forward, as necessary to
+ * ensure that it is aligned to the start of a cache line.
+ */
+void* align_to_cache_line(void* input);
+
 #endif /* MICROMP_H_ */

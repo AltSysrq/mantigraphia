@@ -251,3 +251,16 @@ int ump_is_finished(void) {
 unsigned ump_num_workers(void) {
   return num_workers;
 }
+
+void* align_to_cache_line(void* vinput) {
+  char* input = vinput;
+  unsigned long long as_int;
+  unsigned misalignment;
+
+  as_int = (unsigned long long)input;
+  misalignment = as_int & (UMP_CACHE_LINE_SZ - 1);
+  if (misalignment)
+    input += UMP_CACHE_LINE_SZ - misalignment;
+
+  return input;
+}
