@@ -55,6 +55,29 @@ static ump_task* current_task;
 static SDL_atomic_t current_task_id;
 static int current_task_is_sync;
 
+/**
+ * Indicates the most recent task ID accepted by each thread. This is used by
+ * the "impersonation mechanism" which allows to recover from operating system
+ * scheduler delays.
+ *
+ * On systems with strict interpretation of priorities, in particular FreeBSD,
+ * Mantigraphia often ends up with a relatively low priority, allowing other
+ * processes to steal the CPU from us for hundreds of milliseconds at a
+ * time. This almost (but not always, unfortunately) manifests itself as one or
+ * more threads failing to wake up from the assignment sleep for that duration.
+ *
+ * The impersonation mechanism works as follows. When any thread completes the
+ * work that was assigned to it and has decremented num_busy_workers, it
+ * attempts a CAS for each element in this array, to change it from the
+ * previous task ID to the current. If one succeeds, the thread pretends to be
+ * the one whose slot it just overwrote, performing the work on its behalf,
+ * including decrementing num_busy_workers. Thereafter, it attempts to
+ * impersonate another thread. Once no more threads can be impersonated, the
+ * thread signals the completion notification and begins waiting for more
+ * work.
+ */
+static SDL_atomic_t accepted_task_ids[UMP_MAX_THREADS];
+
 typedef struct {
   unsigned ordinal;
   unsigned count;
@@ -78,6 +101,7 @@ static int ump_main(void* vspec) {
   cpuset_t affinity;
 #endif
   ump_thread_spec spec;
+  unsigned effective_id;
   unsigned work_amt, work_offset;
   unsigned lower_bound, upper_bound, n;
   int prev_task = 0;
@@ -102,6 +126,9 @@ static int ump_main(void* vspec) {
   while (1) {
     /* Mutex locked at this point */
 
+    /* Cease impersonation */
+    effective_id = spec.ordinal;
+
     /* Wait for assignment */
     while (prev_task == SDL_AtomicGet(&current_task_id)) {
       if (SDL_CondWait(assignment_notification, mutex))
@@ -110,8 +137,20 @@ static int ump_main(void* vspec) {
 
     prev_task = SDL_AtomicGet(&current_task_id);
 
+    /* Try to take ownership of this task.
+     * This needs to be within the mutex lock, since it can jump back to the
+     * beginning of the loop. But we can't assume that the mutex protects our
+     * accepted_task_ids slot, since impersonators will write to it without
+     * holding the mutex.
+     */
+    if (!SDL_AtomicCAS(accepted_task_ids+spec.ordinal, prev_task-1, prev_task))
+      /* Somebody has impersonated us meanwhile */
+      continue;
+
     if (SDL_UnlockMutex(mutex))
       errx(EX_SOFTWARE, "Unable to unlock mutex: %s", SDL_GetError());
+
+    process_task:
 
 #ifdef UMP_VERBOSE_TIMING
     received = SDL_GetTicks();
@@ -129,8 +168,8 @@ static int ump_main(void* vspec) {
 
     work_amt = n - work_offset;
 
-    lower_bound = work_offset + spec.ordinal * work_amt / spec.count;
-    upper_bound = work_offset + (spec.ordinal+1) * work_amt / spec.count;
+    lower_bound = work_offset + effective_id * work_amt / spec.count;
+    upper_bound = work_offset + (effective_id+1) * work_amt / spec.count;
 
     exec_region(lower_bound, upper_bound);
 
@@ -140,11 +179,18 @@ static int ump_main(void* vspec) {
            spec.ordinal, completed, completed - received);
 #endif
 
+    SDL_AtomicAdd(&num_busy_workers, -1);
+
+    /* See if any other threads need be impersonated */
+    for (effective_id = 0; effective_id < num_workers; ++effective_id)
+      if (SDL_AtomicCAS(accepted_task_ids+effective_id, prev_task-1, prev_task))
+        /* Ownership taken. Impersonate this thread. */
+        goto process_task;
+
     /* Done. Notify of completion and go back to waiting for assignment */
     if (SDL_LockMutex(mutex))
       errx(EX_SOFTWARE, "Unable to lock mutex: %s", SDL_GetError());
 
-    SDL_AtomicAdd(&num_busy_workers, -1);
     if (SDL_CondBroadcast(completion_notification))
       errx(EX_SOFTWARE, "Unable to broadcast completion notification: %s",
            SDL_GetError());
