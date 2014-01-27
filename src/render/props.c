@@ -58,6 +58,8 @@ void render_world_props(drawing_queue* dst,
 
   lower_bound = props_bsearch_z(props, zmin, 0, num_props);
   upper_bound = props_bsearch_z(props, zmax, 0, num_props);
+  if (num_props == lower_bound)
+    lower_bound = 0;
   if (num_props == upper_bound)
     upper_bound = 0;
 
