@@ -206,6 +206,11 @@ void ump_init(unsigned num_threads) {
   cpuset_t affinity;
 #endif
 
+  if (num_threads < 1)
+    num_threads = 1;
+  if (num_threads > UMP_MAX_THREADS)
+    num_threads = UMP_MAX_THREADS;
+
   num_workers = num_threads;
 
 #ifdef UMP_NO_THREADING
