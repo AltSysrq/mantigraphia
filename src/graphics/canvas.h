@@ -67,6 +67,12 @@ typedef struct {
    */
   unsigned pitch;
   /**
+   * The physical width of the ultimate backing of this canvas. Operations
+   * relative to the "width" of a canvas typically use this value instead of
+   * the actual width, as they may be drawing to a slice of a larger canvas.
+   */
+  unsigned logical_width;
+  /**
    * The logical screen coordinates of the origin of this canvas. This is only
    * to be used for adjusting screen-texture coordinates.
    */

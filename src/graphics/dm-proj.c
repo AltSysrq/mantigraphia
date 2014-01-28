@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,7 @@ zo_scaling_factor dm_proj_calc_weight(const canvas* canv,
   screen_dist = psample[0] - porigin[0];
   assert(screen_dist >= 0);
 
-  return screen_dist * ZO_SCALING_FACTOR_MAX / canv->w;
+  return screen_dist * ZO_SCALING_FACTOR_MAX / canv->logical_width;
 }
 
 static zo_scaling_factor adjust_weight(const dm_proj* this,

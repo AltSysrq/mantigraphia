@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -123,12 +123,12 @@ void brush_init(brush_spec* spec) {
 
 void brush_prep(brush_accum* accum, const brush_spec* spec,
                 canvas* dst, unsigned random_seed) {
-  unsigned px_per_step = zo_scale(dst->w, spec->step);
+  unsigned px_per_step = zo_scale(dst->logical_width, spec->step);
 
   memcpy(accum->bristles, spec->init_bristles, sizeof(accum->bristles));
   accum->dst = dst;
   accum->random_state = random_seed;
-  accum->basic_size = zo_scale(dst->w, spec->size);
+  accum->basic_size = zo_scale(dst->logical_width, spec->size);
   if (!px_per_step) px_per_step = 1;
   accum->step_size = ZO_SCALING_FACTOR_MAX / px_per_step;
   accum->has_endpoint = 0;

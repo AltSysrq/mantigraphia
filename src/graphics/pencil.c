@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,8 @@ void pencil_flush(canvas* c, const pencil_spec* spec) { }
 static unsigned thickness(const canvas* c,
                           const pencil_spec* spec,
                           zo_scaling_factor weight) {
-  signed nominal = zo_scale(zo_scale(c->w, spec->thickness), weight);
+  signed nominal = zo_scale(zo_scale(c->logical_width, spec->thickness),
+                            weight);
   return nominal > 0? nominal : 1;
 }
 

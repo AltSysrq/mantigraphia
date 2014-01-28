@@ -50,6 +50,7 @@ canvas* canvas_new(unsigned width, unsigned height) {
   this->w = width;
   this->h = height;
   this->pitch = width;
+  this->logical_width = width;
   this->ox = this->oy = 0;
   this->px = align_to_cache_line(this + 1);
   this->depth = align_to_cache_line(this->px + width*height);
@@ -74,6 +75,7 @@ void canvas_slice(canvas* slice, const canvas* backing,
   slice->w = w;
   slice->h = h;
   slice->pitch = backing->pitch;
+  slice->logical_width = backing->logical_width;
   slice->ox = x + backing->ox;
   slice->oy = y + backing->oy;
   slice->px = backing->px + canvas_offset(backing, x, y);
