@@ -159,6 +159,7 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
 
   context_inv.proj = &proj;
   context_inv.long_yrot = this->look.yrot;
+  context_inv.screen_width = dst->w;
 
   proj.camera[0] = this->x;
   proj.camera[1] = terrain_base_y(this->world->terrain, this->x, this->z) +

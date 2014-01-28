@@ -66,6 +66,12 @@ typedef struct {
    * if only an angle were used.
    */
   signed long_yrot;
+
+  /**
+   * The total width of the screen, in pixels. This is used by operations which
+   * need to determine pixel sizes but do not render directly to a canvas.
+   */
+  unsigned screen_width;
 } rendering_context_invariant;
 
 /**

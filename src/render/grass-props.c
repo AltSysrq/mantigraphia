@@ -53,6 +53,8 @@ static void render_grass_prop_simple(drawing_queue* dst,
                                      const rendering_context*restrict context) {
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;
+  unsigned screen_width =
+    ((const rendering_context_invariant*)context)->screen_width;
   pencil_spec pencil;
   vc3 base, tip;
   vo3 pbase, ptip;
@@ -76,8 +78,7 @@ static void render_grass_prop_simple(drawing_queue* dst,
 
   drawing_queue_put_points(&burst, pbase, ZO_SCALING_FACTOR_MAX,
                            ptip, ZO_SCALING_FACTOR_MAX);
-  /* XXX Need to determine width properly */
-  drawing_queue_draw_line(&burst, 3);
+  drawing_queue_draw_line(&burst, zo_scale(screen_width, pencil.thickness));
   drawing_queue_flush(&burst);
   drawing_queue_end_burst(dst, &burst);
 }
