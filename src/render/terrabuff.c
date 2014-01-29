@@ -66,7 +66,6 @@ void terrabuff_init(void) {
     argb(255,192,192,192),
     argb(255,128,128,128),
     argb(255,64,64,64),
-    argb(255,0,0,0),
   };
 
   /* Allocate temporary heap space to store the ARGB texture */
