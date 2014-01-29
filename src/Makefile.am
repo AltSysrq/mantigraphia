@@ -26,6 +26,7 @@ graphics/linear-paint-tile.c \
 graphics/perspective.c \
 graphics/hull.c \
 graphics/dm-proj.c \
+graphics/fast-brush.c \
 world/basic-world.c \
 world/terrain.c \
 world/props.c \
