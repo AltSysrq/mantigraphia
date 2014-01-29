@@ -72,6 +72,7 @@ typedef struct {
 
 enum drawing_queue_opcode {
   dqinstr_code_method = 0,
+  dqinstr_code_method_ptr,
   dqinstr_code_accum,
   dqinstr_code_accum_canvas,
   dqinstr_code_1point,
@@ -81,6 +82,7 @@ enum drawing_queue_opcode {
   dqinstr_code_flush
 };
 #define DQINSTR_METHOD(sz)    (            (sz<<8) | dqinstr_code_method)
+#define DQINSTR_METHOD_PTR    (                      dqinstr_code_method_ptr)
 #define DQINSTR_ACCUM(sz,off) ((off<<24) | (sz<<8) | dqinstr_code_accum)
 #define DQINSTR_ACCUM_CANVAS  (                      dqinstr_code_accum_canvas)
 #define DQINSTR_1POINT        (                      dqinstr_code_1point)
@@ -134,6 +136,21 @@ static inline void drawing_queue_put_method(drawing_queue_burst*restrict burst,
   sz = (sz + sizeof(void*) - 1) / sizeof(void*) * sizeof(void*);
   burst->data += sz;
   *burst->instructions++ = DQINSTR_METHOD(sz);
+}
+
+/**
+ * Sets the drawing_method to be used for all subsequent drawing operations in
+ * this queue. Only the pointer to the method is copied; it is the
+ * responsibility of the client code to ensure that the memory to which the
+ * pointer points remains valid until the queue is executed.
+ */
+static inline void drawing_queue_put_method_ptr(
+  drawing_queue_burst*restrict burst,
+  const drawing_method* meth)
+{
+  memcpy(burst->data, &meth, sizeof(meth));
+  burst->data += sizeof(meth);
+  *burst->instructions++ = DQINSTR_METHOD_PTR;
 }
 
 /**
@@ -261,6 +278,8 @@ void drawing_queue_execute(canvas*, const drawing_queue*,
 
 #define DQMETH(dq,meth)                                                 \
   drawing_queue_put_method(&(dq), (const drawing_method*)&(meth), sizeof(meth))
+#define DQMETHPTR(dq,meth)                                              \
+  drawing_queue_put_method_ptr(&(dq), (const drawing_method*)meth)
 #define DQACC(dq,acc)                                                   \
   drawing_queue_put_accum(&(dq), &(acc), sizeof(acc), offsetof((acc), dst))
 #define DQCANV(dq)                              \

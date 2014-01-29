@@ -180,7 +180,9 @@ void drawing_queue_execute(canvas* dst, const drawing_queue* this,
   char accum_buff[65536];
   /* The pointer to use for the drawing accumulator */
   void* accum = NULL;
-  /* The current drawing method. This points into the data for a page. */
+  /* The current drawing method. This points into the data for a page or to
+   * client-maintained memory.
+   */
   const drawing_method*restrict method = NULL;
   /* The from and to points for drawing */
   drawing_queue_point from, to;
@@ -238,6 +240,12 @@ void drawing_queue_execute(canvas* dst, const drawing_queue* this,
       case dqinstr_code_method:
         method = (const drawing_method*restrict)data;
         data += (instruction >> 8) & 0xFFFF;
+        FAST_FORWARD;
+        break;
+
+      case dqinstr_code_method_ptr:
+        method = *(const drawing_method*const restrict*)data;
+        data += sizeof(void*);
         FAST_FORWARD;
         break;
 
