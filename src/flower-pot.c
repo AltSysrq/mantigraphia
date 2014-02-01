@@ -258,10 +258,8 @@ static void init_data(void) {
 
 static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   hull_render_scratch hrscratch[sizeof(pot_mesh)/sizeof(pot_mesh[0])];
-  brush_spec    brush;
   pencil_spec   pencil;
   dm_proj       brush_proj;
-  brush_accum   baccum;
   fast_brush_accum fbaccum;
   perspective   proj;
   tiled_texture pot_texture, soil_texture;
@@ -281,10 +279,6 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   proj.rxrot_cos = zo_cos(15 * 65536 / 360);
   proj.rxrot_sin = zo_sin(15 * 65536 / 360);
   proj.near_clipping_plane = 1;
-
-  brush_init(&brush);
-  for (i = 0; i < MAX_BRUSH_BRISTLES; ++i)
-    brush.init_bristles[i] = 1;
 
   pencil_init(&pencil);
   pencil.colour = 0;
@@ -379,12 +373,10 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
     dm_proj_flush(&fbaccum, &brush_proj);
   }
 
-  brush_proj.delegate = (const drawing_method*)&brush;
-  brush.size = dm_proj_calc_weight(dst, &proj,
-                                   brush_proj.far_max, 5*10*MILLIMETRE/2 * 10);
-  brush.colours = petal_colours;
-  brush.num_colours = lenof(petal_colours);
-  brush_prep(&baccum, &brush, dst, 1);
+  size = dm_proj_calc_weight(dst, &proj,
+                             brush_proj.far_max, 5*10*MILLIMETRE/2 * 10);
+  fbaccum.colours = petal_colours;
+  fbaccum.num_colours = lenof(petal_colours);
   /* Draw petals */
   for (i = 0; i < NPET_R; ++i) {
     for (j = 0; j <= NPET_H; ++j) {
@@ -392,9 +384,9 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
       vb[0] = METRE + zo_cosms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
       vb[1] = (STEM_BASE + STEM_H/3 + STEM_H*2*j/NPET_H/3 + PET_YOFF / yscale) * MILLIMETRE*10;
       vb[2] = METRE + zo_sinms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
-      dm_proj_draw_point(&baccum, &brush_proj,
-                         vb, ZO_SCALING_FACTOR_MAX);
+      dm_proj_draw_point(&fbaccum, &brush_proj,
+                         vb, size);
     }
-    dm_proj_flush(&baccum, &brush_proj);
   }
+  dm_proj_flush(&fbaccum, &brush_proj);
 }

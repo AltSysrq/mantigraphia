@@ -34,6 +34,8 @@
 #include <string.h>
 
 #include "../alloc.h"
+#include "../frac.h"
+#include "../rand.h"
 #include "canvas.h"
 #include "abstract.h"
 #include "brush.h"
@@ -146,7 +148,51 @@ void fast_brush_flush(fast_brush_accum*restrict accum,
 void fast_brush_draw_point(fast_brush_accum*restrict accum,
                            const fast_brush*restrict this,
                            const vo3 where, zo_scaling_factor size_scale) {
-  /* TODO */
+  signed size = zo_scale(accum->dst->logical_width, size_scale);
+  fraction isize = fraction_of(size);
+  coord_offset ax0, ax1, ay0, ay1;
+  coord x0, x1, y0, y1;
+  coord x, y, tx, ty;
+  unsigned texix, colourix, noisetexix;
+  const unsigned char*restrict primary_texture,
+                     *restrict variant_texture,
+                     *restrict noise_texture;
+
+  ax0 = where[0] - size/2;
+  ax1 = ax0 + size;
+  ay0 = where[1] - size/2;
+  ay1 = ay0 + size;
+
+  x0 = (ax0 >= 0? ax0 : 0);
+  x1 = (ax1 <= (signed)accum->dst->w? ax1 : (signed)accum->dst->w);
+  y0 = (ay0 >= 0? ay0 : 0);
+  y1 = (ay1 <= (signed)accum->dst->h? ay1 : (signed)accum->dst->h);
+
+  texix = lcgrand(&accum->random) % NUM_BRUSH_SPLOTCHES;
+  primary_texture = brush_splotches[texix];
+  variant_texture = brush_splotches[(texix+1) % NUM_BRUSH_SPLOTCHES];
+
+  for (y = y0; y < y1; ++y) {
+    ty = fraction_umul((y - ay0) * BRUSH_SPLOTCH_DIM, isize);
+    noisetexix = (texix+ty) % NUM_BRUSH_SPLOTCHES;
+    ty *= BRUSH_SPLOTCH_DIM;
+
+    for (x = x0; x < x1; ++x) {
+      tx = fraction_umul((x - ax0) * BRUSH_SPLOTCH_DIM, isize);
+
+      if (primary_texture[ty+tx] >= MAX_BRUSH_BRISTLES)
+        continue;
+
+      noise_texture = brush_splotches[(noisetexix+tx) % NUM_BRUSH_SPLOTCHES];
+
+      colourix = !!(primary_texture[ty+tx] - MAX_BRUSH_BRISTLES/2)
+               + !!((variant_texture[ty+tx] - MAX_BRUSH_BRISTLES/2)/8)
+               + (noise_texture[ty+tx] & 1);
+
+      if (colourix < accum->num_colours)
+        canvas_write(accum->dst, x, y, accum->colours[colourix], where[2]);
+    }
+  }
 }
 
 typedef struct {
