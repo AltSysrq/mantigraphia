@@ -46,6 +46,7 @@
 #include "graphics/hull.h"
 #include "graphics/dm-proj.h"
 #include "graphics/tscan.h"
+#include "graphics/fast-brush.h"
 
 #include "flower-pot.h"
 
@@ -54,6 +55,7 @@ typedef struct {
   int is_running;
   angle rotation;
   parchment* bg;
+  drawing_method* stem_brush;
 } flower_pot_state;
 
 static game_state* flower_pot_update(flower_pot_state*, chronon);
@@ -65,6 +67,7 @@ static void flower_pot_mmotion(flower_pot_state*, SDL_MouseMotionEvent*);
 static void flower_pot_scroll(flower_pot_state*, SDL_MouseWheelEvent*);
 
 game_state* flower_pot_new(void) {
+  brush_spec stem_brush;
   flower_pot_state template = {
     { (game_state_update_t) flower_pot_update,
       (game_state_draw_t)   flower_pot_draw,
@@ -76,10 +79,19 @@ game_state* flower_pot_new(void) {
     },
     1, 0,
     parchment_new(),
+    NULL
   };
   flower_pot_state* this = xmalloc(sizeof(flower_pot_state));
+  unsigned i;
+
   memcpy(this, &template, sizeof(flower_pot_state));
   init_data();
+
+  brush_init(&stem_brush);
+  for (i = 0; i < MAX_BRUSH_BRISTLES; ++i)
+    stem_brush.init_bristles[i] = 1;
+  this->stem_brush = fast_brush_new(&stem_brush, 64, 1024, 0);
+
   return (game_state*)this;
 }
 
@@ -88,6 +100,7 @@ static game_state* flower_pot_update(flower_pot_state* this, chronon et) {
     return (game_state*)this;
   } else {
     parchment_delete(this->bg);
+    fast_brush_delete(this->stem_brush);
     free(this);
     return NULL;
   }
@@ -249,11 +262,13 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   pencil_spec   pencil;
   dm_proj       brush_proj;
   brush_accum   baccum;
+  fast_brush_accum fbaccum;
   perspective   proj;
   tiled_texture pot_texture, soil_texture;
   unsigned      i, j;
   signed        yscale;
   vc3           va, vb;
+  unsigned      size;
 
   /* Configure drawing utinsils */
   perspective_init(&proj, dst, DEG_90);
@@ -276,7 +291,6 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   pencil.thickness *= 2;
 
   dm_init(&brush_proj);
-  brush_proj.delegate = (drawing_method*)&brush;
   brush_proj.proj = &proj;
   brush_proj.near_clipping = 1;
   brush_proj.near_max = 1;
@@ -329,21 +343,24 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
               &proj);
 
   /* Draw stem, 1cm wide */
-  brush.size = dm_proj_calc_weight(dst, &proj,
-                                   brush_proj.far_max, MILLIMETRE * 10 * 10);
-  brush.colours = plant_colours;
-  brush.num_colours = lenof(plant_colours);
-  brush_prep(&baccum, &brush, dst, 0);
+  brush_proj.delegate = this->stem_brush;
+  size = dm_proj_calc_weight(dst, &proj,
+                             brush_proj.far_max, MILLIMETRE * 10 * 10);
+  fbaccum.colours = plant_colours;
+  fbaccum.num_colours = lenof(plant_colours);
+  fbaccum.distance = 0;
+  fbaccum.random = fbaccum.random_seed = 0;
+  fbaccum.dst = dst;
   va[0] = METRE;
   va[1] = STEM_BASE*MILLIMETRE * 10;
   va[2] = METRE;
   vb[0] = METRE;
   vb[1] = (STEM_BASE+STEM_H)*MILLIMETRE * 10;
   vb[2] = METRE;
-  dm_proj_draw_line(&baccum, &brush_proj,
-                    va, ZO_SCALING_FACTOR_MAX,
-                    vb, ZO_SCALING_FACTOR_MAX);
-  dm_proj_flush(&baccum, &brush_proj);
+  dm_proj_draw_line(&fbaccum, &brush_proj,
+                    va, size,
+                    vb, size);
+  dm_proj_flush(&fbaccum, &brush_proj);
 
   /* Draw branches to petals */
   for (i = 0; i < NPET_R; ++i) {
@@ -355,13 +372,14 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
       vb[0] = METRE + zo_cosms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
       vb[1] = va[1] + PET_YOFF * MILLIMETRE*10 / yscale;
       vb[2] = METRE + zo_sinms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
-      dm_proj_draw_line(&baccum, &brush_proj,
-                        va, ZO_SCALING_FACTOR_MAX / 2,
-                        vb, ZO_SCALING_FACTOR_MAX / 3);
+      dm_proj_draw_line(&fbaccum, &brush_proj,
+                        va, size / 2,
+                        vb, size / 3);
     }
-    dm_proj_flush(&baccum, &brush_proj);
+    dm_proj_flush(&fbaccum, &brush_proj);
   }
 
+  brush_proj.delegate = (const drawing_method*)&brush;
   brush.size = dm_proj_calc_weight(dst, &proj,
                                    brush_proj.far_max, 5*10*MILLIMETRE/2 * 10);
   brush.colours = petal_colours;
