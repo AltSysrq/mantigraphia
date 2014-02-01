@@ -181,11 +181,11 @@ void fast_brush_draw_line(fast_brush_accum*restrict accum,
   coord_offset v00[2], v01[2], v10[2], v11[2];
   coord_offset xoff, yoff;
   fast_brush_interps z00, z01, z10, z11;
-  unsigned length;
+  signed length;
 
   delta[0] = from[0] - to[0];
   delta[1] = from[1] - to[1];
-  delta[2] = from[2] - to[2];
+  delta[2] = 0;
   length = omagnitude(delta);
 
   /* Nothing to do if zero-magnitude */
@@ -210,8 +210,8 @@ void fast_brush_draw_line(fast_brush_accum*restrict accum,
 
   accum->distance += length;
 
-  xoff = - accum->dst->logical_width * delta[1] / 2 / length;
-  yoff = + accum->dst->logical_width * delta[0] / 2 / length;
+  xoff = - ((signed)(accum->dst->logical_width * delta[1])) / 2 / length;
+  yoff = + ((signed)(accum->dst->logical_width * delta[0])) / 2 / length;
   v00[0] = from[0] - zo_scale(xoff, from_size_scale);
   v00[1] = from[1] - zo_scale(yoff, from_size_scale);
   v01[0] = from[0] + zo_scale(xoff, from_size_scale);
