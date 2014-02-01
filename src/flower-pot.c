@@ -34,6 +34,7 @@
 #include "alloc.h"
 #include "coords.h"
 #include "defs.h"
+#include "micromp.h"
 
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
@@ -303,6 +304,7 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
 
   /* Draw background */
   parchment_draw(dst, this->bg);
+  ump_join();
 
   /* Draw pot and soil */
   hull_render(dst, hrscratch,
