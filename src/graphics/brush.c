@@ -38,13 +38,13 @@
 #include "abstract.h"
 #include "brush.h"
 
-#define SPLOTCH_DIM 64
-#define NUM_SPLOTCHES 32
+unsigned char
+brush_splotches[NUM_BRUSH_SPLOTCHES][BRUSH_SPLOTCH_DIM*BRUSH_SPLOTCH_DIM];
 
-unsigned char splotches[NUM_SPLOTCHES][SPLOTCH_DIM*SPLOTCH_DIM];
-
-static void generate_splotch(unsigned char splotch[SPLOTCH_DIM*SPLOTCH_DIM]) {
-  unsigned char tmp[SPLOTCH_DIM*SPLOTCH_DIM];
+static void generate_splotch(
+  unsigned char splotch[BRUSH_SPLOTCH_DIM*BRUSH_SPLOTCH_DIM])
+{
+  unsigned char tmp[BRUSH_SPLOTCH_DIM*BRUSH_SPLOTCH_DIM];
   unsigned bristle, x, y, rad, which;
   signed px, py;
   angle ang;
@@ -62,11 +62,11 @@ static void generate_splotch(unsigned char splotch[SPLOTCH_DIM*SPLOTCH_DIM]) {
       /* Call rand twice to account for 15-bit PRNGs */
       ang = rand() ^ (rand() << 15);
       cossinms(&px, &py, ang, rad);
-      px += SPLOTCH_DIM / 2;
-      py += SPLOTCH_DIM / 2;
-    } while (255 != splotch[px + py*SPLOTCH_DIM]);
+      px += BRUSH_SPLOTCH_DIM / 2;
+      py += BRUSH_SPLOTCH_DIM / 2;
+    } while (255 != splotch[px + py*BRUSH_SPLOTCH_DIM]);
 
-    splotch[px + py*SPLOTCH_DIM] = bristle;
+    splotch[px + py*BRUSH_SPLOTCH_DIM] = bristle;
   }
 
   /* Each iteration, every pixel with no bristle has a 50% chance of taking a
@@ -77,19 +77,20 @@ static void generate_splotch(unsigned char splotch[SPLOTCH_DIM*SPLOTCH_DIM]) {
   do {
     memcpy(tmp, splotch, sizeof(tmp));
 
-    for (y = 0; y < SPLOTCH_DIM; ++y) {
-      for (x = 0; x < SPLOTCH_DIM; ++x) {
-        if (255 == splotch[x + y*SPLOTCH_DIM] && !(rand()&1)) {
+    for (y = 0; y < BRUSH_SPLOTCH_DIM; ++y) {
+      for (x = 0; x < BRUSH_SPLOTCH_DIM; ++x) {
+        if (255 == splotch[x + y*BRUSH_SPLOTCH_DIM] && !(rand()&1)) {
           which = rand() % 8;
           if (which >= 4) ++which; /* Skip self */
           px = x + which%3 - 1;
           py = y + which/3 - 1;
 
-          if (px >= 0 && px < SPLOTCH_DIM &&
-              py >= 0 && py < SPLOTCH_DIM) {
-            splotch[x + y*SPLOTCH_DIM] = tmp[px + py*SPLOTCH_DIM];
-            if ((0 == x || 0 == y || SPLOTCH_DIM == x+1 || SPLOTCH_DIM == y+1) &&
-                255 != splotch[x + y*SPLOTCH_DIM])
+          if (px >= 0 && px < BRUSH_SPLOTCH_DIM &&
+              py >= 0 && py < BRUSH_SPLOTCH_DIM) {
+            splotch[x + y*BRUSH_SPLOTCH_DIM] = tmp[px + py*BRUSH_SPLOTCH_DIM];
+            if ((0 == x || 0 == y || BRUSH_SPLOTCH_DIM == x+1 ||
+                 BRUSH_SPLOTCH_DIM == y+1) &&
+                255 != splotch[x + y*BRUSH_SPLOTCH_DIM])
               done = 1;
           }
         }
@@ -101,8 +102,8 @@ static void generate_splotch(unsigned char splotch[SPLOTCH_DIM*SPLOTCH_DIM]) {
 void brush_load(void) {
   unsigned splotch;
 
-  for (splotch = 0; splotch < NUM_SPLOTCHES; ++splotch)
-    generate_splotch(splotches[splotch]);
+  for (splotch = 0; splotch < NUM_BRUSH_SPLOTCHES; ++splotch)
+    generate_splotch(brush_splotches[splotch]);
 }
 
 void brush_init(brush_spec* spec) {
@@ -191,15 +192,16 @@ static void draw_splotch(brush_accum*restrict accum,
                          signed xdiam,
                          signed ydiam,
                          unsigned max_bristle) {
-  const unsigned char* splotch = splotches[accrand(accum) % NUM_SPLOTCHES];
+  const unsigned char* splotch =
+    brush_splotches[accrand(accum) % NUM_BRUSH_SPLOTCHES];
   unsigned bristle, colour, noise_rand;
   signed ixdiam16, iydiam16;
   coord_offset x, y, cx, cy, tx, ty, sx, sy;
 
   if (xdiam <= 0 || ydiam <= 0) return;
 
-  ixdiam16 = SPLOTCH_DIM * 65536 / xdiam;
-  iydiam16 = SPLOTCH_DIM * 65536 / ydiam;
+  ixdiam16 = BRUSH_SPLOTCH_DIM * 65536 / xdiam;
+  iydiam16 = BRUSH_SPLOTCH_DIM * 65536 / ydiam;
   noise_rand = accrand(accum);
 
   for (y = 0; y < ydiam; ++y) {
@@ -207,7 +209,7 @@ static void draw_splotch(brush_accum*restrict accum,
     for (x = 0; x < xdiam; ++x) {
       sx = x * ixdiam16 >> 16;
 
-      bristle = splotch[sx + sy*SPLOTCH_DIM];
+      bristle = splotch[sx + sy*BRUSH_SPLOTCH_DIM];
       if (bristle >= max_bristle) continue; /* no bristle */
 
       colour = accum->bristles[bristle];

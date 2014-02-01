@@ -191,4 +191,28 @@ void brush_draw_line(
 
 void brush_flush(brush_accum*, const brush_spec*);
 
+/**
+ * The length, in pixels, of each dimension of a brush splotch texture.
+ *
+ * This is only of interest to components which wish to draw brush-like points
+ * without the relatively expensive noise used by the brush drawing method.
+ */
+#define BRUSH_SPLOTCH_DIM 64
+/**
+ * The number of unique brush splotch textures.
+ */
+#define NUM_BRUSH_SPLOTCHES 32
+
+/**
+ * Brush splotch textures. Each splotch is a square 8-bit texture, whose values
+ * are indices to brush bristles. Values >= MAX_BRUSH_BRISTLES indicate
+ * transparent pixels.
+ *
+ * This is only of interest to components which wish to draw brush-like points
+ * without the relatively expensive noise used by the brush drawing method. It
+ * should be considered const outside of the brush_load() function.
+ */
+extern unsigned char
+brush_splotches[NUM_BRUSH_SPLOTCHES][BRUSH_SPLOTCH_DIM*BRUSH_SPLOTCH_DIM];
+
 #endif /* GRAPHICS_BRUSH_H_ */
