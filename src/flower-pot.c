@@ -47,6 +47,9 @@
 #include "graphics/dm-proj.h"
 #include "graphics/tscan.h"
 #include "graphics/fast-brush.h"
+#include "render/turtle.h"
+#include "render/draw-queue.h"
+#include "render/lsystem.h"
 
 #include "flower-pot.h"
 
@@ -55,6 +58,7 @@ typedef struct {
   int is_running;
   angle rotation;
   parchment* bg;
+  drawing_queue* queue;
   drawing_method* stem_brush;
 } flower_pot_state;
 
@@ -65,6 +69,10 @@ static void flower_pot_key(flower_pot_state*, SDL_KeyboardEvent*);
 static void flower_pot_mbutton(flower_pot_state*, SDL_MouseButtonEvent*);
 static void flower_pot_mmotion(flower_pot_state*, SDL_MouseMotionEvent*);
 static void flower_pot_scroll(flower_pot_state*, SDL_MouseWheelEvent*);
+
+static lsystem flower_system;
+
+#define FLOWER_UNIT (TURTLE_UNIT*4)
 
 game_state* flower_pot_new(void) {
   brush_spec stem_brush;
@@ -79,6 +87,7 @@ game_state* flower_pot_new(void) {
     },
     1, 0,
     parchment_new(),
+    drawing_queue_new(),
     NULL
   };
   flower_pot_state* this = xmalloc(sizeof(flower_pot_state));
@@ -92,6 +101,18 @@ game_state* flower_pot_new(void) {
     stem_brush.init_bristles[i] = 1;
   this->stem_brush = fast_brush_new(&stem_brush, 64, 1024, 0);
 
+  lsystem_compile(&flower_system,
+                  "9 8.8",
+                  "8 7.7",
+                  "7 6.6",
+                  "6 5.5",
+                  "5 4.4",
+                  "4 3.3",
+                  ". BrBrBrBrBrBr",
+                  "B [b8P]",
+                  "P [b9p]r[b9p]r[b9p]r[b9p]r[b9p]r[b9p]",
+                  NULL);
+
   return (game_state*)this;
 }
 
@@ -101,6 +122,7 @@ static game_state* flower_pot_update(flower_pot_state* this, chronon et) {
   } else {
     parchment_delete(this->bg);
     fast_brush_delete(this->stem_brush);
+    drawing_queue_delete(this->queue);
     free(this);
     return NULL;
   }
@@ -263,10 +285,13 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   fast_brush_accum fbaccum;
   perspective   proj;
   tiled_texture pot_texture, soil_texture;
-  unsigned      i, j;
-  signed        yscale;
-  vc3           va, vb;
+  vc3           va;
   unsigned      size;
+  turtle_state  turtle[128];
+  lsystem_state system;
+  const char*   system_in;
+  unsigned      turtleix = 0;
+  drawing_queue_burst burst;
 
   /* Configure drawing utinsils */
   perspective_init(&proj, dst, DEG_90);
@@ -310,6 +335,8 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   soil_texture.rot_sin = 0;
   soil_texture.nominal_resolution = 1024;
 
+  lsystem_execute(&system, &flower_system, "8.8P", 8, 0);
+
   /* Draw background */
   parchment_draw(dst, this->bg);
   ump_join();
@@ -336,8 +363,9 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
               &soil_texture,
               &proj);
 
-  /* Draw stem, 1cm wide */
-  brush_proj.delegate = this->stem_brush;
+  va[0] = METRE;
+  va[1] = STEM_BASE*MILLIMETRE * 10;
+  va[2] = METRE;
   size = dm_proj_calc_weight(dst, &proj,
                              brush_proj.far_max, MILLIMETRE * 10 * 10);
   fbaccum.colours = plant_colours;
@@ -345,48 +373,80 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   fbaccum.distance = 0;
   fbaccum.random = fbaccum.random_seed = 0;
   fbaccum.dst = dst;
-  va[0] = METRE;
-  va[1] = STEM_BASE*MILLIMETRE * 10;
-  va[2] = METRE;
-  vb[0] = METRE;
-  vb[1] = (STEM_BASE+STEM_H)*MILLIMETRE * 10;
-  vb[2] = METRE;
-  dm_proj_draw_line(&fbaccum, &brush_proj,
-                    va, size,
-                    vb, size);
-  dm_proj_flush(&fbaccum, &brush_proj);
+  drawing_queue_clear(this->queue);
+  drawing_queue_start_burst(&burst, this->queue);
+  DQMETHPTR(burst, this->stem_brush);
+  DQACC(burst, fbaccum);
 
-  /* Draw branches to petals */
-  for (i = 0; i < NPET_R; ++i) {
-    for (j = 0; j <= NPET_H; ++j) {
-      yscale = (j == NPET_H? 2 : 1);
-      va[0] = METRE;
-      va[1] = (STEM_BASE + STEM_H/3 + STEM_H*2*j/NPET_H/3) * MILLIMETRE*10;
-      va[2] = METRE;
-      vb[0] = METRE + zo_cosms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
-      vb[1] = va[1] + PET_YOFF * MILLIMETRE*10 / yscale;
-      vb[2] = METRE + zo_sinms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
-      dm_proj_draw_line(&fbaccum, &brush_proj,
-                        va, size / 2,
-                        vb, size / 3);
+  turtle_init(&turtle[0], &proj, va, FLOWER_UNIT);
+  for (system_in = system.buffer; *system_in; ++system_in) {
+    switch (*system_in) {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      turtle_move(turtle+turtleix, 0,
+                  STEM_H*MILLIMETRE*10/FLOWER_UNIT >> ('9' - *system_in), 0);
+      turtle_put_points(&burst, turtle+turtleix,
+                        size >> turtleix, size >> turtleix);
+      /* Lie about the width, since it's always on the screen in this demo
+       * anyway.
+       */
+      drawing_queue_draw_line(&burst, 1000);
+      break;
+
+    case 'b':
+      turtle_rotate_z(turtle+turtleix, 65536 / 6);
+      break;
+
+    case 'r':
+      turtle_rotate_y(turtle+turtleix, 65536 / 6);
+      break;
+
+    case 'P':
+    case 'p':
+      drawing_queue_flush(&burst);
+      fbaccum.colours = petal_colours;
+      fbaccum.num_colours = lenof(petal_colours);
+      fbaccum.random_seed = fbaccum.random = system_in - system.buffer;
+      DQACC(burst, fbaccum);
+      turtle_put_point(&burst, turtle+turtleix,
+                       dm_proj_calc_weight(dst, &proj,
+                                           brush_proj.far_max,
+                                           5*10*MILLIMETRE/2 * 10));
+      drawing_queue_draw_point(&burst, 1000);
+      drawing_queue_flush(&burst);
+
+      fbaccum.colours = plant_colours;
+      fbaccum.num_colours = lenof(plant_colours);
+      fbaccum.random_seed = fbaccum.random = 0;
+      DQACC(burst, fbaccum);
+      break;
+
+    case '[':
+      memcpy(turtle+turtleix+1, turtle+turtleix, sizeof(turtle_state));
+      ++turtleix;
+      turtle_scale_down(turtle+turtleix, 1);
+      turtle_rotate_z(turtle+turtleix, -65536 / 16);
+      break;
+
+    case ']':
+      drawing_queue_flush(&burst);
+      --turtleix;
+      break;
+
+    case '.': break;
+    case 'B': break;
+    default: abort();
     }
-    dm_proj_flush(&fbaccum, &brush_proj);
   }
 
-  size = dm_proj_calc_weight(dst, &proj,
-                             brush_proj.far_max, 5*10*MILLIMETRE/2 * 10);
-  fbaccum.colours = petal_colours;
-  fbaccum.num_colours = lenof(petal_colours);
-  /* Draw petals */
-  for (i = 0; i < NPET_R; ++i) {
-    for (j = 0; j <= NPET_H; ++j) {
-      yscale = (j == NPET_H? 2 : 1);
-      vb[0] = METRE + zo_cosms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
-      vb[1] = (STEM_BASE + STEM_H/3 + STEM_H*2*j/NPET_H/3 + PET_YOFF / yscale) * MILLIMETRE*10;
-      vb[2] = METRE + zo_sinms(i * 65536 / NPET_R, PET_W) * MILLIMETRE*10 / yscale;
-      dm_proj_draw_point(&fbaccum, &brush_proj,
-                         vb, size);
-    }
-  }
-  dm_proj_flush(&fbaccum, &brush_proj);
+  drawing_queue_end_burst(this->queue, &burst);
+  drawing_queue_execute(dst, this->queue, 0, 0);
 }
