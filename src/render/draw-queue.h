@@ -281,7 +281,8 @@ void drawing_queue_execute(canvas*, const drawing_queue*,
 #define DQMETHPTR(dq,meth)                                              \
   drawing_queue_put_method_ptr(&(dq), (const drawing_method*)meth)
 #define DQACC(dq,acc)                                                   \
-  drawing_queue_put_accum(&(dq), &(acc), sizeof(acc), offsetof((acc), dst))
+  drawing_queue_put_accum(&(dq), &(acc), sizeof(acc),                   \
+                          ((const char*)&(acc).dst) - ((const char*)&acc))
 #define DQCANV(dq)                              \
   drawing_queue_accum_canvas(&dq)
 
