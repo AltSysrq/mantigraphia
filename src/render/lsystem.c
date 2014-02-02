@@ -90,6 +90,9 @@ void lsystem_execute(lsystem_state* state,
       }
     }
 
+    /* NUL-terminate dst */
+    *dst = 0;
+
     /* Swap buffers. This can't be a variable swap, as the initial srcbuff is
      * the read-only input argument of unknown size.
      */
