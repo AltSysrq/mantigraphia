@@ -31,6 +31,8 @@
 
 #include <SDL.h>
 
+#include <time.h>
+
 #include "alloc.h"
 #include "coords.h"
 #include "defs.h"
