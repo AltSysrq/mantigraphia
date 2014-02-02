@@ -136,17 +136,17 @@ void turtle_rotate_axes(simd4*restrict x, simd4*restrict y, angle);
  * Rotates turtle space about the X axis.
  */
 #define turtle_rotate_x(state, ang)                             \
-  turtle_rotate_axes(&(state).space.y, &(state).space.z, ang)
+  turtle_rotate_axes(&(state)->space.y, &(state)->space.z, ang)
 /**
  * Rotates turtle space about the Y axis.
  */
 #define turtle_rotate_y(state, ang)                             \
-  turtle_rotate_axes(&(state).space.z, &(state).space.x, ang)
+  turtle_rotate_axes(&(state)->space.z, &(state)->space.x, ang)
 /**
  * Rotates turtle space about the Z axis.
  */
 #define turtle_rotate_z(state, ang)                             \
-  turtle_rotate_axes(&(state).space.x, &(state).space.y, ang)
+  turtle_rotate_axes(&(state)->space.x, &(state)->space.y, ang)
 
 /**
  * Reduces the scale of the turtle by shifting each element of turtle space
