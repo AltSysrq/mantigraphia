@@ -151,8 +151,8 @@ void fast_brush_draw_point(fast_brush_accum*restrict accum,
   signed size = zo_scale(accum->dst->logical_width, size_scale);
   fraction isize = fraction_of(size);
   coord_offset ax0, ax1, ay0, ay1;
-  coord x0, x1, y0, y1;
-  coord x, y, tx, ty;
+  coord_offset x0, x1, y0, y1;
+  coord_offset x, y, tx, ty;
   unsigned texix, colourix, noisetexix;
   const unsigned char*restrict primary_texture,
                      *restrict variant_texture,
