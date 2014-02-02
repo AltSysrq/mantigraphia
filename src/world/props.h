@@ -47,6 +47,9 @@ typedef struct {
   /**
    * The type of this prop. This value entirely identifies the behaviour of the
    * prop, such as its dimensions, collidability, and drawing method.
+   *
+   * A type of zero indicates an absent element (destroyed or otherwise
+   * removed).
    */
   prop_type type;
   /**

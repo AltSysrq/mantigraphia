@@ -83,6 +83,10 @@ void render_world_props(drawing_queue* dst,
    * about twice as fast as a modulo based on emperical testing.
    */
   for (i = lower_bound; i != upper_bound; i = (i+1 == num_props? 0 : i+1)) {
+    if (!props[i].type)
+      /* Absent */
+      continue;
+
     /* Test X coordinates */
     if (inverted_x_test ^ (props[i].x < xmin || props[i].x >= xmax))
       /* Failed X test */
@@ -99,6 +103,6 @@ void render_world_props(drawing_queue* dst,
     /* Reduce to actual distance */
     dist = fisqrt(dist);
 
-    (*renderers)(dst, props+i, world, 64 - dist, context);
+    (*renderers[props[i].type])(dst, props+i, world, 64 - dist, context);
   }
 }

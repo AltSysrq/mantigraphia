@@ -223,7 +223,7 @@ void grass_generate(world_prop* props, unsigned count,
 
     props[i].x = x;
     props[i].z = z;
-    props[i].type = 0;
+    props[i].type = 1;
     props[i].variant = twist(&twister);
     props[i].yrot = twist(&twister);
   }

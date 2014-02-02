@@ -43,6 +43,7 @@ static void render_grass_prop_simple(drawing_queue*, const world_prop*,
                                      const rendering_context*restrict);
 
 static const prop_renderer grass_prop_renderers_[] = {
+  0,
   render_grass_prop_simple,
 };
 const prop_renderer*const grass_prop_renderers = grass_prop_renderers_;
