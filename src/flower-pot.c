@@ -335,7 +335,7 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   soil_texture.rot_sin = 0;
   soil_texture.nominal_resolution = 1024;
 
-  lsystem_execute(&system, &flower_system, "8.8P", 8, 0);
+  lsystem_execute(&system, &flower_system, "8.8P", 8, time(NULL)/4);
 
   /* Draw background */
   parchment_draw(dst, this->bg);
