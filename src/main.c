@@ -61,7 +61,6 @@
 #include "render/terrabuff.h"
 #include "game-state.h"
 #include "cosine-world.h"
-#include "flower-pot.h"
 #include "micromp.h"
 
 static game_state* update(game_state*);
@@ -183,7 +182,7 @@ int main(void) {
   if (!texture)
     errx(EX_UNAVAILABLE, "Unable to create screen texture: %s", SDL_GetError());
 
-  state = flower_pot_new();
+  state = cosine_world_new();
 
   do {
     draw(canv, state, texture, renderer);
