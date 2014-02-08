@@ -136,22 +136,51 @@ static signed perlin_point(unsigned x, unsigned y,
               ease(-dy0, 16384, dot10, dot11));
 }
 
+static unsigned* perlin_noise_dst;
+static const signed short* perlin_noise_vectors;
+static unsigned perlin_noise_w;
+static unsigned perlin_noise_xwl, perlin_noise_ywl;
+static unsigned perlin_noise_freq, perlin_noise_amp;
+static void perlin_noise_put_row(unsigned, unsigned);
+static ump_task perlin_noise_task = {
+  perlin_noise_put_row,
+  0, /* dynamic */
+  0, /* unused (sync) */
+};
+
+static void perlin_noise_put_row(unsigned y, unsigned h) {
+  unsigned* dst = perlin_noise_dst;
+  const signed short* vectors = perlin_noise_vectors;
+  unsigned x, w = perlin_noise_w;
+  unsigned xwl = perlin_noise_xwl, ywl = perlin_noise_ywl;
+  unsigned freq = perlin_noise_freq, amp = perlin_noise_amp;
+
+  for (x = 0; x < w; ++x)
+    dst[y*w + x] += to_amplitude(
+      perlin_point(x, y, xwl, ywl, freq, freq, vectors), amp);
+}
+
 void perlin_noise(unsigned* dst, unsigned w, unsigned h,
                   unsigned freq, unsigned amp,
                   unsigned seed) {
   signed short vectors[freq*freq*2];
   unsigned xwl = w / freq, ywl = h / freq;
-  unsigned x, y;
+  unsigned i;
   angle ang;
 
-  for (x = 0; x < lenof(vectors); x += 2) {
+  for (i = 0; i < lenof(vectors); i += 2) {
     ang = lcgrand(&seed);
-    vectors[x+0] = zo_cos(ang);
-    vectors[x+1] = zo_sin(ang);
+    vectors[i+0] = zo_cos(ang);
+    vectors[i+1] = zo_sin(ang);
   }
 
-  for (y = 0; y < h; ++y)
-    for (x = 0; x < w; ++x)
-      dst[y*w+x] += to_amplitude(
-        perlin_point(x, y, xwl, ywl, freq, freq, vectors), amp);
+  perlin_noise_task.num_divisions = h;
+  perlin_noise_dst = dst;
+  perlin_noise_vectors = vectors;
+  perlin_noise_w = w;
+  perlin_noise_xwl = xwl;
+  perlin_noise_ywl = ywl;
+  perlin_noise_freq = freq;
+  perlin_noise_amp = amp;
+  ump_run_sync(&perlin_noise_task);
 }
