@@ -25,30 +25,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#ifndef RENDER_SHARED_FAST_BRUSH_H_
+#define RENDER_SHARED_FAST_BRUSH_H_
 
-#include "alloc.h"
-#include "basic-world.h"
-#include "propped-world.h"
+#include "context.h"
+#include "draw-queue.h"
 
-propped_world* propped_world_new(basic_world* terrain,
-                                 unsigned num_grass,
-                                 unsigned num_trees) {
-  propped_world* this = xmalloc(
-    sizeof(propped_world) +
-    num_grass*sizeof(world_prop) +
-    num_trees*sizeof(world_prop));
-  this->terrain = terrain;
-  this->grass.size = num_grass;
-  this->grass.props = (world_prop*)(this+1);
-  this->trees.size = num_trees;
-  this->trees.props = this->grass.props + num_grass;
-  return this;
-}
+/**
+ * The "Shared Fast-Brush" is a per-context instance of the fast-brush, created
+ * with the default brush parameters, a max-width of screen_width/16, and
+ * max-length of 2*screen_width.
+ *
+ * This function enqueues a switch to the shared brush method into the given
+ * drawing queue burst. The caller must provide its own accumulator.
+ */
+void dq_shared_fast_brush(drawing_queue_burst*,
+                          const rendering_context*restrict);
 
-void propped_world_delete(propped_world* this) {
-  basic_world_delete(this->terrain);
-  free(this);
-}
+void shared_fast_brush_context_ctor(rendering_context*restrict);
+void shared_fast_brush_context_dtor(rendering_context*restrict);
+void shared_fast_brush_context_set (rendering_context*restrict);
+size_t shared_fast_brush_put_context_offset(size_t);
+
+#endif /* RENDER_SHARED_FAST_BRUSH_H_ */

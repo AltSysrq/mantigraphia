@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -99,6 +99,8 @@ void rendering_context_delete(rendering_context*restrict);
 void rendering_context_set(rendering_context*restrict,
                            const rendering_context_invariant*restrict);
 
+#define CTXTINV(context) ((const rendering_context_invariant*restrict)context)
+
 /**
  * Provides the scaffolding necessary for adding a member to the rendering
  * context. prefix specifies the prefix for all global names produced; typename
@@ -118,7 +120,7 @@ void rendering_context_set(rendering_context*restrict,
  * static inline const typename* prefix_get(const void*)
  *   Returns the member embedded within the given rendering context.
  *
- * static inline typename* prefix_get(void*)
+ * static inline typename* prefix_getm(void*)
  *   Returns the member embedded within the given rendering context, but not
  *   const.
  */

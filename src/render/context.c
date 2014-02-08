@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
 #include "../alloc.h"
 #include "basic-world.h"
 #include "propped-world.h"
+#include "shared-fast-brush.h"
 #include "context.h"
 
 static size_t space_for_invariant(size_t);
@@ -44,22 +45,26 @@ static size_t (*const context_put[])(size_t) = {
   space_for_invariant,
   render_basic_world_put_context_offset,
   render_propped_world_put_context_offset,
+  shared_fast_brush_put_context_offset,
   NULL
 };
 
 static void (*const context_set[])(rendering_context*restrict) = {
+  shared_fast_brush_context_set,
   NULL
 };
 
 static void (*const context_ctor[])(rendering_context*restrict) = {
   render_basic_world_context_ctor,
   render_propped_world_context_ctor,
+  shared_fast_brush_context_ctor,
   NULL
 };
 
 static void (*const context_dtor[])(rendering_context*restrict) = {
   render_basic_world_context_dtor,
   render_propped_world_context_dtor,
+  shared_fast_brush_context_dtor,
   NULL
 };
 

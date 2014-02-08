@@ -60,6 +60,11 @@ typedef struct {
    * interact with objects within the environment.
    */
   prop_array grass;
+  /**
+   * The tree prop layer. Very long draw distance, and can obstruct objects in
+   * the environment.
+   */
+  prop_array trees;
 } propped_world;
 
 /**
@@ -69,9 +74,11 @@ typedef struct {
  * @param terrain The value for the terrain field of the propped_world. The
  * basic_world becomes owned by this propped_world.
  * @param num_grass The size of the grass layer prop_array.
+ * @param num_trees The size of the trees layer prop_array.
  */
 propped_world* propped_world_new(basic_world* terrain,
-                                 unsigned num_grass);
+                                 unsigned num_grass,
+                                 unsigned num_trees);
 /**
  * Frees the memory held by the given propped_world, including the associated
  * basic_world.

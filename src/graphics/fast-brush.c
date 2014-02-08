@@ -149,7 +149,7 @@ void fast_brush_draw_point(fast_brush_accum*restrict accum,
                            const fast_brush*restrict this,
                            const vo3 where, zo_scaling_factor size_scale) {
   signed size = zo_scale(accum->dst->logical_width, size_scale);
-  fraction isize = fraction_of(size);
+  fraction isize;
   coord_offset ax0, ax1, ay0, ay1;
   coord_offset x0, x1, y0, y1;
   coord_offset x, y, tx, ty;
@@ -157,6 +157,9 @@ void fast_brush_draw_point(fast_brush_accum*restrict accum,
   const unsigned char*restrict primary_texture,
                      *restrict variant_texture,
                      *restrict noise_texture;
+
+  if (!size) return;
+  isize = fraction_of(size);
 
   ax0 = where[0] - size/2;
   ax1 = ax0 + size;
@@ -234,8 +237,8 @@ void fast_brush_draw_line(fast_brush_accum*restrict accum,
   delta[2] = 0;
   length = omagnitude(delta);
 
-  /* Nothing to do if zero-magnitude */
-  if (!length) return;
+  /* Nothing to do if zero-magnitude, or if length is greater than maximum. */
+  if (!length || length > (signed)this->length) return;
 
   /* Ensure that this length can fit */
   if (accum->distance + length >= this->length)

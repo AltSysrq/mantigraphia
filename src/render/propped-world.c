@@ -39,10 +39,13 @@
 #include "draw-queue.h"
 #include "props.h"
 #include "grass-props.h"
+#include "tree-props.h"
 #include "propped-world.h"
 
 #define GRASS_DIST (128*METRE)
 #define GRASS_DISTSQ_SHIFT (2*(7+16-6))
+#define TREES_DIST (1024*METRE)
+#define TREES_DISTSQ_SHIFT (2*(10+16-6))
 
 /* One drawing_queue per thread */
 RENDERING_CONTEXT_STRUCT(render_propped_world, drawing_queue**)
@@ -123,6 +126,17 @@ static void render_propped_world_enqueue(unsigned ix, unsigned count) {
                      (cz + zoff_high ) & (this->terrain->zmax * TILE_SZ - 1),
                      GRASS_DISTSQ_SHIFT,
                      grass_prop_renderers,
+                     context);
+  zoff_low  = 2 * TREES_DIST * ix / count - TREES_DIST;
+  zoff_high = 2 * TREES_DIST * (ix+1) / count - TREES_DIST;
+  render_world_props(queue, this->trees.props, this->trees.size,
+                     this->terrain,
+                     (cx - TREES_DIST) & (this->terrain->xmax * TILE_SZ - 1),
+                     (cx + TREES_DIST) & (this->terrain->xmax * TILE_SZ - 1),
+                     (cz + zoff_low  ) & (this->terrain->zmax * TILE_SZ - 1),
+                     (cz + zoff_high ) & (this->terrain->zmax * TILE_SZ - 1),
+                     TREES_DISTSQ_SHIFT,
+                     tree_prop_renderers,
                      context);
 }
 

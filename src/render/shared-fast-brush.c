@@ -29,26 +29,44 @@
 #include <config.h>
 #endif
 
-#include "alloc.h"
-#include "basic-world.h"
-#include "propped-world.h"
+#include "../graphics/abstract.h"
+#include "../graphics/brush.h"
+#include "../graphics/fast-brush.h"
+#include "draw-queue.h"
+#include "context.h"
+#include "shared-fast-brush.h"
 
-propped_world* propped_world_new(basic_world* terrain,
-                                 unsigned num_grass,
-                                 unsigned num_trees) {
-  propped_world* this = xmalloc(
-    sizeof(propped_world) +
-    num_grass*sizeof(world_prop) +
-    num_trees*sizeof(world_prop));
-  this->terrain = terrain;
-  this->grass.size = num_grass;
-  this->grass.props = (world_prop*)(this+1);
-  this->trees.size = num_trees;
-  this->trees.props = this->grass.props + num_grass;
-  return this;
+RENDERING_CONTEXT_STRUCT(shared_fast_brush, drawing_method*)
+
+/* The ctor just initialises the value to NULL. We can't actually create it
+ * until we know the screen width, which we find out in the first call to
+ * _set().
+ */
+void shared_fast_brush_context_ctor(rendering_context*restrict context) {
+  *shared_fast_brush_getm(context) = NULL;
 }
 
-void propped_world_delete(propped_world* this) {
-  basic_world_delete(this->terrain);
-  free(this);
+void shared_fast_brush_context_set(rendering_context*restrict context) {
+  unsigned sw =
+    ((const rendering_context_invariant*restrict)context)->screen_width;
+  brush_spec brush;
+  unsigned i;
+
+  /* Do nothing if already initialised */
+  if (*shared_fast_brush_get(context)) return;
+
+  brush_init(&brush);
+  for (i = 0; i < MAX_BRUSH_BRISTLES; ++i)
+    brush.init_bristles[i] = 1;
+
+  *shared_fast_brush_getm(context) = fast_brush_new(&brush, sw/16, sw*2, 0);
+}
+
+void shared_fast_brush_context_dtor(rendering_context*restrict context) {
+  fast_brush_delete(*shared_fast_brush_get(context));
+}
+
+void dq_shared_fast_brush(drawing_queue_burst* burst,
+                          const rendering_context*restrict context) {
+  DQMETHPTR(*burst, *shared_fast_brush_get(context));
 }

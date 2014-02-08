@@ -228,3 +228,38 @@ void grass_generate(world_prop* props, unsigned count,
     props[i].yrot = twist(&twister);
   }
 }
+
+static int may_place_tree_at(const basic_world* world,
+                             unsigned wx, unsigned wz,
+                             mersenne_twister* twister) {
+  switch (world->tiles[basic_world_offset(world, wx, wz)].elts[0].type) {
+  case terrain_type_stone: return 0;
+  case terrain_type_snow: return twist(twister) & 1;
+  default: return 1;
+  }
+}
+
+void trees_generate(world_prop* props, unsigned count,
+                    const basic_world* world, unsigned seed) {
+  mersenne_twister twister;
+  unsigned i;
+  coord x, z, wx, wz;
+
+  twister_seed(&twister, seed);
+
+  for (i = 0; i < count; ++i) {
+    do {
+      x = twist(&twister) & (world->xmax*TILE_SZ - 1);
+      z = twist(&twister) & (world->zmax*TILE_SZ - 1);
+      wx = x / TILE_SZ;
+      wz = z / TILE_SZ;
+
+    } while (!may_place_tree_at(world, wx, wz, &twister));
+
+    props[i].x = x;
+    props[i].z = z;
+    props[i].type = 1;
+    props[i].variant = twist(&twister);
+    props[i].yrot = twist(&twister);
+  }
+}

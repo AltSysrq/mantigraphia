@@ -34,12 +34,14 @@ world/propped-world.c \
 world/generate.c \
 render/turtle.c \
 render/context.c \
+render/shared-fast-brush.c \
 render/terrabuff.c \
 render/basic-world.c \
 render/props.c \
 render/lsystem.c \
 render/draw-queue.c \
 render/grass-props.c \
+render/tree-props.c \
 render/propped-world.c \
 control/mouselook.c \
 flower-pot.c \
