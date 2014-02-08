@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -145,5 +145,24 @@ void twister_seed(mersenne_twister*, unsigned);
  * Twister.
  */
 unsigned twist(mersenne_twister*);
+
+/**
+ * Generates and adds (ie, sums) perlin noise to the given two-dimensional
+ * array of integers. The generated noise is tilable.
+ *
+ * This call will distribute work across uMP workers.
+ *
+ * @param dst Input/output array to which noise is to be added
+ * @param w The width of dst.
+ * @param h The height of dst.
+ * @param freq The number of points along each dimension for the perlin noise
+ * grid. Must be at least 2.
+ * @param amp The amplitude of the noise. Values added to dst range from 0,
+ * inclusive, to amp, exclusive.
+ * @param seed Random number generation seed.
+ */
+void perlin_noise(unsigned* dst, unsigned w, unsigned h,
+                  unsigned freq, unsigned amp,
+                  unsigned seed);
 
 #endif /* RAND_H_ */

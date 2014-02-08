@@ -30,6 +30,8 @@
 #endif
 
 #include "defs.h"
+#include "coords.h"
+#include "micromp.h"
 #include "rand.h"
 
 /* See
@@ -74,4 +76,82 @@ unsigned twist(mersenne_twister* twister) {
   y ^= (y << 15) & 0xEFC60000;
   y ^= y >> 18;
   return y;
+}
+
+static unsigned to_amplitude(signed in, unsigned amp) {
+  signed long long sll = in;
+  sll *= amp/2;
+  sll /= ZO_SCALING_FACTOR_MAX * ZO_SCALING_FACTOR_MAX * 2;
+  sll += amp/2;
+  /* Rounding errors (primarily in generating the vectors) cause sll to
+   * sometimes be slightly out of range.
+   */
+  if (sll < 0)    return 0;
+  if (sll >= amp) return amp;
+  else            return sll;
+}
+
+static signed perlin_dot(const signed short* vectors,
+                         unsigned gx, unsigned gy,
+                         unsigned gw, unsigned gh,
+                         signed vx, signed vy) {
+  return
+    vx * vectors[gy*gw*2 + gx*2 + 0] +
+    vy * vectors[gy*gw*2 + gx*2 + 1];
+}
+
+static signed ease(signed long long t_num, signed long long t_denom,
+                   signed long long from, signed long long to) {
+  signed long long nt_num = t_denom - t_num;
+  return
+    + 3*nt_num*nt_num*from / (t_denom*t_denom)
+    - 2*nt_num*nt_num*nt_num*from / (t_denom*t_denom*t_denom)
+    + 3*t_num*t_num*to / (t_denom*t_denom)
+    - 2*t_num*t_num*t_num*to / (t_denom*t_denom*t_denom)
+    ;
+}
+
+static signed perlin_point(unsigned x, unsigned y,
+                           unsigned xwl, unsigned ywl,
+                           unsigned gw, unsigned gh,
+                           const signed short* vectors) {
+  unsigned gx0 = x / xwl, gy0 = y / ywl;
+  unsigned gx1 = (gx0+1) % gw, gy1 = (gy0+1) % gh;
+  signed dx0 = - (x % xwl), dy0 = - (y % ywl);
+  signed dx1 = xwl + dx0, dy1 = ywl + dy0;
+  signed dot00, dot01, dot10, dot11;
+  /* Rescale d* to -16384..+16384 */
+  dx0 = dx0 * ZO_SCALING_FACTOR_MAX / (signed)xwl;
+  dx1 = dx1 * ZO_SCALING_FACTOR_MAX / (signed)xwl;
+  dy0 = dy0 * ZO_SCALING_FACTOR_MAX / (signed)ywl;
+  dy1 = dy1 * ZO_SCALING_FACTOR_MAX / (signed)ywl;
+
+  dot00 = perlin_dot(vectors, gx0, gy0, gw, gh, dx0, dy0);
+  dot01 = perlin_dot(vectors, gx0, gy1, gw, gh, dx0, dy1);
+  dot10 = perlin_dot(vectors, gx1, gy0, gw, gh, dx1, dy0);
+  dot11 = perlin_dot(vectors, gx1, gy1, gw, gh, dx1, dy1);
+
+  return ease(-dx0, 16384,
+              ease(-dy0, 16384, dot00, dot01),
+              ease(-dy0, 16384, dot10, dot11));
+}
+
+void perlin_noise(unsigned* dst, unsigned w, unsigned h,
+                  unsigned freq, unsigned amp,
+                  unsigned seed) {
+  signed short vectors[freq*freq*2];
+  unsigned xwl = w / freq, ywl = h / freq;
+  unsigned x, y;
+  angle ang;
+
+  for (x = 0; x < lenof(vectors); x += 2) {
+    ang = lcgrand(&seed);
+    vectors[x+0] = zo_cos(ang);
+    vectors[x+1] = zo_sin(ang);
+  }
+
+  for (y = 0; y < h; ++y)
+    for (x = 0; x < w; ++x)
+      dst[y*w+x] += to_amplitude(
+        perlin_point(x, y, xwl, ywl, freq, freq, vectors), amp);
 }
