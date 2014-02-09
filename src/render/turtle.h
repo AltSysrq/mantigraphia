@@ -178,4 +178,37 @@ int turtle_put_points(drawing_queue_burst*, const turtle_state*,
                       zo_scaling_factor from_weight,
                       zo_scaling_factor to_weight);
 
+/**
+ * Puts the current point into the given drawing queue burst, then draws a
+ * point there. Weight and size are determined automatically according to
+ * logical size and screen width. As with dm_proj_calc_weight(), assumes that
+ * the underlying drawing method draws relative to the screen width.
+ *
+ * @param burst Drawing queue burst into which to draw.
+ * @param logical_size Size in world space of the object being drawn.
+ * @param screen_width The width, in pixels, of the screen.
+ * @return Whether anything was enqueued.
+ */
+int turtle_put_draw_point(drawing_queue_burst* burst, const turtle_state*,
+                          coord logical_size, unsigned screen_width);
+/**
+ * Puts the current and previous points int othe drawing queue, then draws a
+ * line between them. Weight and size are determined automatically according to
+ * logical size and screen width. As with dm_proj_calc_weight(), assumes that t
+ * he underlying drawing method draws relative to the screen width.
+ *
+ * @param burst Drawing queue burst into which to draw.
+ * @param logical_size_from Size in world space of the object being drawn, at
+ * the previous point.
+ * @param logical_size_to Size in world space of the object being drawn, at the
+ * current point.
+ * @param screen_width The width, in pixels, of the screen.
+ * @return Whether anything was enqueued.
+ */
+int turtle_put_draw_line(drawing_queue_burst* burst,
+                         const turtle_state*,
+                         coord logical_size_from,
+                         coord logical_size_to,
+                         unsigned screen_width);
+
 #endif /* RENDER_TURTLE_H_ */

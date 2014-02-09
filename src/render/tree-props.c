@@ -63,8 +63,6 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
                                   const rendering_context*restrict context) {
   drawing_queue_burst burst;
   turtle_state turtle;
-  zo_scaling_factor scale;
-  unsigned width;
   vc3 root;
   fast_brush_accum accum;
 
@@ -75,18 +73,6 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   if (!turtle_init(&turtle, CTXTINV(context)->proj, root, TURTLE_UNIT))
     return;
 
-  /* XXX This should be factored into turtle */
-  if (simd_vs(turtle.pos.curr, 2) >=
-      CTXTINV(context)->proj->effective_near_clipping_plane)
-    return;
-
-  scale = dm_proj_calc_weight(CTXTINV(context)->screen_width,
-                              CTXTINV(context)->proj,
-                              -simd_vs(turtle.pos.curr, 2),
-                              METRE);
-  width = zo_scale(CTXTINV(context)->screen_width, scale);
-  if (width > 1024) return;
-
   drawing_queue_start_burst(&burst, queue);
   dq_shared_fast_brush(&burst, context);
   accum.colours = temp_trunk_pallet;
@@ -96,10 +82,9 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   DQACC(burst, accum);
 
   turtle_move(&turtle, 0, 4 * METRE / TURTLE_UNIT, 0);
-  if (turtle_put_points(&burst, &turtle, scale, scale)) {
-    drawing_queue_draw_line(&burst, width);
+  if (turtle_put_draw_line(&burst, &turtle, METRE, METRE,
+                           CTXTINV(context)->screen_width))
     drawing_queue_flush(&burst);
-  }
 
   drawing_queue_end_burst(queue, &burst);
 }
