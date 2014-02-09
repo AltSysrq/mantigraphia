@@ -171,16 +171,20 @@ void fast_brush_flush(fast_brush_accum*restrict accum,
   accum->random = accum->random_seed;
 }
 
-void fast_brush_draw_point(fast_brush_accum*restrict accum,
+void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
                            const fast_brush*restrict this,
                            const vo3 where, zo_scaling_factor size_scale) {
-  signed size = zo_scale(accum->dst->logical_width, size_scale);
+  fast_brush_accum accum = *accumptr;
+  signed size = zo_scale(accum.dst->logical_width, size_scale);
   fraction isize;
   coord_offset ax0, ax1, ay0, ay1;
   coord_offset x0, x1, y0, y1;
   coord_offset x, y, tx, ty;
+  coord z;
   unsigned texix, colourix;
   const unsigned char*restrict texture;
+  canvas_depth*restrict depth;
+  canvas_pixel*restrict px;
 
   if (!size) return;
   isize = fraction_of(size);
@@ -191,26 +195,31 @@ void fast_brush_draw_point(fast_brush_accum*restrict accum,
   ay1 = ay0 + size;
 
   x0 = (ax0 >= 0? ax0 : 0);
-  x1 = (ax1 <= (signed)accum->dst->w? ax1 : (signed)accum->dst->w);
+  x1 = (ax1 <= (signed)accum.dst->w? ax1 : (signed)accum.dst->w);
   y0 = (ay0 >= 0? ay0 : 0);
-  y1 = (ay1 <= (signed)accum->dst->h? ay1 : (signed)accum->dst->h);
+  y1 = (ay1 <= (signed)accum.dst->h? ay1 : (signed)accum.dst->h);
 
-  texix = lcgrand(&accum->random) % NUM_BRUSH_SPLOTCHES;
+  texix = lcgrand(&accumptr->random) % NUM_BRUSH_SPLOTCHES;
   texture = fast_brush_splotches[texix];
+
+  z = where[2];
 
   for (y = y0; y < y1; ++y) {
     ty = fraction_umul((y - ay0) * BRUSH_SPLOTCH_DIM, isize);
+    depth = accum.dst->depth + canvas_offset(accum.dst, x0, y);
+    px = accum.dst->px + canvas_offset(accum.dst, x0, y);
 
-    for (x = x0; x < x1; ++x) {
-      if (!canvas_depth_test(accum->dst, x, y, where[2]))
-        continue;
+    for (x = x0; x < x1; ++x, ++depth, ++px) {
+      if (z >= *depth) continue;
 
       tx = fraction_umul((x - ax0) * BRUSH_SPLOTCH_DIM, isize);
 
       colourix = texture[ty*BRUSH_SPLOTCH_DIM + tx];
 
-      if (colourix < accum->num_colours)
-        canvas_write(accum->dst, x, y, accum->colours[colourix], where[2]);
+      if (colourix < accum.num_colours) {
+        *px = accum.colours[colourix];
+        *depth = z;
+      }
     }
   }
 }
