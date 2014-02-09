@@ -221,7 +221,7 @@ void terrabuff_put(terrabuff* this, const vo3 where, canvas_pixel colour,
 }
 
 void terrabuff_merge(terrabuff*restrict this, const terrabuff*restrict that) {
-  unsigned i, off;
+  unsigned i, j, off;
 
   /* Merge shared scans */
   for (i = 0; i < this->scan && i < that->scan; ++i) {
@@ -233,6 +233,17 @@ void terrabuff_merge(terrabuff*restrict this, const terrabuff*restrict that) {
            that->points + off + that->boundaries[i].low,
            sizeof(scan_point) * (that->boundaries[i].high -
                                  that->boundaries[i].low));
+    /* Fix up incorrect X coordinates (see _put() for why) */
+    for (j = this->boundaries[i].high; j < that->boundaries[i].high; ++j)
+      if (j > this->boundaries[i].low &&
+          this->points[off+j].where[0] <= this->points[off+j-1].where[0])
+        this->points[off+j].where[0] = 1 + this->points[off+j-1].where[0];
+    /* If this had no points, move low boundary to correspond to low boundary
+     * of other.
+     */
+    if (this->boundaries[i].low == this->boundaries[i].high)
+      this->boundaries[i].low = that->boundaries[i].low;
+
     this->boundaries[i].high = that->boundaries[i].high;
   }
 
