@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../alloc.h"
 #include "../coords.h"
 #include "../rand.h"
 #include "basic-world.h"
@@ -230,9 +231,9 @@ void grass_generate(world_prop* props, unsigned count,
 }
 
 static int may_place_tree_at(const basic_world* world,
-                             unsigned wx, unsigned wz,
+                             unsigned offset,
                              mersenne_twister* twister) {
-  switch (world->tiles[basic_world_offset(world, wx, wz)].elts[0].type) {
+  switch (world->tiles[offset].elts[0].type) {
   case terrain_type_stone: return 0;
   case terrain_type_snow: return twist(twister) & 1;
   default: return 1;
@@ -244,6 +245,16 @@ void trees_generate(world_prop* props, unsigned count,
   mersenne_twister twister;
   unsigned i;
   coord x, z, wx, wz;
+  unsigned off;
+  unsigned* density, density_sz;
+
+  density_sz = sizeof(unsigned)*world->xmax*world->zmax;
+  density = xmalloc(density_sz);
+  memset(density, 0, density_sz);
+  perlin_noise(density, world->xmax, world->zmax,
+               world->xmax / 256, 0xC000, seed+1);
+  perlin_noise(density, world->xmax, world->zmax,
+               world->xmax / 32, 0x4000, seed+2);
 
   twister_seed(&twister, seed);
 
@@ -253,8 +264,9 @@ void trees_generate(world_prop* props, unsigned count,
       z = twist(&twister) & (world->zmax*TILE_SZ - 1);
       wx = x / TILE_SZ;
       wz = z / TILE_SZ;
-
-    } while (!may_place_tree_at(world, wx, wz, &twister));
+      off = basic_world_offset(world, wx, wz);
+    } while (!may_place_tree_at(world, off, &twister) ||
+             twist(&twister) > density[off] * density[off]);
 
     props[i].x = x;
     props[i].z = z;
@@ -262,4 +274,6 @@ void trees_generate(world_prop* props, unsigned count,
     props[i].variant = twist(&twister);
     props[i].yrot = twist(&twister);
   }
+
+  free(density);
 }
