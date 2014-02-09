@@ -65,15 +65,12 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   turtle_state turtle;
   zo_scaling_factor scale;
   unsigned width;
-  /* XXX Refactor to just pass logical_width in directly */
-  canvas dummy;
   vc3 root;
   fast_brush_accum accum;
 
   root[0] = this->x;
   root[1] = terrain_base_y(world, this->x, this->z);
   root[2] = this->z;
-  dummy.logical_width = CTXTINV(context)->screen_width;
 
   if (!turtle_init(&turtle, CTXTINV(context)->proj, root, TURTLE_UNIT))
     return;
@@ -83,7 +80,8 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
       CTXTINV(context)->proj->effective_near_clipping_plane)
     return;
 
-  scale = dm_proj_calc_weight(&dummy, CTXTINV(context)->proj,
+  scale = dm_proj_calc_weight(CTXTINV(context)->screen_width,
+                              CTXTINV(context)->proj,
                               -simd_vs(turtle.pos.curr, 2),
                               METRE);
   width = zo_scale(CTXTINV(context)->screen_width, scale);

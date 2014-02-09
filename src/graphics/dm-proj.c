@@ -45,7 +45,7 @@ void dm_init(dm_proj* this) {
   this->nominal_weight = ZO_SCALING_FACTOR_MAX;
 }
 
-zo_scaling_factor dm_proj_calc_weight(const canvas* canv,
+zo_scaling_factor dm_proj_calc_weight(unsigned screen_width,
                                       const perspective* proj,
                                       coord distance,
                                       coord desired_size) {
@@ -72,7 +72,7 @@ zo_scaling_factor dm_proj_calc_weight(const canvas* canv,
   screen_dist = psample[0] - porigin[0];
   assert(screen_dist >= 0);
 
-  return screen_dist * ZO_SCALING_FACTOR_MAX / canv->logical_width;
+  return screen_dist * ZO_SCALING_FACTOR_MAX / screen_width;
 }
 
 static zo_scaling_factor adjust_weight(const dm_proj* this,

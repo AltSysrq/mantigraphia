@@ -103,7 +103,7 @@ void dm_init(dm_proj*);
  * the underlying drawing method interprets weight as a fraction of screen
  * width.
  */
-zo_scaling_factor dm_proj_calc_weight(const canvas*,
+zo_scaling_factor dm_proj_calc_weight(unsigned screen_width,
                                       const perspective*,
                                       coord distance,
                                       coord desired_size);

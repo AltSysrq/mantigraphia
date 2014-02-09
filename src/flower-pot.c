@@ -368,7 +368,7 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
   va[0] = METRE;
   va[1] = STEM_BASE*MILLIMETRE * 10;
   va[2] = METRE;
-  size = dm_proj_calc_weight(dst, &proj,
+  size = dm_proj_calc_weight(dst->logical_width, &proj,
                              brush_proj.far_max, MILLIMETRE * 10 * 10);
   fbaccum.colours = plant_colours;
   fbaccum.num_colours = lenof(plant_colours);
@@ -419,7 +419,7 @@ static void flower_pot_draw(flower_pot_state* this, canvas* dst) {
       fbaccum.random_seed = fbaccum.random = system_in - system.buffer;
       DQACC(burst, fbaccum);
       turtle_put_point(&burst, turtle+turtleix,
-                       dm_proj_calc_weight(dst, &proj,
+                       dm_proj_calc_weight(dst->logical_width, &proj,
                                            brush_proj.far_max,
                                            5*10*MILLIMETRE/2 * 10));
       drawing_queue_draw_point(&burst, 1000);
