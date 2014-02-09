@@ -115,6 +115,9 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   if (!turtle_init(&turtle[0], CTXTINV(context)->proj, root, TURTLE_UNIT))
     return;
 
+  /* Don't do anything of too far behind the camera */
+  if (simd_vs(turtle[0].pos.curr, 2) > 4*METRE) return;
+
   lsystem_execute(&sys, &temp_tree_system, "9A", level/10, this->x^this->z);
 
   drawing_queue_start_burst(&burst, queue);
