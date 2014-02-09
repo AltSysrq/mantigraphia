@@ -40,15 +40,36 @@
 
 void lsystem_compile(lsystem* this, ...) {
   va_list args;
-  const char* rule;
+  const char* rule, * next;
+  unsigned ix, r, nr;
 
   va_start(args, this);
 
   while ((rule = va_arg(args, const char*))) {
-    assert(!this->rules[(int)rule[0]].replacement);
+    ix = rule[0];
+    assert(!this->rules[ix].replacement[0]);
     assert(' ' == rule[1]);
-    this->rules[(int)rule[0]].replacement = rule + 2;
-    this->rules[(int)rule[0]].replacement_size = strlen(rule+2);
+    rule += 2;
+    r = 0;
+    do {
+      assert(r < LSYSTEM_MAX_REPLS);
+      next = strchr(rule, ' ');
+      this->rules[ix].replacement[r] = rule;
+      if (next)
+        this->rules[ix].replacement_size[r] = next - rule;
+      else
+        this->rules[ix].replacement_size[r] = strlen(rule);
+
+      rule = next + 1;
+      ++r;
+    } while (next);
+
+    /* Populate remaining replacements */
+    for (nr = r; r < LSYSTEM_MAX_REPLS; ++r) {
+      this->rules[ix].replacement[r] = this->rules[ix].replacement[r-nr];
+      this->rules[ix].replacement_size[r] =
+        this->rules[ix].replacement_size[r-nr];
+    }
   }
 
   va_end(args);
@@ -62,7 +83,7 @@ void lsystem_execute(lsystem_state* state,
   char* srcbuff, * dstbuff, * src, * dst;
   unsigned size = strlen(initial)+1;
   size_t cpysz;
-  unsigned rule;
+  unsigned rule, repl;
 
  srcbuff = (char*)initial;
  dstbuff = state->buffer;
@@ -72,17 +93,20 @@ void lsystem_execute(lsystem_state* state,
     dst = dstbuff;
 
     while ((rule = *src)) {
-      if (this->rules[rule].replacement && (lcgrand(&random) & 1)) {
+      if (this->rules[rule].replacement[0]) {
+        repl = lcgrand(&random) % LSYSTEM_MAX_REPLS;
+
         /* Replace according to rule. Stop now if this would exceed the buffer
          * size.
          */
-        if (size + this->rules[rule].replacement_size - 1 >= LSYSTEM_MAX_SZ)
+        if (size + this->rules[rule].replacement_size[repl] - 1 >=
+            LSYSTEM_MAX_SZ)
           goto finish;
 
-        memcpy(dst, this->rules[rule].replacement,
-               this->rules[rule].replacement_size);
-        dst += this->rules[rule].replacement_size;
-        size += this->rules[rule].replacement_size - 1;
+        memcpy(dst, this->rules[rule].replacement[repl],
+               this->rules[rule].replacement_size[repl]);
+        dst += this->rules[rule].replacement_size[repl];
+        size += this->rules[rule].replacement_size[repl] - 1;
         ++src;
       } else {
         /* No replacement */

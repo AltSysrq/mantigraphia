@@ -33,13 +33,17 @@
  * byte.
  */
 #define LSYSTEM_MAX_SZ 4096
+/**
+ * Maximum number of replacements for a single rule.
+ */
+#define LSYSTEM_MAX_REPLS 8
 
 /**
  * An L-System is an iterated string-replacement system which can produce
  * realistic-enough looking vegitation and such. Here, we implement a
- * stochastic, context-free one-rule-per-symbol L-System. The alphabet is the
- * 7-bit ASCII character set. On each step, each symbol has a 50% chance of
- * having its rule invoked.
+ * stochastic, context-free L-System. The alphabet is the 7-bit ASCII character
+ * set. On each step, each symbol is replaced with one of LSYSTEM_MAX_REPLS
+ * possible replacements, chosen randomly.
  *
  * The contents of this structure should be considered opaque to client
  * code. It is included in the header so that lsystems may be stored in static
@@ -47,18 +51,20 @@
  */
 typedef struct {
   struct {
-    const char* replacement;
-    unsigned replacement_size;
+    const char* replacement[LSYSTEM_MAX_REPLS];
+    unsigned replacement_size[LSYSTEM_MAX_REPLS];
   } rules[128];
 } lsystem;
 
 /**
  * Compiles a set of rules into an lsystem. Each rule has the form
  *
- *   <character> <space> <replacement...>
+ *   <character> <space> <replacement...> [<replacement...>]
  *
- * Each character may only be given a rule once. Characters not assigned rules
- * simply expand to themselves.
+ * Each character may only be given a rule once. If fewer than
+ * LSYSTEM_MAX_REPLS replacements are given, the given replacements are cycled
+ * to populate the rest of the array. Characters not assigned rules simply
+ * expand to themselves.
  *
  * The rule list must be NULL-terminated.
  *

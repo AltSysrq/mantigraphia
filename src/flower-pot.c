@@ -104,15 +104,15 @@ game_state* flower_pot_new(void) {
   this->stem_brush = fast_brush_new(&stem_brush, 64, 1024, 0);
 
   lsystem_compile(&flower_system,
-                  "9 8.8",
-                  "8 7.7",
-                  "7 6.6",
-                  "6 5.5",
-                  "5 4.4",
-                  "4 3.3",
-                  ". BrBrBrBrBrBr",
-                  "B [b8P]",
-                  "P [b9p]r[b9p]r[b9p]r[b9p]r[b9p]r[b9p]",
+                  "9 9 8.8",
+                  "8 8 7.7",
+                  "7 7 6.6",
+                  "6 6 5.5",
+                  "5 5 4.4",
+                  "4 4 3.3",
+                  ". . BrBrBrBrBrBr",
+                  "B B [b8P]",
+                  "P P [b9p]r[b9p]r[b9p]r[b9p]r[b9p]r[b9p]",
                   NULL);
 
   return (game_state*)this;
