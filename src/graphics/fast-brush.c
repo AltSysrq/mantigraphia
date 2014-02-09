@@ -181,6 +181,9 @@ void fast_brush_draw_point(fast_brush_accum*restrict accum,
     ty *= BRUSH_SPLOTCH_DIM;
 
     for (x = x0; x < x1; ++x) {
+      if (!canvas_depth_test(accum->dst, x, y, where[2]))
+        continue;
+
       tx = fraction_umul((x - ax0) * BRUSH_SPLOTCH_DIM, isize);
 
       if (primary_texture[ty+tx] >= MAX_BRUSH_BRISTLES)

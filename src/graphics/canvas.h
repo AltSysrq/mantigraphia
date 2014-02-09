@@ -143,6 +143,15 @@ static void canvas_write_c(canvas*,unsigned,unsigned,canvas_pixel,canvas_depth)
 __attribute__((noinline));
 #endif
 
+static
+#ifndef PROFILE
+inline
+#endif
+int canvas_depth_test(canvas* dst, unsigned x, unsigned y,
+                      canvas_depth depth) {
+  return depth < dst->depth[canvas_offset(dst, x, y)];
+}
+
 /**
  * Writes the given pixel and depth information into the canvas at the given
  * coordinate, if the new depth is nearer than the old depth.
