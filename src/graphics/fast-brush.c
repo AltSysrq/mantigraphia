@@ -42,6 +42,32 @@
 #include "tscan.h"
 #include "fast-brush.h"
 
+static unsigned char fast_brush_splotches
+[NUM_BRUSH_SPLOTCHES][BRUSH_SPLOTCH_DIM*BRUSH_SPLOTCH_DIM];
+
+void fast_brush_load(void) {
+  unsigned splotch, i;
+  const unsigned char* src, * variant;
+  unsigned char* dst;
+
+  for (splotch = 0; splotch < NUM_BRUSH_SPLOTCHES; ++splotch) {
+    src = brush_splotches[splotch];
+    variant = brush_splotches[(splotch+1) % NUM_BRUSH_SPLOTCHES];
+    dst = fast_brush_splotches[splotch];
+
+    for (i = 0; i < BRUSH_SPLOTCH_DIM * BRUSH_SPLOTCH_DIM;
+         ++i, ++src, ++variant, ++dst) {
+      if (*src >= MAX_BRUSH_BRISTLES) {
+        *dst = 255;
+      } else {
+        *dst = !!(*src - MAX_BRUSH_BRISTLES/2)
+             + !!((*variant - MAX_BRUSH_BRISTLES/2) / 8)
+             + (brush_splotches[rand() % NUM_BRUSH_SPLOTCHES][i] & 1);
+      }
+    }
+  }
+}
+
 typedef struct {
   drawing_method meth;
 
@@ -153,10 +179,8 @@ void fast_brush_draw_point(fast_brush_accum*restrict accum,
   coord_offset ax0, ax1, ay0, ay1;
   coord_offset x0, x1, y0, y1;
   coord_offset x, y, tx, ty;
-  unsigned texix, colourix, noisetexix;
-  const unsigned char*restrict primary_texture,
-                     *restrict variant_texture,
-                     *restrict noise_texture;
+  unsigned texix, colourix;
+  const unsigned char*restrict texture;
 
   if (!size) return;
   isize = fraction_of(size);
@@ -172,13 +196,10 @@ void fast_brush_draw_point(fast_brush_accum*restrict accum,
   y1 = (ay1 <= (signed)accum->dst->h? ay1 : (signed)accum->dst->h);
 
   texix = lcgrand(&accum->random) % NUM_BRUSH_SPLOTCHES;
-  primary_texture = brush_splotches[texix];
-  variant_texture = brush_splotches[(texix+1) % NUM_BRUSH_SPLOTCHES];
+  texture = fast_brush_splotches[texix];
 
   for (y = y0; y < y1; ++y) {
     ty = fraction_umul((y - ay0) * BRUSH_SPLOTCH_DIM, isize);
-    noisetexix = (texix+ty) % NUM_BRUSH_SPLOTCHES;
-    ty *= BRUSH_SPLOTCH_DIM;
 
     for (x = x0; x < x1; ++x) {
       if (!canvas_depth_test(accum->dst, x, y, where[2]))
@@ -186,14 +207,7 @@ void fast_brush_draw_point(fast_brush_accum*restrict accum,
 
       tx = fraction_umul((x - ax0) * BRUSH_SPLOTCH_DIM, isize);
 
-      if (primary_texture[ty+tx] >= MAX_BRUSH_BRISTLES)
-        continue;
-
-      noise_texture = brush_splotches[(noisetexix^tx) % NUM_BRUSH_SPLOTCHES];
-
-      colourix = !!(primary_texture[ty+tx] - MAX_BRUSH_BRISTLES/2)
-               + !!((variant_texture[ty+tx] - MAX_BRUSH_BRISTLES/2)/8)
-               + (noise_texture[ty+tx] & 1);
+      colourix = texture[ty*BRUSH_SPLOTCH_DIM + tx];
 
       if (colourix < accum->num_colours)
         canvas_write(accum->dst, x, y, accum->colours[colourix], where[2]);

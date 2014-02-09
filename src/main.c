@@ -57,6 +57,7 @@
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
 #include "graphics/brush.h"
+#include "graphics/fast-brush.h"
 #include "control/mouselook.h"
 #include "render/terrabuff.h"
 #include "render/tree-props.h"
@@ -170,6 +171,7 @@ int main(void) {
   ump_init(SDL_GetCPUCount()-1);
   parchment_init();
   brush_load();
+  fast_brush_load();
   mouselook_init(screen);
   terrabuff_init();
   tree_props_init();

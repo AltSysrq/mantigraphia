@@ -34,6 +34,13 @@
 #include "brush.h"
 
 /**
+ * Prepares data needed by the fast-brush. This must be called exactly once
+ * before any other fast-brush function, and must be called after
+ * brush_load().
+ */
+void fast_brush_load(void);
+
+/**
  * Generates a "fast brush" drawing method object. A fast brush is a cached
  * representation of a brush, using texture-mapped triangles instead of
  * algorithmic rendering to achieve far higher rendering speeds at the cost of
