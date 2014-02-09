@@ -189,7 +189,7 @@ void fast_brush_draw_point(fast_brush_accum*restrict accum,
       if (primary_texture[ty+tx] >= MAX_BRUSH_BRISTLES)
         continue;
 
-      noise_texture = brush_splotches[(noisetexix+tx) % NUM_BRUSH_SPLOTCHES];
+      noise_texture = brush_splotches[(noisetexix^tx) % NUM_BRUSH_SPLOTCHES];
 
       colourix = !!(primary_texture[ty+tx] - MAX_BRUSH_BRISTLES/2)
                + !!((variant_texture[ty+tx] - MAX_BRUSH_BRISTLES/2)/8)
