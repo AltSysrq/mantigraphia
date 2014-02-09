@@ -43,13 +43,17 @@
 #include "tscan.h"
 #include "fast-brush.h"
 
-static unsigned char fast_brush_splotches
-[NUM_BRUSH_SPLOTCHES][BRUSH_SPLOTCH_DIM*BRUSH_SPLOTCH_DIM];
+/* Typed so it can be used by simd instructions. We add an additional garbage
+ * row at the bottom so that we can safely read past the end of the texture
+ * boundaries.
+ */
+static signed fast_brush_splotches
+[NUM_BRUSH_SPLOTCHES][BRUSH_SPLOTCH_DIM*(BRUSH_SPLOTCH_DIM+1)];
 
 void fast_brush_load(void) {
   unsigned splotch, i;
   const unsigned char* src, * variant;
-  unsigned char* dst;
+  signed* dst;
 
   for (splotch = 0; splotch < NUM_BRUSH_SPLOTCHES; ++splotch) {
     src = brush_splotches[splotch];
@@ -183,11 +187,13 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
   coord_offset x, y, tx, ty;
   coord z;
   unsigned texix, colourix;
-  const unsigned char*restrict texture;
+  const signed*restrict texture;
   canvas_depth*restrict depth;
   canvas_pixel*restrict px;
-  simd4 x4, z4, tx4, depth4, num_colours4, colour4;
+  const simd4 v0123 = simd_init4(0,1,2,3);
+  simd4 tx4, z4, depth4, num_colours4, colour4;
   simd4 depth_test4, colour_test4, pallet;
+  simd4 texs;
   unsigned i;
 
   if (!size) return;
@@ -234,9 +240,11 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
       }
     }
 
-    for (; x+4 <= x1; x += 4, depth += 4, px += 4) {
-      /* four at a time */
-      x4 = simd_initl(x+0-ax0, x+1-ax0, x+2-ax0, x+3-ax0);
+    for (; x+4 <= x1 && sizemul < 2*ZO_SCALING_FACTOR_MAX;
+         x += 4, depth += 4, px += 4) {
+      /* four at a time; requires that texture is not being scaled down by
+       * more than a factor of 2.
+       */
       depth4 = simd_of_aligned(depth);
       depth_test4 = simd_pairwise_lt(z4, depth4);
 
@@ -245,11 +253,10 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
        */
       if (simd_all_false(depth_test4)) continue;
 
-      tx4 = simd_shra(simd_mulvs(x4, sizemul), ZO_SCALING_FACTOR_BITS);
-      colour4 = simd_initl(texture[simd_vs(tx4, 0)],
-                           texture[simd_vs(tx4, 1)],
-                           texture[simd_vs(tx4, 2)],
-                           texture[simd_vs(tx4, 3)]);
+      tx = (x-ax0) * sizemul / ZO_SCALING_FACTOR_MAX;
+      texs = simd_of_vo4(texture + tx);
+      tx4 = simd_shra(simd_mulvs(v0123, sizemul), ZO_SCALING_FACTOR_BITS);
+      colour4 = simd_shuffle(texs, tx4);
       colour_test4 = simd_pairwise_lt(colour4, num_colours4);
       if (simd_all_false(colour_test4)) continue;
 

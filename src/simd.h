@@ -147,6 +147,7 @@ static inline simd4 simd_shuffle(simd4 src, simd4 mask) {
                          src.v[mask.v[1]],
                          src.v[mask.v[2]],
                          src.v[mask.v[3]]);
+  return ret;
 }
 #endif /* Not GCC>=4.7 or clang */
 
