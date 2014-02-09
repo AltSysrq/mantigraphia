@@ -93,7 +93,7 @@ void mouselook_update(mouselook_state* state,
    * will usually have large relative movements (since the initial position is
    * zero or so, regardless of the actual position).
    */
-  static int ignore_next_event = 1;
+  static int ignore_next_event = 4;
   angle old_yrot = state->yrot, old_rxrot = state->rxrot;
   signed rxrot = (signed short)state->rxrot;
   int w, h;
@@ -103,7 +103,7 @@ void mouselook_update(mouselook_state* state,
    * call to SDL_WarpMouseInWindow().
    */
   if (ignore_next_event) {
-    ignore_next_event = 0;
+    --ignore_next_event;
     SDL_FlushEvent(SDL_MOUSEMOTION);
     return;
   }
