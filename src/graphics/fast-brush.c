@@ -36,6 +36,7 @@
 #include "../alloc.h"
 #include "../frac.h"
 #include "../rand.h"
+#include "../simd.h"
 #include "canvas.h"
 #include "abstract.h"
 #include "brush.h"
@@ -176,7 +177,7 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
                            const vo3 where, zo_scaling_factor size_scale) {
   fast_brush_accum accum = *accumptr;
   signed size = zo_scale(accum.dst->logical_width, size_scale);
-  fraction isize;
+  signed sizemul;
   coord_offset ax0, ax1, ay0, ay1;
   coord_offset x0, x1, y0, y1;
   coord_offset x, y, tx, ty;
@@ -185,9 +186,12 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
   const unsigned char*restrict texture;
   canvas_depth*restrict depth;
   canvas_pixel*restrict px;
+  simd4 x4, z4, tx4, depth4, num_colours4, colour4;
+  simd4 depth_test4, colour_test4, pallet;
+  unsigned i;
 
   if (!size) return;
-  isize = fraction_of(size);
+  sizemul = ZO_SCALING_FACTOR_MAX * BRUSH_SPLOTCH_DIM / size;
 
   ax0 = where[0] - size/2;
   ax1 = ax0 + size;
@@ -203,18 +207,72 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
   texture = fast_brush_splotches[texix];
 
   z = where[2];
+  z4 = simd_inits(z);
+  num_colours4 = simd_inits(accum.num_colours);
+  pallet = simd_initl(accum.num_colours > 0? accum.colours[0] : 0,
+                      accum.num_colours > 1? accum.colours[1] : 0,
+                      accum.num_colours > 2? accum.colours[2] : 0,
+                      accum.num_colours > 3? accum.colours[3] : 0);
 
   for (y = y0; y < y1; ++y) {
-    ty = fraction_umul((y - ay0) * BRUSH_SPLOTCH_DIM, isize);
+    ty = (y-ay0) * sizemul / ZO_SCALING_FACTOR_MAX;
     depth = accum.dst->depth + canvas_offset(accum.dst, x0, y);
     px = accum.dst->px + canvas_offset(accum.dst, x0, y);
+    texture = fast_brush_splotches[texix] + ty * BRUSH_SPLOTCH_DIM;
 
-    for (x = x0; x < x1; ++x, ++depth, ++px) {
+    for (x = x0; x < x1 && (x & 3); ++x, ++depth, ++px) {
+      /* one at a time */
       if (z >= *depth) continue;
 
-      tx = fraction_umul((x - ax0) * BRUSH_SPLOTCH_DIM, isize);
+      tx = (x - ax0) * sizemul / ZO_SCALING_FACTOR_MAX;
 
-      colourix = texture[ty*BRUSH_SPLOTCH_DIM + tx];
+      colourix = texture[tx];
+
+      if (colourix < accum.num_colours) {
+        *px = accum.colours[colourix];
+        *depth = z;
+      }
+    }
+
+    for (; x+4 <= x1; x += 4, depth += 4, px += 4) {
+      /* four at a time */
+      x4 = simd_initl(x+0-ax0, x+1-ax0, x+2-ax0, x+3-ax0);
+      depth4 = simd_of_aligned(depth);
+      depth_test4 = simd_pairwise_lt(z4, depth4);
+
+      /* In the majority of cases, either all four pixels fail the test, or all
+       * four pass.
+       */
+      if (simd_all_false(depth_test4)) continue;
+
+      tx4 = simd_shra(simd_mulvs(x4, sizemul), ZO_SCALING_FACTOR_BITS);
+      colour4 = simd_initl(texture[simd_vs(tx4, 0)],
+                           texture[simd_vs(tx4, 1)],
+                           texture[simd_vs(tx4, 2)],
+                           texture[simd_vs(tx4, 3)]);
+      colour_test4 = simd_pairwise_lt(colour4, num_colours4);
+      if (simd_all_false(colour_test4)) continue;
+
+      if (simd_all_true(depth_test4) && simd_all_true(colour_test4)) {
+        simd_store_aligned(depth, z4);
+        simd_store_aligned(px, simd_shuffle(pallet, colour4));
+      } else {
+        for (i = 0; i < 4; ++i) {
+          if (simd_vs(depth_test4, i) && simd_vs(colour_test4, i)) {
+            depth[i] = z;
+            px[i] = simd_vs(pallet, simd_vs(colour4, i));
+          }
+        }
+      }
+    }
+
+    for (; x < x1; ++x, ++depth, ++px) {
+      /* one at a time */
+      if (z >= *depth) continue;
+
+      tx = (x - ax0) * sizemul / ZO_SCALING_FACTOR_MAX;
+
+      colourix = texture[tx];
 
       if (colourix < accum.num_colours) {
         *px = accum.colours[colourix];

@@ -155,7 +155,8 @@ typedef signed short angular_velocity;
  * the more expected -32768 to +32767.
  */
 typedef signed short zo_scaling_factor;
-#define ZO_SCALING_FACTOR_MAX ((zo_scaling_factor)0x4000)
+#define ZO_SCALING_FACTOR_BITS 14
+#define ZO_SCALING_FACTOR_MAX ((zo_scaling_factor)(1 << ZO_SCALING_FACTOR_BITS))
 
 static inline signed zo_scale(signed input, zo_scaling_factor factor) {
   signed long long value = input;

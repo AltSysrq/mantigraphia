@@ -62,7 +62,11 @@ void canvas_delete(canvas* this) {
 }
 
 void canvas_clear(canvas* this) {
-  memset(this->depth, ~0, sizeof(canvas_depth) * this->w * this->h);
+  /* Set each depth element to 0x7F7F7F7F. The sign bit can't be set, as
+   * SIMD-based drawing functions use signed depth tests. Nothing will ever be
+   * drawing 32km away anyway, so the loss of this bit is insignificant.
+   */
+  memset(this->depth, 0x7F, sizeof(canvas_depth) * this->w * this->h);
 }
 
 void canvas_blit(SDL_Texture* dst, const canvas* this) {
