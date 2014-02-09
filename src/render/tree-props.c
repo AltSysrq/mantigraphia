@@ -118,7 +118,17 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   /* Don't do anything of too far behind the camera */
   if (simd_vs(turtle[0].pos.curr, 2) > 4*METRE) return;
 
-  lsystem_execute(&sys, &temp_tree_system, "9A", level/10, this->x^this->z);
+  /* Move level to a less linear scale. */
+  if      (level < 32) level = 0;
+  else if (level < 40) level = 1;
+  else if (level < 48) level = 2;
+  else if (level < 52) level = 3;
+  else if (level < 55) level = 4;
+  else if (level < 58) level = 5;
+  else if (level < 61) level = 6;
+  else                 level = 7;
+
+  lsystem_execute(&sys, &temp_tree_system, "9A", level, this->x^this->z);
 
   drawing_queue_start_burst(&burst, queue);
   dq_shared_fast_brush(&burst, context);
@@ -192,6 +202,9 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
     case 'F':
     case 'G':
     case 'H':
+      /* Don't bother drawing leaves at level 0 */
+      if (!level) break;
+
       drawing_queue_flush(&burst);
       accum.colours = temp_tree_leaf_pallet;
       accum.num_colours = lenof(temp_tree_leaf_pallet);
