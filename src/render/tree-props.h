@@ -30,6 +30,8 @@
 
 #include "props.h"
 
+void tree_props_init(void);
+
 extern const prop_renderer*const tree_prop_renderers;
 
 #endif /* RENDER_TREE_PROPS_H_ */
