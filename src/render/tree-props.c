@@ -93,7 +93,6 @@ static const canvas_pixel temp_trunk_pallet[] = {
 static const canvas_pixel temp_tree_leaf_pallet[] = {
   argb(255, 0, 32, 0),
   argb(255, 0, 48, 0),
-  argb(255, 16, 64, 12),
   argb(255, 20, 96, 16),
 };
 
