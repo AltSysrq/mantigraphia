@@ -45,7 +45,8 @@ canvas* canvas_new(unsigned width, unsigned height) {
   canvas* this = xmalloc(
     sizeof(canvas) + UMP_CACHE_LINE_SZ +
     sizeof(canvas_pixel)*width*height + UMP_CACHE_LINE_SZ +
-    sizeof(canvas_depth)*width*height);
+    sizeof(canvas_depth)*width*height +
+    height);
 
   this->w = width;
   this->h = height;
@@ -54,6 +55,8 @@ canvas* canvas_new(unsigned width, unsigned height) {
   this->ox = this->oy = 0;
   this->px = align_to_cache_line(this + 1);
   this->depth = align_to_cache_line(this->px + width*height);
+  this->interlacing = (unsigned char*)(this->depth + width*height);
+  memset(this->interlacing, 1, height);
   return this;
 }
 
@@ -84,4 +87,5 @@ void canvas_slice(canvas* slice, const canvas* backing,
   slice->oy = y + backing->oy;
   slice->px = backing->px + canvas_offset(backing, x, y);
   slice->depth = backing->depth + canvas_offset(backing, x, y);
+  slice->interlacing = backing->interlacing + y;
 }

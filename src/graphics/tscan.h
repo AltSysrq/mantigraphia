@@ -106,6 +106,7 @@ typedef void (*triangle_shader)(canvas*restrict,
     if (!dy) return; /* degenerate */                                   \
     idy = fraction_of(dy);                                              \
     for (y = (y0 > 0? y0 : 0); y <= y1 && y < (signed)dst->h; ++y) {    \
+      if (!dst->interlacing[y]) continue;                               \
       yo = y - y0;                                                      \
       xl = fraction_smul((dy-yo)*xt + yo*xb0, idy);                     \
       xh = fraction_smul((dy-yo)*xt + yo*xb1, idy)+1;                   \
@@ -146,6 +147,7 @@ typedef void (*triangle_shader)(canvas*restrict,
     if (!dy) return; /* degenerate */                                   \
     idy = fraction_of(dy);                                              \
     for (y = (y1 > 0? y1 : 0); y <= y0 && y < (signed)dst->h; ++y) {    \
+      if (!dst->interlacing[y]) continue;                               \
       yo = y - y1;                                                      \
       xl = fraction_smul((dy-yo)*xb0 + yo*xt, idy);                     \
       xh = fraction_smul((dy-yo)*xb1 + yo*xt, idy)+1;                   \

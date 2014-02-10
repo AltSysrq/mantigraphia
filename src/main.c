@@ -221,9 +221,13 @@ static game_state* update(game_state* state) {
 
 static void draw(canvas* canv, game_state* state,
                  SDL_Texture* texture, SDL_Renderer* renderer) {
-  unsigned draw_start, draw_end;
+  unsigned draw_start, draw_end, i;
+  static int is_odd = 0;
 
   canvas_clear(canv);
+  for (i = 0; i < canv->h; ++i)
+    canv->interlacing[i] = (i & 1) ^ is_odd;
+  is_odd = !is_odd;
   draw_start = SDL_GetTicks();
   (*state->draw)(state, canv);
   draw_end = SDL_GetTicks();

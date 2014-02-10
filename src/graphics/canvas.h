@@ -87,6 +87,11 @@ typedef struct {
    * px array.
    */
   canvas_depth*restrict depth;
+  /**
+   * Indicates whether each respective row is currently being considered for
+   * rendering; only rows with a non-zero entry may be touched.
+   */
+  unsigned char*restrict interlacing;
 } canvas;
 
 /**
@@ -185,7 +190,7 @@ inline
 #endif
 void canvas_write_c(canvas* dst, unsigned x, unsigned y,
                     canvas_pixel px, canvas_depth depth) {
-  if (x < dst->w && y < dst->h)
+  if (x < dst->w && y < dst->h && dst->interlacing[y])
     canvas_write(dst, x, y, px, depth);
 }
 

@@ -221,6 +221,8 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
                       accum.num_colours > 3? accum.colours[3] : 0);
 
   for (y = y0; y < y1; ++y) {
+    if (!accum.dst->interlacing[y]) continue;
+
     ty = (y-ay0) * sizemul / ZO_SCALING_FACTOR_MAX;
     depth = accum.dst->depth + canvas_offset(accum.dst, x0, y);
     px = accum.dst->px + canvas_offset(accum.dst, x0, y);

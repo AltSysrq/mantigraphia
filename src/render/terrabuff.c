@@ -405,6 +405,8 @@ static void draw_line(canvas*restrict dst,
     }
 
     for (y = yl; y <= yh; ++y) {
+      if (!dst->interlacing[y]) continue;
+
       off = canvas_offset(dst, x+xoff, y);
       dst->px[off] = LINE_COLOUR;
       dst->depth[off] = along[x].z;
@@ -496,6 +498,7 @@ static void fill_area_between(canvas*restrict dst,
   if (y1 >= (signed)dst->h) y1 = dst->h - 1;
 
   for (y = y0; y <= y1; ++y) {
+    if (!dst->interlacing[y]) continue;
     px    = dst->px    + canvas_offset(dst, x0, y);
     depth = dst->depth + canvas_offset(dst, x0, y);
 

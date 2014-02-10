@@ -121,6 +121,8 @@ static void parchment_draw_row(unsigned i, unsigned n) {
   for (yo = min; yo < max && yo < dst->h; ++yo) {
     y = (yo + this->ty/1024) & PARCHMENT_MASK;
 
+    if (!dst->interlacing[yo]) continue;
+
     for (xo = 0; xo < dst->w; xo += cnt) {
       cnt = PARCHMENT_DIM - ((xo + this->tx/1024) & PARCHMENT_MASK);
       if (xo + cnt > dst->w)
