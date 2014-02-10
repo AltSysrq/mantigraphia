@@ -70,8 +70,21 @@ static inline int simd_eq(simd4 a, simd4 b) {
 /* GCC calls it shuffle, Clang calls it shufflevector */
 #if defined(__clang__)
 #define simd_shuffle(src,mask) __builtin_shufflevector(src,mask)
+/* Clang's __builtin_shufflevector() only supports shuffling one vector by
+ * another. To shuffle two vectors, we need to just do everything in
+ * software. Most code will be using the dynamically-compiled shufps, though,
+ * so it isn't too much of an issue.
+ */
+static inline simd4 simd_shuffle2(simd4 a4, simd4 b4, simd4 mask4) {
+  simd ret = simd_init4(mask[0] < 4? a[mask[0]] : b[mask[0]-4],
+                        mask[1] < 4? a[mask[1]] : b[mask[1]-4],
+                        mask[2] < 4? a[mask[2]] : b[mask[2]-4],
+                        mask[3] < 4? a[mask[3]] : b[mask[3]-4]);
+  return ret;
+}
 #else
 #define simd_shuffle(src,mask) __builtin_shuffle(src,mask)
+#define simd_shuffle2(a,b,mask) __builtin_shuffle(a,b,mask)
 #endif
 
 #else /* End actual vector instructions, begin compatibility */
@@ -147,6 +160,14 @@ static inline simd4 simd_shuffle(simd4 src, simd4 mask) {
                          src.v[mask.v[1]],
                          src.v[mask.v[2]],
                          src.v[mask.v[3]]);
+  return ret;
+}
+
+static inline simd4 simd_shuffle2(simd4 a, simd4 b, simd4 mask) {
+  simd ret = simd_init4(mask.v[0] < 4? a.v[mask.v[0]] : b.v[mask.v[0]-4],
+                        mask.v[1] < 4? a.v[mask.v[1]] : b.v[mask.v[1]-4],
+                        mask.v[2] < 4? a.v[mask.v[2]] : b.v[mask.v[2]-4],
+                        mask.v[3] < 4? a.v[mask.v[3]] : b.v[mask.v[3]-4]);
   return ret;
 }
 #endif /* Not GCC>=4.7 or clang */

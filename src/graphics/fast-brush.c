@@ -37,6 +37,7 @@
 #include "../frac.h"
 #include "../rand.h"
 #include "../simd.h"
+#include "../dynamic-code.h"
 #include "canvas.h"
 #include "abstract.h"
 #include "brush.h"
@@ -191,10 +192,11 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
   canvas_depth*restrict depth;
   canvas_pixel*restrict px;
   const simd4 v0123 = simd_init4(0,1,2,3);
-  simd4 tx4, z4, depth4, num_colours4, colour4;
+  simd4 z4, depth4, num_colours4, colour4;
   simd4 depth_test4, colour_test4, pallet;
-  simd4 texs;
-  unsigned i;
+  simd4 texs0, texs1;
+  unsigned i, txmask, tx2off;
+  simd4 (*shufps)(simd4, simd4, unsigned);
 
   if (!size) return;
   sizemul = ZO_SCALING_FACTOR_MAX * BRUSH_SPLOTCH_DIM / size;
@@ -220,6 +222,13 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
                       accum.num_colours > 2? accum.colours[2] : 0,
                       accum.num_colours > 3? accum.colours[3] : 0);
 
+  txmask = ((3 - 0 * sizemul / ZO_SCALING_FACTOR_MAX) << 6)
+         | ((3 - 1 * sizemul / ZO_SCALING_FACTOR_MAX) << 4)
+         | ((3 - 2 * sizemul / ZO_SCALING_FACTOR_MAX) << 2)
+         | ((3 - 3 * sizemul / ZO_SCALING_FACTOR_MAX) << 0);
+  tx2off = (2 * sizemul / ZO_SCALING_FACTOR_MAX);
+  shufps = dynamic_code_shufps(txmask);
+
   for (y = y0; y < y1; ++y) {
     ty = (y-ay0) * sizemul / ZO_SCALING_FACTOR_MAX;
     depth = accum.dst->depth + canvas_offset(accum.dst, x0, y);
@@ -240,10 +249,10 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
       }
     }
 
-    for (; x+4 <= x1 && sizemul < 2*ZO_SCALING_FACTOR_MAX;
+    for (; x+4 <= x1 && sizemul < 4*ZO_SCALING_FACTOR_MAX;
          x += 4, depth += 4, px += 4) {
       /* four at a time; requires that texture is not being scaled down by
-       * more than a factor of 2.
+       * more than a factor of 4.
        */
       depth4 = simd_of_aligned(depth);
       depth_test4 = simd_pairwise_lt(z4, depth4);
@@ -254,9 +263,9 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
       if (simd_all_false(depth_test4)) continue;
 
       tx = (x-ax0) * sizemul / ZO_SCALING_FACTOR_MAX;
-      texs = simd_of_vo4(texture + tx);
-      tx4 = simd_shra(simd_mulvs(v0123, sizemul), ZO_SCALING_FACTOR_BITS);
-      colour4 = simd_shuffle(texs, tx4);
+      texs0 = simd_of_vo4(texture + tx);
+      texs1 = simd_of_vo4(texture + tx + tx2off);
+      colour4 = shufps(texs0, texs1, txmask);
       colour_test4 = simd_pairwise_lt(colour4, num_colours4);
       if (simd_all_false(colour_test4)) continue;
 

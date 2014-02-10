@@ -16,6 +16,7 @@ coords.c \
 trigtab.c \
 rand.c \
 micromp.c \
+dynamic-code.c \
 graphics/canvas.c \
 graphics/parchment.c \
 graphics/pencil.c \

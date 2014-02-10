@@ -43,6 +43,7 @@
 
 #include "bsd.h"
 
+#include "dynamic-code.h"
 #include "micromp.h"
 
 /* Define UMP_NO_THREADING to do everything single-threaded. */
@@ -110,6 +111,7 @@ static int ump_main(void* vspec) {
 #endif
 
   memcpy(&spec, vspec, sizeof(spec));
+  dynamic_code_init_thread();
 
 #ifdef USE_BSD_CPUSET_SETAFFINITY
   /* Pin self to CPU n+1 */

@@ -64,6 +64,7 @@
 #include "game-state.h"
 #include "cosine-world.h"
 #include "micromp.h"
+#include "dynamic-code.h"
 
 static game_state* update(game_state*);
 static void draw(canvas*, game_state*, SDL_Texture*, SDL_Renderer*);
@@ -168,6 +169,7 @@ int main(void) {
 
   SDL_GetWindowSize(screen, (int*)&ww, (int*)&wh);
 
+  dynamic_code_init();
   ump_init(SDL_GetCPUCount()-1);
   parchment_init();
   brush_load();
