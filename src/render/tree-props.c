@@ -125,7 +125,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   else if (level < 55) level = 4;
   else if (level < 58) level = 5;
   else if (level < 61) level = 6;
-  else                 level = 7;
+  else                 level = 6;
 
   lsystem_execute(&sys, &temp_tree_system, "9A", level, this->x^this->z);
 
