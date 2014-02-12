@@ -178,7 +178,7 @@ int main(void) {
   glEnable(GL_TEXTURE_2D);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(0, ww, 0, wh, -1, 4096*METRE);
+  glOrtho(0, ww, 0, wh, 0, 4096*METRE);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
