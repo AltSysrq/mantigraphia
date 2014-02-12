@@ -20,6 +20,7 @@ AC_SEARCH_LIBS([dlopen], [dl])
 PKG_CHECK_MODULES([SDL], [sdl2])
 PKG_CHECK_MODULES([SDLIMG], [SDL2_image])
 PKG_CHECK_MODULES([GL], [gl])
+PKG_CHECK_MODULES([GLU], [glu])
 PKG_CHECK_MODULES([GLEW], [glew])
 
 # Headers

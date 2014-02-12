@@ -130,9 +130,9 @@ void canvas_clear(canvas*);
 void canvas_blit(SDL_Texture*, const canvas*);
 
 /**
- * Copies the source canvas into the destination texture, scaling without
- * interpolation so that the source canvas exactly fills the destination. The
- * depth buffer is *not* copied.
+ * Copies the source canvas into the destination texture, scaling with linear
+ * interpolation / sampling, so that the source canvas exactly fills the
+ * destination. The depth buffer is *not* copied.
  */
 void canvas_scale_onto(canvas*restrict, const canvas*restrict);
 /**

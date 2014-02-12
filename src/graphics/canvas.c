@@ -32,6 +32,7 @@
 
 #include <SDL.h>
 #include <glew.h>
+#include <GL/glu.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -89,18 +90,15 @@ void canvas_slice(canvas* slice, const canvas* backing,
 }
 
 void canvas_scale_onto(canvas*restrict dst, const canvas*restrict src) {
-  fraction iw = fraction_of(dst->w);
-  fraction ih = fraction_of(dst->h);
-  unsigned x, y;
-
-  for (y = 0; y < dst->h; ++y) {
-    for (x = 0; x < dst->w; ++x) {
-      dst->px[canvas_offset(dst, x, y)] =
-        src->px[canvas_offset(src,
-                              fraction_umul(x * src->w, iw),
-                              fraction_umul(y * src->h, ih))];
-    }
-  }
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, src->pitch);
+  glPixelStorei(GL_PACK_ROW_LENGTH, dst->pitch);
+  int error = gluScaleImage(GL_RGBA,
+                            src->w, src->h,
+                            GL_UNSIGNED_BYTE, src->px,
+                            dst->w, dst->h,
+                            GL_UNSIGNED_BYTE, dst->px);
+  if (error)
+    errx(EX_SOFTWARE, "Failed to rescale image; code=%d", error);
 }
 
 static unsigned halve_dim(unsigned in) {
