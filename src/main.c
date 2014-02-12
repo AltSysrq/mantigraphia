@@ -38,6 +38,7 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
+#include <glew.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -66,7 +67,7 @@
 #include "micromp.h"
 
 static game_state* update(game_state*);
-static void draw(canvas*, game_state*, SDL_Texture*, SDL_Renderer*);
+static void draw(canvas*, game_state*, SDL_Window*);
 static int handle_input(game_state*);
 
 #ifdef ENABLE_SDL_ZAPHOD_MODE_FIX
@@ -134,11 +135,11 @@ int SDL_GetWindowDisplayIndex(SDL_Window* window) {
 int main(void) {
   unsigned ww, wh;
   SDL_Window* screen;
-  SDL_Renderer* renderer;
-  SDL_Texture* texture;
+  SDL_GLContext glcontext;
   const int image_types = IMG_INIT_JPG | IMG_INIT_PNG;
   canvas* canv;
   game_state* state;
+  GLenum glew_status;
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
     errx(EX_SOFTWARE, "Unable to initialise SDL: %s", SDL_GetError());
@@ -149,14 +150,9 @@ int main(void) {
                             SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED,
                             1280, 1024,
-                            0);
+                            SDL_WINDOW_OPENGL);
   if (!screen)
     errx(EX_OSERR, "Unable to create window: %s", SDL_GetError());
-
-  renderer = SDL_CreateRenderer(screen, -1, 0);
-
-  if (!renderer)
-    errx(EX_SOFTWARE, "Unable to create SDL renderer: %s", SDL_GetError());
 
   if (image_types != (image_types & IMG_Init(image_types)))
     errx(EX_SOFTWARE, "Unable to init SDLIMG: %s", IMG_GetError());
@@ -167,6 +163,24 @@ int main(void) {
          SDL_GetError());
 
   SDL_GetWindowSize(screen, (int*)&ww, (int*)&wh);
+  glcontext = SDL_GL_CreateContext(screen);
+  if (!glcontext)
+    errx(EX_OSERR, "Unable to initialise OpenGL context: %s",
+         SDL_GetError());
+
+  glew_status = glewInit();
+  if (GLEW_OK != glew_status)
+    errx(EX_SOFTWARE, "Unable to initialise GLEW: %s",
+         glewGetErrorString(glew_status));
+
+  glViewport(0, 0, ww, wh);
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_TEXTURE_2D);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glOrtho(0, ww, 0, wh, -1, 4096*METRE);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
 
   ump_init(SDL_GetCPUCount()-1);
   parchment_init();
@@ -178,18 +192,10 @@ int main(void) {
 
   canv = canvas_new(ww, wh);
 
-  texture = SDL_CreateTexture(renderer,
-                              /* TODO: Use native format */
-                              SDL_PIXELFORMAT_ARGB8888,
-                              SDL_TEXTUREACCESS_STREAMING,
-                              ww, wh);
-  if (!texture)
-    errx(EX_UNAVAILABLE, "Unable to create screen texture: %s", SDL_GetError());
-
   state = cosine_world_new();
 
   do {
-    draw(canv, state, texture, renderer);
+    draw(canv, state, screen);
     if (handle_input(state)) break; /* quit */
     state = update(state);
   } while (state);
@@ -220,20 +226,24 @@ static game_state* update(game_state* state) {
 }
 
 static void draw(canvas* canv, game_state* state,
-                 SDL_Texture* texture, SDL_Renderer* renderer) {
+                 SDL_Window* screen) {
   unsigned draw_start, draw_end;
 
-  canvas_clear(canv);
+  /* The parchment replaces the whole screen contents anyway, no need to clear
+   * the colour buffer here.
+   */
+  glClear(GL_DEPTH_BUFFER_BIT);
+
   draw_start = SDL_GetTicks();
-  (*state->draw)(state, canv);
+  /*(*state->draw)(state, canv);*/
+  SDL_GL_SwapWindow(screen);
   draw_end = SDL_GetTicks();
 
-  printf("Drawing took %3d ms (%3d FPS)\n", draw_end-draw_start,
-         1000 / (draw_end-draw_start));
-
-  canvas_blit(texture, canv);
-  SDL_RenderCopy(renderer, texture, NULL, NULL);
-  SDL_RenderPresent(renderer);
+  if (draw_end > draw_start)
+    printf("Drawing took %3d ms (%3d FPS)\n", draw_end-draw_start,
+           1000 / (draw_end-draw_start));
+  else
+    printf("Drawing took 0 ms (>1000 FPS)\n");
 }
 
 static int handle_input(game_state* state) {
