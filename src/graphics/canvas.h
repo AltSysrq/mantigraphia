@@ -29,6 +29,7 @@
 #define GRAPHICS_CANVAS_H_
 
 #include <SDL.h>
+#include <glew.h>
 
 /**
  * The SDL pixel format used by the screen texture.
@@ -127,6 +128,25 @@ void canvas_clear(canvas*);
  * Blits the given canvas onto the given SDL_Texture.
  */
 void canvas_blit(SDL_Texture*, const canvas*);
+
+/**
+ * Copies the source canvas into the destination texture, scaling without
+ * interpolation so that the source canvas exactly fills the destination. The
+ * depth buffer is *not* copied.
+ */
+void canvas_scale_onto(canvas*restrict, const canvas*restrict);
+/**
+ * Converts the given canvas into an OpenGL texture. The canvas is adapted as
+ * necessary to meet the limitations of the underlying OpenGL implementation
+ * (eg, maximum dimensions or power-of-two restrictions). The program is
+ * aborted if the texture cannot be constructed. The depth buffer of the source
+ * canvas has no effect.
+ *
+ * @param mipmap If true, the texture will be fully mipmapped.
+ * @return An OpenGL texture unit matching the canvas. The texture and the
+ * canvas are wholely independent after this call.
+ */
+GLuint canvas_to_texture(const canvas*, int mipmap);
 
 /**
  * Calculates the array offset within the given canvas for the given pixel

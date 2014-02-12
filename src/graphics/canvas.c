@@ -31,12 +31,14 @@
 #endif
 
 #include <SDL.h>
+#include <glew.h>
 
 #include <stdlib.h>
 #include <string.h>
 
 #include "../alloc.h"
 #include "../micromp.h"
+#include "../frac.h"
 #include "canvas.h"
 
 SDL_PixelFormat* screen_pixel_format;
@@ -84,4 +86,73 @@ void canvas_slice(canvas* slice, const canvas* backing,
   slice->oy = y + backing->oy;
   slice->px = backing->px + canvas_offset(backing, x, y);
   slice->depth = backing->depth + canvas_offset(backing, x, y);
+}
+
+void canvas_scale_onto(canvas*restrict dst, const canvas*restrict src) {
+  fraction iw = fraction_of(dst->w);
+  fraction ih = fraction_of(dst->h);
+  unsigned x, y;
+
+  for (y = 0; y < dst->h; ++y) {
+    for (x = 0; x < dst->w; ++x) {
+      dst->px[canvas_offset(dst, x, y)] =
+        src->px[canvas_offset(src,
+                              fraction_umul(x * src->w, iw),
+                              fraction_umul(y * src->h, ih))];
+    }
+  }
+}
+
+static unsigned halve_dim(unsigned in) {
+  if (1 == in) return 1;
+  else         return in/2;
+}
+
+GLuint canvas_to_texture(const canvas* this, int mipmap) {
+  canvas* temporary = NULL;
+  const canvas* src = this;
+  GLuint texture;
+  GLint level = 0;
+  int image_is_supported, is_last_level;
+
+  glGenTextures(1, &texture);
+
+  /* Halve the size of the input texture until we succed at writing it to the
+   * texture proxy.
+   */
+  while (1 /* controlled in loop */) {
+    glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_RGBA,
+                 src->w, src->h, 0,
+                 GL_BGRA, GL_UNSIGNED_BYTE, src->px);
+    glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_WIDTH,
+                             &image_is_supported);
+    if (image_is_supported) break;
+
+    /* Try again with a canvas half the size */
+    if (src->w == 1 && src->h == 1)
+      errx(EX_SOFTWARE, "Unable to convert canvas to texture of any size");
+
+    temporary = canvas_new(halve_dim(src->w), halve_dim(src->h));
+    canvas_scale_onto(temporary, src);
+    if (src != this) canvas_delete((canvas*)src);
+    src = temporary;
+  }
+
+  glBindTexture(GL_TEXTURE_2D, texture);
+  do {
+    is_last_level = (src->h == 1 && src->w == 1);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, src->pitch);
+    glTexImage2D(GL_TEXTURE_2D, level++, GL_RGBA,
+                 src->w, src->h, 0,
+                 GL_BGRA, GL_UNSIGNED_BYTE, src->px);
+    temporary = canvas_new(halve_dim(src->w), halve_dim(src->h));
+    canvas_scale_onto(temporary, src);
+    if (src != this) canvas_delete((canvas*)src);
+    src = temporary;
+  } while (mipmap && !is_last_level);
+
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  if (temporary) free(temporary);
+
+  return texture;
 }
