@@ -159,7 +159,14 @@ static char link_error_log[65536];
     shader_##name##_vertex* vertex_format,      \
     struct shader_##name##_info* info)
 #define fixed_function                                                  \
-  glVertexPointer(3, GL_FLOAT, sizeof(*vertex_format), (GLvoid*)0);
+  GLint i, max;                                                         \
+  glEnableClientState(GL_VERTEX_ARRAY);                                 \
+  glVertexPointer(3, GL_FLOAT, sizeof(*vertex_format), (GLvoid*)0);     \
+  /* Reset other array states */                                        \
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);                         \
+  glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max);                           \
+  for (i = 0; i < max; ++i)                                             \
+    glDisableVertexAttribArray(i);
 #define composed_of(x,y) fixed_function
 #define uniform(x,y)
 #define with_texture_coordinates                                \
@@ -168,7 +175,8 @@ static char link_error_log[65536];
 #define attrib(cnt,name)                                                \
   glVertexAttribPointer(info->name##_va, cnt, GL_FLOAT, GL_FALSE,       \
                         sizeof(*vertex_format),                         \
-                        (GLvoid*)ptroffof(vertex_format, name));
+                        (GLvoid*)ptroffof(vertex_format, name));        \
+  glEnableVertexAttribArray(info->name##_va);
 #include "shaders.inc"
 #undef attrib
 #undef with_texture_coordinates
