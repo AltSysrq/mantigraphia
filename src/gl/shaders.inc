@@ -34,3 +34,8 @@ shader(canvas) {
   uniform(tex2d, canvas_colour)
   uniform(tex2d, canvas_depth)
 }
+
+shader(fixed_texture) {
+  fixed_function
+  with_texture_coordinates
+}

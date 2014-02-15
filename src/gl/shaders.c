@@ -35,6 +35,9 @@
 #include "shader_loader.h"
 #include "shaders.h"
 
+/* Like offsetof(), but works off of the value of a pointer instead. */
+#define ptroffof(ptr,fld) (((char*)&(ptr)->fld) - (char*)(ptr))
+
 static inline void put_uniform_tex2d(GLint ix, GLuint tex) {
   glUniform1i(ix, tex);
 }
@@ -42,12 +45,18 @@ static inline void put_uniform_tex2d(GLint ix, GLuint tex) {
 #define shader_source(name) ;static GLuint shader_part_##name
 #define shader(name) ;struct shader_##name##_info
 #define composed_of(x,y) GLuint program;
+#define fixed_function int dummy; /* suppress empty struct warning */
 #define uniform(type,name) GLint name##_ix;
+#define with_texture_coordinates
+#define attrib(cnt,name) unsigned name##_va;
 extern int dummy_decl
 #include "shaders.inc"
 ;
+#undef attrib
+#undef with_texture_coordinates
 #undef uniform
 #undef composed_of
+#undef fixed_function
 #undef shader
 #undef shader_source
 
@@ -77,13 +86,25 @@ static char link_error_log[65536];
     errx(EX_DATAERR, "Failed to link shaders "            \
          "" #fpart "and" #vpart ":\n%s", link_error_log); \
   }
+#define fixed_function
+
 #define uniform(type,name)                                      \
   info->name##_ix = glGetUniformLocation(info->program, #name); \
   if (-1 == info->name##_ix)                                    \
-    errx(EX_SOFTWARE, "Failed to link uniform " #type           \
+    errx(EX_SOFTWARE, "Failed to link uniform " #name           \
          " in shader");
+#define with_texture_coordinates
+#define attrib(cnt, name)                                       \
+  status = glGetAttribLocation(info->program, #name);           \
+  if (-1 == status)                                             \
+    errx(EX_SOFTWARE, "Failed to link vertex attribute " #name  \
+         " in shader");                                         \
+  info->name##_va = status;
 #include "shaders.inc"
+#undef attrib
+#undef with_texture_coordinates
 #undef uniform
+#undef fixed_function
 #undef composed_of
 #undef shader
 
@@ -92,24 +113,66 @@ static char link_error_log[65536];
     struct shader_##name##_info* info,          \
     const shader_##name##_uniform* uniform)
 #define composed_of(x,y) glUseProgram(info->program);
+#define fixed_function glUseProgram(0);
 #define uniform(type, name)                             \
   put_uniform_##type(info->name##_ix, uniform->name);
+#define with_texture_coordinates
+#define attrib(cnt, name)
 #include "shaders.inc"
+#undef attrib
+#undef with_texture_coordinates
 #undef uniform
+#undef fixed_function
 #undef composed_of
 #undef shader
 
 #define shader(name)                                                    \
+  static struct shader_##name##_info name##_shader_info;                \
   void shader_##name##_activate(                                        \
     const shader_##name##_uniform* uniform)                             \
   {                                                                     \
-    static struct shader_##name##_info info;                            \
-    shader_##name##_assemble(&info);                                    \
-    shader_##name##_do_activate(&info, uniform);                        \
-  } static inline void name_##dummy()
+    shader_##name##_assemble(&name##_shader_info);                      \
+    shader_##name##_do_activate(&name##_shader_info, uniform);          \
+  } static inline void name##_dummy()
 #define composed_of(x,y)
+#define fixed_function
 #define uniform(x,y)
+#define with_texture_coordinates
+#define attrib(cnt,name)
 #include "shaders.inc"
+#undef attrib
+#undef with_texture_coordinates
 #undef uniform
+#undef fixed_function
+#undef composed_of
+#undef shader
+
+#define shader(name)                            \
+  static void shader_##name##_configure_vbo_(   \
+    shader_##name##_vertex* vertex_format,      \
+    struct shader_##name##_info* info);         \
+  void shader_##name##_configure_vbo(void) {    \
+    shader_##name##_configure_vbo_(             \
+      0, &name##_shader_info);                  \
+  }                                             \
+  static void shader_##name##_configure_vbo_(   \
+    shader_##name##_vertex* vertex_format,      \
+    struct shader_##name##_info* info)
+#define fixed_function                                                  \
+  glVertexPointer(3, GL_FLOAT, sizeof(*vertex_format), (GLvoid*)0);
+#define composed_of(x,y) fixed_function
+#define uniform(x,y)
+#define with_texture_coordinates                                \
+  glTexCoordPointer(2, GL_FLOAT, sizeof(*vertex_format),        \
+                    (GLvoid*)ptroffof(vertex_format, tc));
+#define attrib(cnt,name)                                                \
+  glVertexAttribPointer(info->name##_va, cnt, GL_FLOAT, GL_FALSE,       \
+                        sizeof(*vertex_format),                         \
+                        (GLvoid*)ptroffof(vertex_format, name));
+#include "shaders.inc"
+#undef attrib
+#undef with_texture_coordinates
+#undef uniform
+#undef fixed_function
 #undef composed_of
 #undef shader

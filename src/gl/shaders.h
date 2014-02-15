@@ -39,13 +39,43 @@ typedef GLuint shader_type_tex2d;
   void shader_##name##_activate(const shader_##name##_uniform*);        \
   struct shader_##name##_uniform_s
 #define composed_of(x,y)
+/* Fixed-function shaders never have uniforms; add a member to suppress
+ * empty-struct warnings.
+ */
+#define fixed_function int dummy;
 #define uniform(type, name) shader_type_##type name;
+#define with_texture_coordinates
+#define attrib(cnt,name)
 extern int dummy_decl
 #include "shaders.inc"
 ;
+#undef attrib
+#undef with_texture_coordinates
 #undef uniform
+#undef fixed_function
 #undef composed_of
 #undef shader
+
+#define shader(name)                            \
+  ;typedef struct shader_##name##_vertex_s      \
+  shader_##name##_vertex;                       \
+  void shader_##name##_configure_vbo(void);     \
+  struct shader_##name##_vertex_s
+#define fixed_function float v[3];
+#define composed_of(x,y) fixed_function
+#define uniform(x,y)
+#define with_texture_coordinates float tc[2];
+#define attrib(cnt,name) float name[cnt]
+extern int dummy_decl
+#include "shaders.inc"
+;
+#undef attrib
+#undef with_texture_coordinates
+#undef uniform
+#undef fixed_function
+#undef composed_of
+#undef shader
+
 #undef shader_source
 
 #endif /* GL_SHADERS_H_ */
