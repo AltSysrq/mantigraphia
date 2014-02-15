@@ -30,6 +30,7 @@ graphics/dm-proj.c \
 graphics/fast-brush.c \
 gl/shader_loader.c \
 gl/shaders.c \
+gl/marshal.c \
 world/basic-world.c \
 world/terrain.c \
 world/props.c \
