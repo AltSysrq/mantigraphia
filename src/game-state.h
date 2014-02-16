@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,14 @@ typedef struct game_state_s game_state;
  */
 typedef game_state* (*game_state_update_t)(game_state*, chronon elapsed);
 /**
- * Draws the graphical representation of this state onto the given canvas.
+ * Prepares OpenGL for a subsequent call to game_state_draw. This call is
+ * guaranteed to run on the OpenGL thread.
+ */
+typedef void (*game_state_predraw_t)(game_state*, canvas*);
+/**
+ * Draws the graphical representation of this state onto the given canvas. This
+ * call is not guaranteed to run on any particular thread, but may call into
+ * uMP.
  */
 typedef void (*game_state_draw_t)(game_state*, canvas*);
 /**
@@ -94,6 +101,7 @@ typedef void (*game_state_txtin_t)(game_state*, SDL_TextInputEvent*);
 
 struct game_state_s {
   game_state_update_t   update;
+  game_state_predraw_t  predraw;
   game_state_draw_t     draw;
   game_state_key_t      key;
   game_state_mbutton_t  mbutton;

@@ -237,6 +237,7 @@ static void draw(canvas* canv, game_state* state,
   glClear(GL_DEPTH_BUFFER_BIT);
 
   draw_start = SDL_GetTicks();
+  (*state->predraw)(state, canv);
   /* Todo: Run on separate thread */
   (*state->draw)(state, canv);
   /* Assume that any threads involved in drawing have already called

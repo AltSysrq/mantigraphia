@@ -66,9 +66,12 @@ typedef struct {
   rendering_context*restrict context;
 
   int moving_forward, moving_backward, moving_left, moving_right;
+
+  perspective proj;
 } cosine_world_state;
 
 static game_state* cosine_world_update(cosine_world_state*, chronon);
+static void cosine_world_predraw(cosine_world_state*, canvas*);
 static void cosine_world_draw(cosine_world_state*, canvas*);
 static void cosine_world_key(cosine_world_state*, SDL_KeyboardEvent*);
 static void cosine_world_mmotion(cosine_world_state*, SDL_MouseMotionEvent*);
@@ -79,6 +82,7 @@ static void cosine_world_delete(cosine_world_state*);
 game_state* cosine_world_new(void) {
   cosine_world_state template = {
     { (game_state_update_t) cosine_world_update,
+      (game_state_predraw_t)cosine_world_predraw,
       (game_state_draw_t)   cosine_world_draw,
       (game_state_key_t)    cosine_world_key,
       NULL,
@@ -93,7 +97,7 @@ game_state* cosine_world_new(void) {
       basic_world_new(SIZE, SIZE, SIZE/256, SIZE/256),
       NUM_GRASS, NUM_TREES),
     rendering_context_new(),
-    0,0,0,0
+    0,0,0,0,
   };
 
   cosine_world_state* this = xmalloc(sizeof(cosine_world_state));
@@ -159,31 +163,33 @@ static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
   }
 }
 
-static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
+static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   rendering_context_invariant context_inv;
-  perspective proj;
+  perspective* proj = &this->proj;
 
-  context_inv.proj = &proj;
+  context_inv.proj = proj;
   context_inv.long_yrot = this->look.yrot;
   context_inv.screen_width = dst->w;
 
-  proj.camera[0] = this->x;
-  proj.camera[1] = terrain_base_y(this->world->terrain, this->x, this->z) +
-                   2*METRE;
-  proj.camera[2] = this->z;
-  proj.torus_w = this->world->terrain->xmax * TILE_SZ;
-  proj.torus_h = this->world->terrain->zmax * TILE_SZ;
-  proj.yrot = this->look.yrot;
-  proj.yrot_cos = zo_cos(this->look.yrot);
-  proj.yrot_sin = zo_sin(this->look.yrot);
-  proj.rxrot = this->look.rxrot;
-  proj.rxrot_cos = zo_cos(this->look.rxrot);
-  proj.rxrot_sin = zo_sin(this->look.rxrot);
-  proj.near_clipping_plane = 1;
-  perspective_init(&proj, dst, DEG_90);
+  proj->camera[0] = this->x;
+  proj->camera[1] = terrain_base_y(this->world->terrain, this->x, this->z) +
+                    2*METRE;
+  proj->camera[2] = this->z;
+  proj->torus_w = this->world->terrain->xmax * TILE_SZ;
+  proj->torus_h = this->world->terrain->zmax * TILE_SZ;
+  proj->yrot = this->look.yrot;
+  proj->yrot_cos = zo_cos(this->look.yrot);
+  proj->yrot_sin = zo_sin(this->look.yrot);
+  proj->rxrot = this->look.rxrot;
+  proj->rxrot_cos = zo_cos(this->look.rxrot);
+  proj->rxrot_sin = zo_sin(this->look.rxrot);
+  proj->near_clipping_plane = 1;
+  perspective_init(proj, dst, DEG_90);
 
   rendering_context_set(this->context, &context_inv);
+}
 
+static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   parchment_draw(dst, this->bg);
   render_propped_world(dst, this->world, this->context);
   ump_join();

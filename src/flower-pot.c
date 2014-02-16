@@ -66,6 +66,7 @@ typedef struct {
 
 static game_state* flower_pot_update(flower_pot_state*, chronon);
 static void init_data(void);
+static void flower_pot_predraw(flower_pot_state* this, canvas* dst) { }
 static void flower_pot_draw(flower_pot_state*, canvas*);
 static void flower_pot_key(flower_pot_state*, SDL_KeyboardEvent*);
 static void flower_pot_mbutton(flower_pot_state*, SDL_MouseButtonEvent*);
@@ -80,6 +81,7 @@ game_state* flower_pot_new(void) {
   brush_spec stem_brush;
   flower_pot_state template = {
     { (game_state_update_t) flower_pot_update,
+      (game_state_predraw_t)flower_pot_predraw,
       (game_state_draw_t)   flower_pot_draw,
       (game_state_key_t)    flower_pot_key,
       (game_state_mbutton_t)flower_pot_mbutton,
