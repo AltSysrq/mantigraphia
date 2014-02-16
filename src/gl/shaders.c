@@ -42,17 +42,25 @@ static inline void put_uniform_tex2d(GLint ix, GLuint tex) {
   glUniform1i(ix, tex);
 }
 
+static inline void put_uniform_float(GLint ix, float f) {
+  glUniform1f(ix, f);
+}
+
 #define shader_source(name) ;static GLuint shader_part_##name
 #define shader(name) ;struct shader_##name##_info
 #define composed_of(x,y) GLuint program;
 #define fixed_function int dummy; /* suppress empty struct warning */
 #define uniform(type,name) GLint name##_ix;
 #define with_texture_coordinates
+#define with_colour
+#define with_secondary_colour
 #define attrib(cnt,name) unsigned name##_va;
 extern int dummy_decl
 #include "shaders.inc"
 ;
 #undef attrib
+#undef with_secondary_colour
+#undef with_colour
 #undef with_texture_coordinates
 #undef uniform
 #undef composed_of
@@ -94,6 +102,8 @@ static char link_error_log[65536];
     errx(EX_SOFTWARE, "Failed to link uniform " #name           \
          " in shader");
 #define with_texture_coordinates
+#define with_colour
+#define with_secondary_colour
 #define attrib(cnt, name)                                       \
   status = glGetAttribLocation(info->program, #name);           \
   if (-1 == status)                                             \
@@ -102,6 +112,8 @@ static char link_error_log[65536];
   info->name##_va = status;
 #include "shaders.inc"
 #undef attrib
+#undef with_secondary_colour
+#undef with_colour
 #undef with_texture_coordinates
 #undef uniform
 #undef fixed_function
@@ -117,9 +129,13 @@ static char link_error_log[65536];
 #define uniform(type, name)                             \
   put_uniform_##type(info->name##_ix, uniform->name);
 #define with_texture_coordinates
+#define with_colour
+#define with_secondary_colour
 #define attrib(cnt, name)
 #include "shaders.inc"
 #undef attrib
+#undef with_secondary_colour
+#undef with_colour
 #undef with_texture_coordinates
 #undef uniform
 #undef fixed_function
@@ -138,9 +154,13 @@ static char link_error_log[65536];
 #define fixed_function
 #define uniform(x,y)
 #define with_texture_coordinates
+#define with_colour
+#define with_secondary_colour
 #define attrib(cnt,name)
 #include "shaders.inc"
 #undef attrib
+#undef with_secondary_colour
+#undef with_colour
 #undef with_texture_coordinates
 #undef uniform
 #undef fixed_function
@@ -164,6 +184,8 @@ static char link_error_log[65536];
   glVertexPointer(3, GL_FLOAT, sizeof(*vertex_format), (GLvoid*)0);     \
   /* Reset other array states */                                        \
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);                         \
+  glDisableClientState(GL_COLOR_ARRAY);                                 \
+  glDisableClientState(GL_SECONDARY_COLOR_ARRAY);                       \
   glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max);                           \
   for (i = 0; i < max; ++i)                                             \
     glDisableVertexAttribArray(i);
@@ -173,6 +195,15 @@ static char link_error_log[65536];
   glTexCoordPointer(2, GL_FLOAT, sizeof(*vertex_format),        \
                     (GLvoid*)ptroffof(vertex_format, tc));      \
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+#define with_colour                                             \
+  glColorPointer(4, GL_SHORT, sizeof(*vertex_format),           \
+                 (GLvoid*)ptroffof(vertex_format, colour));     \
+  glEnableClientState(GL_COLOR_ARRAY);
+#define with_secondary_colour                                           \
+  glSecondaryColorPointer(4, GL_SHORT, sizeof(*vertex_format),          \
+                          (GLvoid*)ptroffof(vertex_format, sec_colour));\
+  glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
+
 #define attrib(cnt,name)                                                \
   glVertexAttribPointer(info->name##_va, cnt, GL_FLOAT, GL_FALSE,       \
                         sizeof(*vertex_format),                         \

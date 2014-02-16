@@ -31,6 +31,7 @@
 #include <SDL_opengl.h>
 
 typedef GLuint shader_type_tex2d;
+typedef float shader_type_float;
 
 #define shader_source(x) ;extern int dummy_decl
 #define shader(name)                                                    \
@@ -45,11 +46,15 @@ typedef GLuint shader_type_tex2d;
 #define fixed_function int dummy;
 #define uniform(type, name) shader_type_##type name;
 #define with_texture_coordinates
+#define with_colour
+#define with_secondary_colour
 #define attrib(cnt,name)
 extern int dummy_decl
 #include "shaders.inc"
 ;
 #undef attrib
+#undef with_secondary_colour
+#undef with_colour
 #undef with_texture_coordinates
 #undef uniform
 #undef fixed_function
@@ -65,11 +70,15 @@ extern int dummy_decl
 #define composed_of(x,y) fixed_function
 #define uniform(x,y)
 #define with_texture_coordinates float tc[2];
-#define attrib(cnt,name) float name[cnt]
+#define with_colour short colour[4];
+#define with_secondary_colour short sec_colour[4];
+#define attrib(cnt,name) float name[cnt];
 extern int dummy_decl
 #include "shaders.inc"
 ;
 #undef attrib
+#undef with_secondary_colour
+#undef with_colour
 #undef with_texture_coordinates
 #undef uniform
 #undef fixed_function

@@ -26,16 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-shader_source(fcanvas)
-shader_source(vcanvas)
-
-shader(canvas) {
-  composed_of(fcanvas, vcanvas)
-  uniform(tex2d, canvas_colour)
-  uniform(tex2d, canvas_depth)
-}
+shader_source(fterrabuff)
+shader_source(vterrabuff)
 
 shader(fixed_texture) {
   fixed_function
   with_texture_coordinates
+}
+
+shader(terrabuff) {
+  composed_of(fterrabuff, vterrabuff)
+  with_texture_coordinates
+  with_colour
+  with_secondary_colour
+  uniform(tex2d, hmap)
+  uniform(tex2d, tex)
+  uniform(float, ty_below)
+  uniform(float, screen_size)
+  uniform(float, line_thickness)
+  uniform(float, xoff)
+  attrib(1, side)
 }
