@@ -59,6 +59,7 @@
 #include "graphics/parchment.h"
 #include "graphics/brush.h"
 #include "graphics/fast-brush.h"
+#include "gl/marshal.h"
 #include "control/mouselook.h"
 #include "render/terrabuff.h"
 #include "render/tree-props.h"
@@ -183,6 +184,7 @@ int main(void) {
   glLoadIdentity();
 
   ump_init(SDL_GetCPUCount()-1);
+  glm_init();
   parchment_init();
   brush_load();
   fast_brush_load();
@@ -235,7 +237,17 @@ static void draw(canvas* canv, game_state* state,
   glClear(GL_DEPTH_BUFFER_BIT);
 
   draw_start = SDL_GetTicks();
-  /*(*state->draw)(state, canv);*/
+  /* Todo: Run on separate thread */
+  (*state->draw)(state, canv);
+  /* Assume that any threads involved in drawing have already called
+   * glm_finish_thread(). While we *could* try to do that here, the fact that a
+   * thread might not have run (ie, due to impersonation) complicates matters a
+   * bit, and it also means that we'd have to wait for *all* threads to run the
+   * task, which as described in uMP, would cause occasional but substantial
+   * delays.
+   */
+  glm_done();
+  glm_main();
   SDL_GL_SwapWindow(screen);
   draw_end = SDL_GetTicks();
 
