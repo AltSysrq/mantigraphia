@@ -180,6 +180,12 @@ int main(void) {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   glOrtho(0, ww, 0, wh, 0, 4096*METRE);
+  /* Invert the Y axis so that GL coordinates match screen coordinates, and the
+   * Z axis so that positive moves into the screen. (Ie, match the canvas
+   * coordinate system.)
+   */
+  glScalef(1.0f, -1.0f, -1.0f);
+  glTranslatef(0.0f, -(float)wh, 0.0f);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 

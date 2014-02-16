@@ -57,19 +57,9 @@ parchment* parchment_new(void);
 void parchment_delete(parchment*);
 
 /**
- * Draws the parchment to cover the entire canvas. Note that this entirely
- * ignores depth information --- all pixels in the canvas are replaced, and the
- * depth is untouched.
+ * Draws the parchment to cover the entire screen with OpenGL.
  */
 void parchment_draw(canvas*, const parchment*);
-
-/**
- * Conditionally updates a row of the given canvas between the given X
- * boundaries (inclusive and exclusive, respectively), subject to a depth test
- * of the given constant Z coordinate.
- */
-void parchment_draw_subrow(canvas*restrict, const parchment*restrict,
-                           coord x0, coord x1, coord y, coord z);
 
 /**
  * Updates the transformation of the parchment according to the old and new

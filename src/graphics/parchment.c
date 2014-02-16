@@ -33,19 +33,24 @@
 #include <SDL_image.h>
 
 #include <string.h>
+#include <glew.h>
 
 #include "../bsd.h"
 
 #include "../alloc.h"
+#include "../micromp.h"
+#include "../gl/marshal.h"
+#include "../gl/shaders.h"
 #include "canvas.h"
-#include "micromp.h"
 #include "parchment.h"
 
 #define PARCHMENT_DIM 2048
 #define PARCHMENT_MASK (PARCHMENT_DIM-1)
 #define PARCHMENT_FILE "share/extern/parchment.jpg"
 
-static canvas_pixel texture[PARCHMENT_DIM*PARCHMENT_DIM];
+static GLuint texture;
+static glm_slab_group* glmsg;
+static void parchment_activate(void*);
 
 struct parchment_s {
   unsigned tx, ty;
@@ -53,6 +58,7 @@ struct parchment_s {
 
 void parchment_init(void) {
   SDL_Surface* orig_surf, * new_surf;
+  canvas canv;
 
   orig_surf = IMG_Load(PARCHMENT_FILE);
   if (!orig_surf)
@@ -67,13 +73,30 @@ void parchment_init(void) {
     errx(EX_SOFTWARE, "Could not convert parchment surface: %s",
          SDL_GetError());
 
-  /* new_surf is now the same format as texture[], so we can directly copy the
-   * data over.
+  /* new_surf is now the same format as a canvas, so we can directly point to
+   * the data inside the surface.
    */
-  memcpy(texture, new_surf->pixels, sizeof(texture));
+  canv.w = PARCHMENT_DIM;
+  canv.h = PARCHMENT_DIM;
+  canv.pitch = PARCHMENT_DIM;
+  canv.logical_width = PARCHMENT_DIM;
+  canv.ox = canv.oy = 0;
+  canv.px = (canvas_pixel*)new_surf->pixels;
+  canv.depth = NULL;
+
+  texture = canvas_to_texture(&canv, 0);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
   SDL_FreeSurface(new_surf);
   SDL_FreeSurface(orig_surf);
+
+  glmsg = glm_slab_group_new(parchment_activate, NULL,
+                             shader_fixed_texture_configure_vbo,
+                             sizeof(shader_fixed_texture_vertex));
 }
 
 parchment* parchment_new(void) {
@@ -86,65 +109,56 @@ void parchment_delete(parchment* this) {
   free(this);
 }
 
-#define DRAW_ROW_SZ 64
-static canvas*restrict parchment_draw_row_dst;
-static const parchment*restrict parchment_draw_row_this;
-static void parchment_draw_row(unsigned,unsigned);
-static ump_task parchment_drawing_task = {
-  parchment_draw_row,
-  0, /* To be filled in */
-  0 /* Calculate automatically */
-};
+static void parchment_activate(void* ignore) {
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  shader_fixed_texture_activate(NULL);
+}
 
 void parchment_draw(canvas* dst, const parchment* this) {
-  parchment_draw_row_dst = dst;
-  parchment_draw_row_this = this;
-  parchment_drawing_task.num_divisions =
-    (dst->h + DRAW_ROW_SZ - 1) / DRAW_ROW_SZ;
-  if (parchment_drawing_task.num_divisions <
-      parchment_drawing_task.divisions_for_master)
-    parchment_drawing_task.divisions_for_master =
-      parchment_drawing_task.num_divisions;
+  shader_fixed_texture_vertex* vertices;
+  unsigned short* indices, base;
+  coord_offset x, y, x0, y0;
+  glm_slab* slab = glm_slab_get(glmsg);
 
-  ump_run_async(&parchment_drawing_task);
-}
+  x0 = this->tx / 1024 & PARCHMENT_MASK;
+  if (x0 > 0) x0 -= PARCHMENT_DIM;
+  y0 = this->ty / 1024 & PARCHMENT_MASK;
+  if (y0 > 0) y0 -= PARCHMENT_DIM;
 
-static void parchment_draw_row(unsigned i, unsigned n) {
-  canvas*restrict dst = parchment_draw_row_dst;
-  const parchment*restrict this = parchment_draw_row_this;
-
-  unsigned y, yo, xo, cnt, off, min, max;
-
-  min = i * DRAW_ROW_SZ;
-  max = min + DRAW_ROW_SZ;
-
-  for (yo = min; yo < max && yo < dst->h; ++yo) {
-    y = (yo + this->ty/1024) & PARCHMENT_MASK;
-
-    for (xo = 0; xo < dst->w; xo += cnt) {
-      cnt = PARCHMENT_DIM - ((xo + this->tx/1024) & PARCHMENT_MASK);
-      if (xo + cnt > dst->w)
-        cnt = dst->w - xo;
-
-      off = ((xo + this->tx/1024) & PARCHMENT_MASK) + y * PARCHMENT_DIM;
-
-      memcpy(dst->px + canvas_offset(dst, xo, yo),
-             texture + off,
-             sizeof(canvas_pixel) * cnt);
+  for (y = y0; y < (signed)dst->h; y += PARCHMENT_DIM) {
+    for (x = x0; x < (signed)dst->w; x += PARCHMENT_DIM) {
+      base = GLM_ALLOC(&vertices, &indices, slab, 4, 6);
+      vertices[0].v[0] = x;
+      vertices[0].v[1] = y;
+      vertices[0].v[2] = 4095*METRE;
+      vertices[1].v[0] = x + PARCHMENT_DIM;
+      vertices[1].v[1] = y;
+      vertices[1].v[2] = 4095*METRE;
+      vertices[2].v[0] = x;
+      vertices[2].v[1] = y + PARCHMENT_DIM;
+      vertices[2].v[2] = 4095*METRE;
+      vertices[3].v[0] = x + PARCHMENT_DIM;
+      vertices[3].v[1] = y + PARCHMENT_DIM;
+      vertices[3].v[2] = 4095*METRE;
+      vertices[0].tc[0] = 0;
+      vertices[0].tc[1] = 0;
+      vertices[1].tc[0] = 1;
+      vertices[1].tc[1] = 0;
+      vertices[2].tc[0] = 0;
+      vertices[2].tc[1] = 1;
+      vertices[3].tc[0] = 1;
+      vertices[3].tc[1] = 1;
+      indices[0] = base + 0;
+      indices[1] = base + 1;
+      indices[2] = base + 2;
+      indices[3] = base + 1;
+      indices[4] = base + 2;
+      indices[5] = base + 3;
     }
   }
-}
 
-void parchment_draw_subrow(canvas*restrict dst, const parchment*restrict this,
-                           coord x0, coord x1, coord y, coord z) {
-  coord px, py, x;
-
-  py = (y + this->ty/1024) & PARCHMENT_MASK;
-
-  for (x = x0; x < x1; ++x) {
-    px = (x + this->tx/1024) & PARCHMENT_MASK;
-    canvas_write(dst, x, y, texture[py*PARCHMENT_DIM + px], z);
-  }
+  glm_finish_thread();
 }
 
 void parchment_xform(parchment* this,
@@ -159,10 +173,10 @@ void parchment_xform(parchment* this,
   signed short delta_pitch = new_pitch - old_pitch;
   signed short delta_yaw = new_yaw - old_yaw;
   /* Shift vertically as per change in pitch */
-  this->ty += screen_w * delta_pitch * 314159LL / fov_y * 1024 / 200000;
+  this->ty -= screen_w * delta_pitch * 314159LL / fov_y * 1024 / 200000;
   /* Shift horizontally as per change in yaw, but scale this shift by
    * cos(pitch), since looking vertically has less an effect on perceived
    * rotation.
    */
-  this->tx -= screen_w * delta_yaw * 314159LL / fov_x * 1024 / 200000;
+  this->tx += screen_w * delta_yaw * 314159LL / fov_x * 1024 / 200000;
 }

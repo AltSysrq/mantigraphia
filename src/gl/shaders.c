@@ -171,7 +171,8 @@ static char link_error_log[65536];
 #define uniform(x,y)
 #define with_texture_coordinates                                \
   glTexCoordPointer(2, GL_FLOAT, sizeof(*vertex_format),        \
-                    (GLvoid*)ptroffof(vertex_format, tc));
+                    (GLvoid*)ptroffof(vertex_format, tc));      \
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 #define attrib(cnt,name)                                                \
   glVertexAttribPointer(info->name##_va, cnt, GL_FLOAT, GL_FALSE,       \
                         sizeof(*vertex_format),                         \

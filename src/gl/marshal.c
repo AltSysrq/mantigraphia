@@ -39,6 +39,7 @@
 struct glm_slab_group_s {
   void (*activate)(void*);
   void* userdata;
+  void (*configure)(void);
   unsigned data_size;
   SDL_TLSID slab;
   SLIST_ENTRY(glm_slab_group_s) next;
@@ -94,6 +95,7 @@ void glm_init(void) {
 
 glm_slab_group* glm_slab_group_new(void (*activate)(void*),
                                    void* userdata,
+                                   void (*configure)(void),
                                    size_t vertex_size) {
   glm_slab_group* this;
   struct unused_tls* tls;
@@ -101,6 +103,7 @@ glm_slab_group* glm_slab_group_new(void (*activate)(void*),
   this = xmalloc(sizeof(glm_slab_group));
   this->activate = activate;
   this->userdata = userdata;
+  this->configure = configure;
   this->data_size = 65536 * vertex_size;
 
   if (SLIST_EMPTY(&unused_tls_stack)) {
@@ -202,18 +205,24 @@ static void flush_slab(glm_slab* this, int reallocate) {
 }
 
 static void execute_slab(glm_slab* this) {
+  int error;
   (*this->group->activate)(this->group->userdata);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
   glBufferData(GL_ARRAY_BUFFER, this->data_off, this->data, GL_STREAM_DRAW);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->index_off, this->indices,
-               GL_STREAM_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->index_off*sizeof(short),
+               this->indices, GL_STREAM_DRAW);
+  (*this->group->configure)();
   glDrawElements(GL_TRIANGLES, this->index_off, GL_UNSIGNED_SHORT,
                  /* With an element array buffer, indicates the *offset* from
                   * the start of that buffer. We want to start at the
                   * beginning, so use zero.
                   */
                  (GLvoid*)0);
+
+  error = glGetError();
+  if (error)
+    warnx("GL Error: %d", error);
 
   free(this->indices /* includes data */);
   free(this);
