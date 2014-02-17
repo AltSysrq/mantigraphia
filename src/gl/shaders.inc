@@ -42,8 +42,8 @@ shader(terrabuff) {
   uniform(tex2d, hmap)
   uniform(tex2d, tex)
   uniform(float, ty_below)
-  uniform(float, screen_size)
   uniform(float, line_thickness)
   uniform(float, xoff)
+  uniform(vec2, screen_size)
   attrib(1, side)
 }

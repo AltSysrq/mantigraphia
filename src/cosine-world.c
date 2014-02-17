@@ -191,7 +191,6 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
 
 static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   parchment_draw(dst, this->bg);
-  return;
   render_propped_world(dst, this->world, this->context);
   ump_join();
 }

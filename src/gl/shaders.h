@@ -32,6 +32,7 @@
 
 typedef GLuint shader_type_tex2d;
 typedef float shader_type_float;
+typedef float shader_type_vec2[2];
 
 #define shader_source(x) ;extern int dummy_decl
 #define shader(name)                                                    \
@@ -70,8 +71,8 @@ extern int dummy_decl
 #define composed_of(x,y) fixed_function
 #define uniform(x,y)
 #define with_texture_coordinates float tc[2];
-#define with_colour short colour[4];
-#define with_secondary_colour short sec_colour[4];
+#define with_colour float colour[4];
+#define with_secondary_colour float sec_colour[4];
 #define attrib(cnt,name) float name[cnt];
 extern int dummy_decl
 #include "shaders.inc"

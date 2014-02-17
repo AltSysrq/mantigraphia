@@ -6,6 +6,8 @@ uniform float xoff;
 void main() {
   gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
   gl_TexCoord[0] = gl_MultiTexCoord0;
+  gl_FrontColor = gl_Color;
+  gl_FrontSecondaryColor = gl_SecondaryColor;
   screen_coords = vec2(gl_Vertex.x + xoff, gl_Vertex.y);
   rel = side;
 }

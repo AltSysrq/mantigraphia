@@ -32,6 +32,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include <glew.h>
+
 #include "../coords.h"
 #include "../alloc.h"
 #include "../defs.h"
@@ -40,21 +42,26 @@
 #include "../graphics/canvas.h"
 #include "../graphics/linear-paint-tile.h"
 #include "../graphics/perspective.h"
+#include "../gl/shaders.h"
+#include "../gl/marshal.h"
 #include "context.h"
 #include "terrabuff.h"
 
 #define TEXSZ 256
-#define TEXMASK (TEXSZ-1)
+static GLuint texture;
+static GLuint hmap;
 
-/**
- * Texture to use for drawing. Since the texture is greyscale only, it is
- * stored as 8-bit linear greyscale instead of ARGB.
+/* Because multiple terrabuffs may be created on an ad-hoc basis, we can't give
+ * each one its own slab group. But in practise there isn't ever more than one
+ * terrabuff that actually gets rendered, so we can just make the uniform and
+ * such global state.
  */
-static unsigned char texture[TEXSZ*TEXSZ];
+static shader_terrabuff_uniform terrabuff_uniform;
+static glm_slab_group* glmsg;
+static void terrabuff_activate(void*);
 
 void terrabuff_init(void) {
-  unsigned i;
-  canvas_pixel* tmp;
+  canvas* tmp;
 
   static const canvas_pixel pallet[] = {
     argb(255,255,255,255),
@@ -69,21 +76,22 @@ void terrabuff_init(void) {
   };
 
   /* Allocate temporary heap space to store the ARGB texture */
-  tmp = xmalloc(sizeof(canvas_pixel)*TEXSZ*TEXSZ);
+  tmp = canvas_new(TEXSZ, TEXSZ);
 
-  linear_paint_tile_render(tmp, TEXSZ, TEXSZ,
+  linear_paint_tile_render(tmp->px, TEXSZ, TEXSZ,
                            TEXSZ/4, 1,
                            pallet, lenof(pallet));
-
-  /* Convert to greyscale.
-   * All pixels are grey already, so we can just grab the blue channel and call
-   * it good.
-   */
-  for (i = 0; i < TEXSZ*TEXSZ; ++i)
-    texture[i] = get_blue(tmp[i]);
+  texture = canvas_to_texture(tmp, 0);
+  glBindTexture(GL_TEXTURE_2D, texture);
 
   /* Done with temporary */
-  free(tmp);
+  canvas_delete(tmp);
+
+  glGenTextures(1, &hmap);
+
+  glmsg = glm_slab_group_new(terrabuff_activate, NULL,
+                             shader_terrabuff_configure_vbo,
+                             sizeof(shader_terrabuff_vertex));
 }
 
 /**
@@ -262,8 +270,7 @@ void terrabuff_merge(terrabuff*restrict this, const terrabuff*restrict that) {
 }
 
 typedef struct {
-  coord_offset y, z;
-  unsigned char colour_left[3], colour_right[3], colour_gradient;
+  unsigned short y;
 } screen_yz;
 
 #ifdef PROFILE
@@ -276,26 +283,7 @@ __attribute__((noinline));
 static void interpolate_all(screen_yz*restrict, scan_point*restrict,
                             unsigned, coord_offset, coord_offset)
 __attribute__((noinline));
-static void draw_line(canvas*restrict, const screen_yz*restrict,
-                      unsigned, unsigned, unsigned, signed)
-__attribute__((noinline));
-static void draw_line_with_thickness(canvas*restrict, const screen_yz*restrict,
-                                     unsigned, unsigned, unsigned, unsigned)
-__attribute__((noinline));
-static void draw_segments(canvas*restrict,
-                          char*restrict,
-                          const screen_yz*restrict,
-                          const screen_yz*restrict,
-                          unsigned, unsigned, unsigned);
-__attribute__((noinline));
-static void fill_area_between(canvas*restrict,
-                              const screen_yz*restrict,
-                              const screen_yz*restrict,
-                              coord_offset,
-                              unsigned, unsigned)
-__attribute__((noinline));
-static void collapse_buffer(char*restrict,
-                            screen_yz*restrict, const screen_yz*restrict,
+static void collapse_buffer(screen_yz*restrict, const screen_yz*restrict,
                             unsigned)
 __attribute__((noinline));
 #endif /* PROFILE */
@@ -308,18 +296,15 @@ static void interpolate(screen_yz*restrict dst, scan_point*restrict points,
    */
   coord_offset x0 = points[1].where[0], x1 = points[2].where[0];
   coord_offset y0 = points[1].where[1], y1 = points[2].where[1];
-  coord_offset z0 = points[1].where[2], z1 = points[2].where[2];
-  canvas_pixel c0 = points[1].colour,   c1 = points[2].colour;
   coord_offset xl = (x0 >= xmin? x0 : xmin), xh = (x1 < xmax? x1 : xmax);
   coord_offset dx = x1 - x0;
-  coord_offset x;
+  coord_offset x, sy;
   coord_offset m0n, m1n;
   precise_fraction pidx, t1, t2, t3, m0d, m1d;
 
   if (!dx) {
     if (x0 >= xmin && x0 <= xmax) {
-      dst[x0-xmin].y = y0;
-      dst[x0-xmin].z = z0;
+      dst[x0-xmin].y = (y0 > 0? y0 : 0);
     }
     return;
   }
@@ -346,7 +331,7 @@ static void interpolate(screen_yz*restrict dst, scan_point*restrict points,
     t2 = precise_fraction_fmul(t1, t1);
     t3 = precise_fraction_fmul(t2, t1);
 
-    dst[x-xmin].y = precise_fraction_sred(
+    sy = precise_fraction_sred(
       + 2 * precise_fraction_smul(y0, t3)
       - 3 * precise_fraction_smul(y0, t2)
       + precise_fraction_sexp(y0)
@@ -361,14 +346,13 @@ static void interpolate(screen_yz*restrict dst, scan_point*restrict points,
         precise_fraction_sred(
           + precise_fraction_smul(m1n, t3)
           - precise_fraction_smul(m1n, t2)), m1d));
-    dst[x-xmin].z = ((x-x0)*(long long)z1 + (x1-x)*(long long)z0) / dx;
-    dst[x-xmin].colour_left[0] = get_red(c0);
-    dst[x-xmin].colour_left[1] = get_green(c0);
-    dst[x-xmin].colour_left[2] = get_blue(c0);
-    dst[x-xmin].colour_right[0] = get_red(c1);
-    dst[x-xmin].colour_right[1] = get_green(c1);
-    dst[x-xmin].colour_right[2] = get_blue(c1);
-    dst[x-xmin].colour_gradient = (x - x0) * 256 / dx;
+
+    if (sy >= 0 && sy < 65536)
+      dst[x-xmin].y = sy;
+    else if (sy >= 65536)
+      dst[x-xmin].y = 65535;
+    else
+      dst[x-xmin].y = 0;
   }
 }
 
@@ -384,242 +368,198 @@ static void interpolate_all(screen_yz*restrict dst,
       interpolate(dst, points + (i-1), xmin, xmax);
 }
 
-#define LINE_COLOUR (argb(255,12,12,12))
-static void draw_line(canvas*restrict dst,
-                      const screen_yz*restrict along,
-                      unsigned x0, unsigned x1,
-                      unsigned xoff,
-                      signed yoff) {
-  unsigned x, off;
-  coord_offset y0, y1, yl, yh, y;
-
-  for (x = x0; x < x1; ++x) {
-    y0 = along[x].y + yoff;
-    y1 = along[x+1].y + yoff;
-    if (y0 < y1) {
-      yl = (y0 > 0? y0 : 0);
-      yh = (y1 < (signed)dst->h? y1 : (signed)dst->h-1);
-    } else {
-      yl = (y1 > 0? y0 : 0);
-      yh = (y0 < (signed)dst->h? y0 : (signed)dst->h-1);
-    }
-
-    for (y = yl; y <= yh; ++y) {
-      off = canvas_offset(dst, x+xoff, y);
-      dst->px[off] = LINE_COLOUR;
-      dst->depth[off] = along[x].z;
-    }
-  }
-}
-
-static void draw_line_with_thickness(canvas*restrict dst,
-                                     const screen_yz*restrict along,
-                                     unsigned x0, unsigned x1,
-                                     unsigned xoff,
-                                     unsigned thickness) {
-  unsigned t;
-
-  draw_line(dst, along, x0, x1, xoff, 0);
-
-  for (t = 0; t < thickness; ++t) {
-    draw_line(dst, along, x0, x1, xoff, +(signed)t);
-    draw_line(dst, along, x0, x1, xoff, -(signed)t);
-  }
-}
-
-static void draw_segments(canvas*restrict dst,
-                          char*restrict line_points,
-                          const screen_yz*restrict front,
-                          const screen_yz*restrict back,
-                          unsigned xmin, unsigned xmax,
-                          unsigned thickness) {
-  unsigned x0, x1;
-
-  for (x0 = 0; x0 < xmax-xmin; ++x0) {
-    if (back[x0].y <= front[x0].y && !line_points[x0]) {
-      line_points[x0] = 1;
-      x1 = x0+1;
-      while (x1 < xmax-xmin && back[x1].y <= front[x1].y && !line_points[x1]) {
-        line_points[x1] = 1;
-        ++x1;
-      }
-
-      if (x1 >= xmax-xmin)
-        x1 = xmax-xmin-1;
-
-      if (x1 > x0)
-        draw_line_with_thickness(dst, back, x0, x1, xmin, thickness);
-      x0 = x1;
-      line_points[x1] = 1;
-    }
-  }
-}
-
-
-static inline unsigned char mod8(unsigned char a, unsigned char b) {
-  unsigned short prod = a;
-  prod *= b;
-  return prod >> 8;
-}
-
-static inline canvas_pixel modulate(unsigned char grey,
-                                    unsigned char r,
-                                    unsigned char g,
-                                    unsigned char b) {
-  return argb(255,
-              mod8(grey, r),
-              mod8(grey, g),
-              mod8(grey, b));
-}
-
-static void fill_area_between(canvas*restrict dst,
-                              const screen_yz*restrict front,
-                              const screen_yz*restrict back,
-                              coord_offset tex_x_off,
-                              unsigned x0, unsigned x1) {
-  coord_offset y, y0, y1;
-  unsigned x;
-  const unsigned char*restrict colour;
-  canvas_pixel*restrict px;
-  unsigned grey;
-  unsigned*restrict depth;
-
-  /* Calculate Y boundaries */
-  y0 = 65536;
-  y1 = 0;
-  for (x = 0; x < x1-x0; ++x) {
-    if (back [x].y > y1) y1 = back [x].y;
-    if (front[x].y < y0) y0 = front[x].y;
-  }
-
-  if (y0 < 0) y0 = 0;
-  if (y1 >= (signed)dst->h) y1 = dst->h - 1;
-
-  for (y = y0; y <= y1; ++y) {
-    px    = dst->px    + canvas_offset(dst, x0, y);
-    depth = dst->depth + canvas_offset(dst, x0, y);
-
-    for (x = 0; x < x1-x0; ++x, ++px, ++depth) {
-      if (y < front[x].y || y > back[x].y) continue;
-
-      *depth = front[x].z;
-      grey = texture[((x+tex_x_off) & TEXMASK) +
-                     ((y-front[x].y) & TEXMASK)*TEXSZ];
-
-      if (front[x].colour_gradient + (0xF & grey)*8 < 128)
-        colour = front[x].colour_left;
-      else
-        colour = front[x].colour_right;
-
-      *px = modulate(grey, colour[0], colour[1], colour[2]);
-    }
-  }
-}
-
-static void collapse_buffer(char* line_points,
-                            screen_yz*restrict dst,
+static void collapse_buffer(screen_yz*restrict dst,
                             const screen_yz*restrict src,
                             unsigned xmax) {
   unsigned x;
 
-  for (x = 0; x < xmax; ++x) {
-    if (src[x].y < dst[x].y) {
+  for (x = 0; x < xmax; ++x)
+    if (src[x].y < dst[x].y)
       dst[x].y = src[x].y;
-      dst[x].z = src[x].z;
-      line_points[x] = 0;
-    }
-  }
 }
 
 #define RENDER_COL_W (4 * UMP_CACHE_LINE_SZ / sizeof(canvas_depth))
-static canvas*restrict render_dst;
-static terrabuff*restrict render_this;
-static const rendering_context*restrict render_ctxt;
-static void terrabuff_render_column(unsigned,unsigned);
-static ump_task terrabuff_render_task = {
-  terrabuff_render_column,
-  0, /* Set dynamically */
-  0  /* Adjusted dynamically */
+static terrabuff* terrabuff_this;
+static screen_yz* terrabuff_interp;
+static canvas* terrabuff_dst;
+static unsigned terrabuff_interp_pitch;
+
+static void do_interpolate(unsigned ordinal, unsigned pcount) {
+  const canvas*restrict dst = terrabuff_dst;
+  const terrabuff*restrict this = terrabuff_this;
+  screen_yz initial_back_buffer[RENDER_COL_W+1];
+  screen_yz* lbuff_front, * lbuff_back = initial_back_buffer;
+  coord_offset xmin = ordinal * RENDER_COL_W;
+  coord_offset xmax =
+    (xmin + RENDER_COL_W < dst->w? xmin + RENDER_COL_W : dst->w);
+  unsigned scan;
+
+  if (xmin >= xmax) return;
+
+  lbuff_front = terrabuff_interp + xmin;
+
+  memset(lbuff_back, ~0, sizeof(initial_back_buffer));
+
+  for (scan = 0; scan < this->scan; ++scan) {
+    memset(lbuff_front, ~0, (xmax-xmin) * sizeof(screen_yz));
+    interpolate_all(lbuff_front,
+                    this->points + scan * this->scap +
+                      this->boundaries[scan].low,
+                    this->boundaries[scan].high -
+                      this->boundaries[scan].low,
+                    xmin, xmax);
+    collapse_buffer(lbuff_front, lbuff_back, xmax - xmin);
+    lbuff_back = lbuff_front;
+    lbuff_front += terrabuff_interp_pitch;
+  }
+}
+
+static void interp_to_gl(void* ignored) {
+  glBindTexture(GL_TEXTURE_2D, hmap);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, terrabuff_interp_pitch);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_R16,
+               terrabuff_dst->w, terrabuff_this->scan, 0,
+               GL_RED, GL_UNSIGNED_SHORT, terrabuff_interp);
+}
+
+static void render_rectangle_between(glm_slab* slab,
+                                     const scan_point*restrict l,
+                                     const scan_point*restrict r,
+                                     const screen_yz*restrict upper,
+                                     const screen_yz*restrict lower,
+                                     unsigned xmax,
+                                     float hmap_y) {
+  unsigned ymin = 65536, ymax = 0;
+  signed x0, x1, x;
+  shader_terrabuff_vertex* vertices;
+  unsigned short* indices, base;
+  unsigned i;
+
+  x0 = (l->where[0] >= 0? l->where[0] : 0);
+  x1 = (r->where[0] < (signed)xmax? r->where[0] : (signed)xmax);
+  if (x0 >= x1) return;
+
+  for (x = x0; x < x1; ++x) {
+    if (upper[x].y < ymin) ymin = upper[x].y;
+    if (lower[x].y > ymax) ymax = lower[x].y;
+  }
+
+  base = GLM_ALLOC(&vertices, &indices, slab, 4, 6);
+  vertices[0].v[0] = l->where[0];
+  vertices[0].v[1] = ymin;
+  vertices[0].v[2] = l->where[2];
+  vertices[1].v[0] = l->where[0];
+  vertices[1].v[1] = ymax + terrabuff_uniform.line_thickness;
+  vertices[1].v[2] = l->where[2];
+  vertices[2].v[0] = r->where[0];
+  vertices[2].v[1] = ymin;
+  vertices[2].v[2] = r->where[2];
+  vertices[3].v[0] = r->where[0];
+  vertices[3].v[1] = ymax + terrabuff_uniform.line_thickness;
+  vertices[3].v[2] = r->where[2];
+  vertices[0].tc[0] = vertices[1].tc[0] = l->where[0] / (float)xmax;
+  vertices[2].tc[0] = vertices[3].tc[0] = r->where[0] / (float)xmax;
+  vertices[0].side[0] = vertices[1].side[0] = 0.0f;
+  vertices[2].side[0] = vertices[3].side[0] = 1.0f;
+  for (i = 0; i < 4; ++i) {
+    vertices[i].tc[1] = hmap_y;
+    canvas_pixel_to_gl4fv(vertices[i].colour, l->colour);
+    canvas_pixel_to_gl4fv(vertices[i].sec_colour, r->colour);
+  }
+  indices[0] = base + 0;
+  indices[1] = base + 1;
+  indices[2] = base + 2;
+  indices[3] = base + 1;
+  indices[4] = base + 2;
+  indices[5] = base + 3;
+}
+
+static ump_task terrabuff_interpolate_task = {
+  do_interpolate,
+  0, /* set dynamically */
+  0, /* unused (sync) */
 };
+
+static void terrabuff_activate(void* ignored) {
+  glBindTexture(GL_TEXTURE_2D, hmap);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glActiveTexture(GL_TEXTURE0);
+  glDepthFunc(GL_ALWAYS);
+  shader_terrabuff_activate(&terrabuff_uniform);
+}
+
+static void terrabuff_deactivate(void* ignored) {
+  glDepthFunc(GL_LESS);
+}
 
 void terrabuff_render(canvas*restrict dst,
                       terrabuff*restrict this,
                       const rendering_context*restrict ctxt) {
-  render_dst = dst;
-  render_this = this;
-  render_ctxt = ctxt;
+  glm_slab* slab;
+  unsigned scan, i;
+  screen_yz* upper, * lower, initial_lower[dst->w];
 
-  terrabuff_render_task.num_divisions =
-    (dst->w + RENDER_COL_W - 1) / RENDER_COL_W;
-  if (terrabuff_render_task.num_divisions <
-      terrabuff_render_task.divisions_for_master)
-    terrabuff_render_task.divisions_for_master =
-      terrabuff_render_task.num_divisions;
+  terrabuff_dst = dst;
+  terrabuff_this = this;
+  /* Assume canvas's pitch achieves the same alignment we'd want */
+  terrabuff_interp_pitch = dst->pitch;
+  terrabuff_interp = xmalloc(dst->pitch * this->scan * sizeof(screen_yz));
+  terrabuff_uniform.hmap = 0;
+  terrabuff_uniform.tex = 1;
+  terrabuff_uniform.ty_below = 1.0f / this->scan;
+  terrabuff_uniform.line_thickness = dst->w / 512;
+  terrabuff_uniform.screen_size[0] = dst->w;
+  terrabuff_uniform.screen_size[1] = dst->h;
+  terrabuff_uniform.xoff = 0;
 
-  ump_join();
-  ump_run_async(&terrabuff_render_task);
-}
+  terrabuff_interpolate_task.num_divisions =
+    (dst->w + RENDER_COL_W - 1) / RENDER_COL_W * RENDER_COL_W;
+  ump_run_sync(&terrabuff_interpolate_task);
+  glm_do(interp_to_gl, NULL);
 
-static void terrabuff_render_column(unsigned ordinal, unsigned pcount) {
-  canvas*restrict dst = render_dst;
-  terrabuff*restrict this = render_this;
-  coord_offset xmin = ordinal * RENDER_COL_W;
-  coord_offset xmax =
-    (xmin + RENDER_COL_W < dst->w? xmin + RENDER_COL_W : dst->w);
-  const rendering_context_invariant*restrict context =
-    (const rendering_context_invariant*restrict)render_ctxt;
-  screen_yz lbuff_front[RENDER_COL_W+1], lbuff_back[RENDER_COL_W+1];
-  /* Track points (X coordinates) that already have lines. This way, we can
-   * avoid drawing the same line segment over and over.
-   */
-  char line_points[RENDER_COL_W+1];
-  unsigned scan, x, line_thickness;
-  coord_offset texture_x_offset;
+  memset(initial_lower, ~0, sizeof(initial_lower));
+  lower = initial_lower;
+  upper = terrabuff_interp;
 
-  if (xmin >= xmax) return;
-
-  texture_x_offset = (-(signed)dst->w) * 314159 / 200000 *
-    context->long_yrot / context->proj->fov + xmin;
-  line_thickness = 1 + dst->h / 1024;
-  memset(line_points, 0, sizeof(line_points));
-
-  /* Render from the bottom up. First, initialise the front-yz buffer to have
-   * the minimum Y coordinate at all points, so that the bottom level never
-   * interacts.
-   *
-   * Then, for each iteration, interpolate the new scan into the front
-   * buffer. Fill the areas where the front buffer Y is less than (above) the
-   * back buffer Y. Then draw line segments along the back buffer where its Y
-   * is less than or equal to the front buffer. Finally, collapse the front
-   * buffer into the back buffer by selecting lesser Y coordinates.
-   *
-   * When done, draw a line across the entire back buffer to add contrast to
-   * the sky and to be consistent with how the rest of the drawing looks.
-   */
-  for (x = 0; x < lenof(lbuff_front); ++x) {
-    lbuff_back[x].y = 0x7FFFFFFF;
-    lbuff_back[x].z = 0x7FFFFFFF;
-    /* Also initialise the front buffer, since some off-screen circumstances
-     * would cause it to be left uninitialised.
-     */
-    lbuff_front[x].y = 0x7FFFFFFF;
-    lbuff_front[x].z = 0x7FFFFFFF;
-  }
+  slab = glm_slab_get(glmsg);
   for (scan = 0; scan < this->scan; ++scan) {
-    interpolate_all(lbuff_front,
-                    this->points + this->scap*scan + this->boundaries[scan].low,
-                    this->boundaries[scan].high - this->boundaries[scan].low,
-                    xmin, xmax);
+    for (i = this->boundaries[scan].low;
+         i+1 < this->boundaries[scan].high; ++i) {
+      render_rectangle_between(
+        slab,
+        this->points + scan*this->scap + i,
+        this->points + scan*this->scap + i + 1,
+        upper, lower, dst->w, (scan+0.9f) / (float)this->scan);
+    }
 
-    fill_area_between(dst, lbuff_front, lbuff_back,
-                      texture_x_offset + 31*scan*scan + 75*scan,
-                      xmin, xmax);
-    draw_segments(dst, line_points, lbuff_front, lbuff_back,
-                  xmin, xmax, line_thickness);
-
-    collapse_buffer(line_points, lbuff_back, lbuff_front, xmax - xmin + 1);
+    lower = upper;
+    upper += dst->pitch;
   }
 
-  draw_line_with_thickness(dst, lbuff_back, 0, xmax - xmin, xmin,
-                           line_thickness);
+  /* Add line over final scan */
+  scan = this->scan - 1;
+  for (i = this->boundaries[scan].low;
+       i+1 < this->boundaries[scan].high; ++i) {
+    render_rectangle_between(
+      slab,
+      this->points + scan*this->scap + i,
+      this->points + scan*this->scap + i + 1,
+      /* The texture is clamped, so we can just pass an arbitrarily large value
+       * to ensure that the shader sees only the top.
+       */
+      lower, lower, dst->w, 2.0f);
+  }
+
+  glm_do(terrabuff_deactivate, NULL);
+  glm_do(free, terrabuff_interp);
+  glm_finish_thread();
 }

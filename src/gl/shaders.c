@@ -46,6 +46,10 @@ static inline void put_uniform_float(GLint ix, float f) {
   glUniform1f(ix, f);
 }
 
+static inline void put_uniform_vec2(GLint ix, const float* f) {
+  glUniform2fv(ix, 1, f);
+}
+
 #define shader_source(name) ;static GLuint shader_part_##name
 #define shader(name) ;struct shader_##name##_info
 #define composed_of(x,y) GLuint program;
@@ -196,11 +200,11 @@ static char link_error_log[65536];
                     (GLvoid*)ptroffof(vertex_format, tc));      \
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 #define with_colour                                             \
-  glColorPointer(4, GL_SHORT, sizeof(*vertex_format),           \
+  glColorPointer(4, GL_FLOAT, sizeof(*vertex_format),           \
                  (GLvoid*)ptroffof(vertex_format, colour));     \
   glEnableClientState(GL_COLOR_ARRAY);
 #define with_secondary_colour                                           \
-  glSecondaryColorPointer(4, GL_SHORT, sizeof(*vertex_format),          \
+  glSecondaryColorPointer(4, GL_FLOAT, sizeof(*vertex_format),          \
                           (GLvoid*)ptroffof(vertex_format, sec_colour));\
   glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
 

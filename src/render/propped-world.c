@@ -99,6 +99,7 @@ void render_propped_world(canvas* dst,
   render_propped_world_dst = dst;
 
   render_basic_world(dst, this->terrain, context);
+  return;
 
   render_propped_world_enqueue_task.num_divisions = ump_num_workers()+1;
   render_propped_world_execute_task.num_divisions = ump_num_workers()+1;

@@ -244,4 +244,14 @@ static inline colour_component get_blue(canvas_pixel px) {
    (((canvas_pixel)(g)) << GSHFT) |             \
    (((canvas_pixel)(b)) << BSHFT))
 
+static inline void canvas_pixel_to_gl4fv(float* v, canvas_pixel px) {
+  /* Dividing by 256 instead of 255 is a good enough approximation, and avoids
+   * performing an expensive FP division.
+   */
+  v[0] = get_red  (px) / 256.0f;
+  v[1] = get_green(px) / 256.0f;
+  v[2] = get_blue (px) / 256.0f;
+  v[3] = get_alpha(px) / 256.0f;
+}
+
 #endif /* GRAPHICS_CANVAS_H_ */

@@ -222,7 +222,7 @@ static void execute_slab(glm_slab* this) {
 
   error = glGetError();
   if (error)
-    warnx("GL Error: %d", error);
+    warnx("GL Error: %d (%s)", error, gluErrorString(error));
 
   free(this->indices /* includes data */);
   free(this);
