@@ -504,6 +504,8 @@ static void terrabuff_deactivate(void* ignored) {
 void terrabuff_render(canvas*restrict dst,
                       terrabuff*restrict this,
                       const rendering_context*restrict ctxt) {
+  const rendering_context_invariant*restrict context =
+    CTXTINV(ctxt);
   glm_slab* slab;
   unsigned scan, i;
   screen_yz* upper, * lower, initial_lower[dst->w];
@@ -519,7 +521,8 @@ void terrabuff_render(canvas*restrict dst,
   terrabuff_uniform.line_thickness = dst->w / 512;
   terrabuff_uniform.screen_size[0] = dst->w;
   terrabuff_uniform.screen_size[1] = dst->h;
-  terrabuff_uniform.xoff = 0;
+  terrabuff_uniform.xoff = (-(signed)dst->w) * 314159 / 200000 *
+    context->long_yrot / context->proj->fov;
 
   terrabuff_interpolate_task.num_divisions =
     (dst->w + RENDER_COL_W - 1) / RENDER_COL_W * RENDER_COL_W;
