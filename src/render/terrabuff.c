@@ -407,7 +407,7 @@ static void do_interpolate(unsigned ordinal, unsigned pcount) {
                       this->boundaries[scan].low,
                     this->boundaries[scan].high -
                       this->boundaries[scan].low,
-                    xmin, xmax);
+                    xmin, xmax-1);
     collapse_buffer(lbuff_front, lbuff_back, xmax - xmin);
     lbuff_back = lbuff_front;
     lbuff_front += terrabuff_interp_pitch;
