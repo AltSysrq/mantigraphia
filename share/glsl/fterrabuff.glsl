@@ -16,8 +16,11 @@ void main() {
     thickness = max(1.0f, line_thickness/2.0f);
 
   high = texture2D(hmap, gl_TexCoord[0].st).r * 65536;
-  low = texture2D(hmap, vec2(gl_TexCoord[0].s,
-                             gl_TexCoord[0].t-ty_below)).r * 65536;
+  if (gl_TexCoord[0].t > ty_below)
+    low = texture2D(hmap, vec2(gl_TexCoord[0].s,
+                               gl_TexCoord[0].t-ty_below)).r * 65536;
+  else
+    low = 65536;
 
   if (high >= low &&
       screen_coords.y >= high &&
