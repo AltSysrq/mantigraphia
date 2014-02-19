@@ -115,10 +115,10 @@ void glbrush_draw_line(glbrush_accum* accum, const glbrush_spec* spec,
   delta[1] = from[1] - to[1];
   delta[2] = 0;
   pixel_length = omagnitude(delta);
-  if (!pixel_length) return;
+  if (!pixel_length || pixel_length > 1024) return;
 
-  xoff = - ((signed)(spec->screen_width * delta[1])) / 2 / pixel_length;
-  yoff = + ((signed)(spec->screen_width * delta[0])) / 2 / pixel_length;
+  xoff = - ((signed)(spec->screen_width * delta[1])) / 2 / (signed)pixel_length;
+  yoff = + ((signed)(spec->screen_width * delta[0])) / 2 / (signed)pixel_length;
   from_pixel_w = zo_scale(spec->screen_width, from_weight);
   to_pixel_w = zo_scale(spec->screen_width, to_weight);
   from_w = from_pixel_w /

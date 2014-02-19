@@ -31,6 +31,7 @@
 
 #include "../alloc.h"
 #include "../micromp.h"
+#include "../gl/marshal.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
 #include "../world/propped-world.h"
@@ -99,7 +100,6 @@ void render_propped_world(canvas* dst,
   render_propped_world_dst = dst;
 
   render_basic_world(dst, this->terrain, context);
-  return;
 
   render_propped_world_enqueue_task.num_divisions = ump_num_workers()+1;
   render_propped_world_execute_task.num_divisions = ump_num_workers()+1;
@@ -139,6 +139,10 @@ static void render_propped_world_enqueue(unsigned ix, unsigned count) {
                      TREES_DISTSQ_SHIFT,
                      tree_prop_renderers,
                      context);
+  /* Since we enqueued stuff for GL, we need to ensure this thread's queues get
+   * flushed.
+   */
+  glm_finish_thread();
 }
 
 static void render_propped_world_execute(unsigned ix, unsigned count) {

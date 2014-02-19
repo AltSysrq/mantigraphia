@@ -33,14 +33,13 @@
 
 #include "../defs.h"
 #include "../simd.h"
-#include "../graphics/fast-brush.h"
 #include "../graphics/canvas.h"
 #include "../graphics/dm-proj.h"
+#include "../graphics/glbrush.h"
 #include "../world/basic-world.h"
 #include "../world/terrain.h"
 #include "draw-queue.h"
 #include "turtle.h"
-#include "shared-fast-brush.h"
 #include "context.h"
 #include "lsystem.h"
 #include "tree-props.h"
@@ -99,12 +98,12 @@ static const canvas_pixel temp_tree_leaf_pallet[] = {
 static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
                                   const basic_world* world, unsigned level,
                                   const rendering_context*restrict context) {
-  drawing_queue_burst burst;
   turtle_state turtle[17];
   unsigned depth = 0, size_shift = 0, i;
   unsigned screen_width = CTXTINV(context)->screen_width;
   vc3 root;
-  fast_brush_accum accum;
+  glbrush_spec brush;
+  glbrush_accum accum = { 0.0f };
   lsystem_state sys;
 
   root[0] = this->x;
@@ -117,6 +116,16 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   /* Don't do anything of too far behind the camera */
   if (simd_vs(turtle[0].pos.curr, 2) > 4*METRE) return;
 
+  glbrush_init(&brush);
+  brush.xscale = fraction_of(16);
+  brush.yscale = fraction_of(4);
+  brush.decay = 0.25f;
+  brush.noise = 1.0f;
+  brush.texoff = 0;
+  brush.colour[0] = argb(255, 32, 28, 0);
+  brush.colour[1] = argb(255, 48, 32, 0);
+  brush.screen_width = screen_width;
+
   /* Move level to a less linear scale. */
   if      (level < 32) level = 0;
   else if (level < 40) level = 1;
@@ -128,14 +137,6 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   else                 level = 6;
 
   lsystem_execute(&sys, &temp_tree_system, "9A", level, this->x^this->z);
-
-  drawing_queue_start_burst(&burst, queue);
-  dq_shared_fast_brush(&burst, context);
-  accum.colours = temp_trunk_pallet;
-  accum.num_colours = lenof(temp_trunk_pallet);
-  accum.random = accum.random_seed = this->x ^ this->z;
-  accum.distance = 0;
-  DQACC(burst, accum);
 
   for (i = 0; sys.buffer[i]; ++i) {
     switch (sys.buffer[i]) {
@@ -166,9 +167,9 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
                   (5 * METRE >> ('9' - sys.buffer[i]) >> size_shift)
                   / TURTLE_UNIT,
                   0);
-      turtle_put_draw_line(&burst, turtle+depth,
-                           METRE >> size_shift, METRE >> size_shift,
-                           screen_width);
+      turtle_draw_line(&accum, &brush, turtle+depth,
+                       METRE >> size_shift, METRE >> size_shift,
+                       screen_width);
       break;
 
     case 'a':
@@ -204,21 +205,10 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
       /* Don't bother drawing leaves at level 0 */
       if (!level) break;
 
-      drawing_queue_flush(&burst);
-      accum.colours = temp_tree_leaf_pallet;
-      accum.num_colours = lenof(temp_tree_leaf_pallet);
-      DQACC(burst, accum);
-      turtle_put_draw_point(&burst, turtle+depth,
-                            2*METRE,
-                            screen_width);
-      drawing_queue_flush(&burst);
-      accum.colours = temp_trunk_pallet;
-      accum.num_colours = lenof(temp_trunk_pallet);
-      DQACC(burst, accum);
+      turtle_draw_point(&accum, &brush, turtle+depth,
+                        2*METRE,
+                        screen_width);
       break;
     }
   }
-
-  drawing_queue_flush(&burst);
-  drawing_queue_end_burst(queue, &burst);
 }
