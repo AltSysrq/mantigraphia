@@ -38,6 +38,7 @@
 
 struct glm_slab_group_s {
   void (*activate)(void*);
+  void (*deactivate)(void*);
   void* userdata;
   void (*configure)(void);
   unsigned data_size;
@@ -94,6 +95,7 @@ void glm_init(void) {
 }
 
 glm_slab_group* glm_slab_group_new(void (*activate)(void*),
+                                   void (*deactivate)(void*),
                                    void* userdata,
                                    void (*configure)(void),
                                    size_t vertex_size) {
@@ -102,6 +104,7 @@ glm_slab_group* glm_slab_group_new(void (*activate)(void*),
 
   this = xmalloc(sizeof(glm_slab_group));
   this->activate = activate;
+  this->deactivate = deactivate;
   this->userdata = userdata;
   this->configure = configure;
   this->data_size = 65536 * vertex_size;
@@ -223,6 +226,9 @@ static void execute_slab(glm_slab* this) {
   error = glGetError();
   if (error)
     warnx("GL Error: %d (%s)", error, gluErrorString(error));
+
+  if (this->group->deactivate)
+    (*this->group->deactivate)(this->group->userdata);
 
   free(this->indices /* includes data */);
   free(this);

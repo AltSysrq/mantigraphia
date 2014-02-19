@@ -94,7 +94,7 @@ void parchment_init(void) {
   SDL_FreeSurface(new_surf);
   SDL_FreeSurface(orig_surf);
 
-  glmsg = glm_slab_group_new(parchment_activate, NULL,
+  glmsg = glm_slab_group_new(parchment_activate, NULL, NULL,
                              shader_fixed_texture_configure_vbo,
                              sizeof(shader_fixed_texture_vertex));
 }

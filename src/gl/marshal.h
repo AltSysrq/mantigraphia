@@ -55,14 +55,17 @@ typedef struct glm_slab_s glm_slab;
  *
  * @param activate The activation function run on the OpenGL thread when
  * derived slabs are to be rendered.
- * @param userdata Parameter to pass to activate. It is the caller's
- * responsibility to ensure the continued validity of this pointer.
+ * @param deactivate Function to call after drawing the data with OpenGL. NULL
+ * indicates to do nothing.
+ * @param userdata Parameter to pass to activate and deactivate. It is the
+ * caller's responsibility to ensure the continued validity of this pointer.
  * @param configure Function to call after sending data to OpenGL, but before
  * drawing it, to configure the VBO.
  * @param vertex_size The size of a vertex, to determine slab data size.
  * @return The newly-allocated slab group.
  */
 glm_slab_group* glm_slab_group_new(void (*activate)(void*),
+                                   void (*deactivate)(void*),
                                    void* userdata,
                                    void (*configure)(void),
                                    size_t vertex_size);

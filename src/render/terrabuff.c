@@ -59,6 +59,7 @@ static GLuint hmap;
 static shader_terrabuff_uniform terrabuff_uniform;
 static glm_slab_group* glmsg;
 static void terrabuff_activate(void*);
+static void terrabuff_deactivate(void*);
 
 void terrabuff_init(void) {
   canvas* tmp;
@@ -89,7 +90,9 @@ void terrabuff_init(void) {
 
   glGenTextures(1, &hmap);
 
-  glmsg = glm_slab_group_new(terrabuff_activate, NULL,
+  glmsg = glm_slab_group_new(terrabuff_activate,
+                             terrabuff_deactivate,
+                             NULL,
                              shader_terrabuff_configure_vbo,
                              sizeof(shader_terrabuff_vertex));
 }
@@ -499,6 +502,7 @@ static void terrabuff_activate(void* ignored) {
 
 static void terrabuff_deactivate(void* ignored) {
   glDepthFunc(GL_LESS);
+  free(terrabuff_interp);
 }
 
 void terrabuff_render(canvas*restrict dst,
@@ -562,7 +566,5 @@ void terrabuff_render(canvas*restrict dst,
       lower, lower, dst->w, 2.0f);
   }
 
-  glm_do(terrabuff_deactivate, NULL);
-  glm_do(free, terrabuff_interp);
   glm_finish_thread();
 }
