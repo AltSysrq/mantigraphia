@@ -31,6 +31,7 @@
 #include "../simd.h"
 #include "../coords.h"
 #include "../graphics/perspective.h"
+#include "../graphics/abstract.h"
 #include "draw-queue.h"
 
 /**
@@ -210,5 +211,32 @@ int turtle_put_draw_line(drawing_queue_burst* burst,
                          coord logical_size_from,
                          coord logical_size_to,
                          unsigned screen_width);
+
+/**
+ * Uses the given drawing method to render a point at the current point.
+ *
+ * @param logical_size Size in world space of the object being drawn.
+ * @param screen_width The width, in pixels, of the screen.
+ */
+void turtle_draw_point(void* accum, const void* meth,
+                       const turtle_state*,
+                       coord logical_size,
+                       unsigned screen_width);
+
+/**
+ * Uses the given drawing method to draw a line from the previous point tot he
+ * current point.
+ *
+ * @param logical_size_from Size in world space of the object being drawn, at
+ * the previous point.
+ * @param logical_size_to Size in world space of the object being drawn, at the
+ * current point.
+ * @param screen_width The width, in pixels, of the screen.
+ */
+void turtle_draw_line(void* accum, const void* meth,
+                      const turtle_state*,
+                      coord logical_size_from,
+                      coord logical_size_to,
+                      unsigned screen_width);
 
 #endif /* RENDER_TURTLE_H_ */

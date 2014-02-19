@@ -204,3 +204,44 @@ int turtle_put_draw_line(drawing_queue_burst* dst, const turtle_state* this,
   drawing_queue_draw_line(dst, thickness);
   return 1;
 }
+
+void turtle_draw_point(void* accum, const void* meth,
+                       const turtle_state* this,
+                       coord logical_size, unsigned screen_width) {
+  coord_offset rwhere[4];
+  vo3 where;
+  zo_scaling_factor weight;
+
+  simd_to_vo4(rwhere, this->pos.curr);
+  if (!perspective_proj_rel(where, rwhere, this->proj))
+    return;
+
+  weight = dm_proj_calc_weight(screen_width, this->proj,
+                               where[2], logical_size);
+
+  dm_draw_point(accum, meth, where, weight);
+}
+
+void turtle_draw_line(void* accum, const void* meth,
+                      const turtle_state* this,
+                      coord logical_size_from,
+                      coord logical_size_to,
+                      unsigned screen_width) {
+  coord_offset rfrom[4], rto[4];
+  vo3 from, to;
+  zo_scaling_factor from_weight, to_weight;
+
+  simd_to_vo4(rfrom, this->pos.prev);
+  simd_to_vo4(rto, this->pos.curr);
+
+  if (!perspective_proj_rel(from, rfrom, this->proj) ||
+      !perspective_proj_rel(to, rto, this->proj))
+    return;
+
+  from_weight = dm_proj_calc_weight(screen_width, this->proj,
+                                    from[2], logical_size_from);
+  to_weight = dm_proj_calc_weight(screen_width, this->proj,
+                                  to[2], logical_size_to);
+
+  dm_draw_line(accum, meth, from, from_weight, to, to_weight);
+}
