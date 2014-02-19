@@ -59,6 +59,7 @@
 #include "graphics/parchment.h"
 #include "graphics/brush.h"
 #include "graphics/fast-brush.h"
+#include "graphics/glbrush.h"
 #include "gl/marshal.h"
 #include "control/mouselook.h"
 #include "render/terrabuff.h"
@@ -194,6 +195,7 @@ int main(void) {
   parchment_init();
   brush_load();
   fast_brush_load();
+  glbrush_load();
   mouselook_init(screen);
   terrabuff_init();
   tree_props_init();

@@ -28,6 +28,8 @@
 #ifndef GL_MARSHAL_H_
 #define GL_MARSHAL_H_
 
+#include <stdlib.h>
+
 /**
  * @file
  * The GL marshalling infrastructure allows multiple threads to independently

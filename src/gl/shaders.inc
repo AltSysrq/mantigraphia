@@ -28,6 +28,8 @@
 
 shader_source(fterrabuff)
 shader_source(vterrabuff)
+shader_source(fbrush)
+shader_source(vbrush)
 
 shader(fixed_texture) {
   fixed_function
@@ -46,4 +48,13 @@ shader(terrabuff) {
   uniform(float, xoff)
   uniform(vec2, screen_size)
   attrib(1, side)
+}
+
+shader(brush) {
+  composed_of(fbrush, vbrush)
+  with_texture_coordinates
+  with_colour
+  with_secondary_colour
+  uniform(tex2d, tex)
+  attrib(4, parms)
 }
