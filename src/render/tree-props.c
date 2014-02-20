@@ -47,7 +47,8 @@
 static lsystem temp_tree_system;
 
 void tree_props_init(void) {
-  /* 9..6: Branch lengths
+  /* 9..6: Branch lengths (movement)
+   * -   : Draw branch
    * A..H: Leaf splotches
    * [  ]: Push/pop
    * (  ): Push/pop with size reduction
@@ -68,7 +69,7 @@ void tree_props_init(void) {
     "E F",
     "F G",
     "G H",
-    ". . [(q9B)z.] [(r9B)z.] [(s9B)z.] [(t9B)z.] [(u9B)z.] [(v9B)z.]",
+    ". . [(q-9B)z.] [(r-9B)z.] [(s-9B)z.] [(t-9B)z.] [(u-9B)z.] [(v-9B)z.]",
     "z a b c d e f g h",
     NULL);
 }
@@ -136,7 +137,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   else if (level < 61) level = 6;
   else                 level = 6;
 
-  lsystem_execute(&sys, &temp_tree_system, "9A", level, this->x^this->z);
+  lsystem_execute(&sys, &temp_tree_system, "-9A", level, this->x^this->z);
 
   for (i = 0; sys.buffer[i]; ++i) {
     switch (sys.buffer[i]) {
@@ -159,6 +160,17 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
       --depth;
       break;
 
+    case '-':
+      turtle[depth+1] = turtle[depth];
+      turtle_move(turtle+depth+1, 0,
+                  (5 * METRE >> size_shift)
+                  / TURTLE_UNIT,
+                  0);
+      turtle_draw_line(&accum, &brush, turtle+depth+1,
+                       METRE >> size_shift, METRE >> size_shift,
+                       screen_width);
+      break;
+
     case '9':
     case '8':
     case '7':
@@ -167,9 +179,6 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
                   (5 * METRE >> ('9' - sys.buffer[i]) >> size_shift)
                   / TURTLE_UNIT,
                   0);
-      turtle_draw_line(&accum, &brush, turtle+depth,
-                       METRE >> size_shift, METRE >> size_shift,
-                       screen_width);
       break;
 
     case 'a':
