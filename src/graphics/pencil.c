@@ -67,7 +67,8 @@ void pencil_draw_point(
   if (1 == diam) {
     if (where[0] >= 0 && where[0] < (signed)dst->w &&
         where[1] >= 0 && where[1] < (signed)dst->h) {
-      canvas_write(dst, where[0], where[1], spec->colour, where[2]);
+      if (dst->interlacing[where[1]])
+        canvas_write(dst, where[0], where[1], spec->colour, where[2]);
     }
   } else {
     rad = diam/2;
@@ -83,10 +84,11 @@ void pencil_draw_point(
     y0 = (y0 >= 0? y0 : 0);
     y1 = (y1 < (signed)dst->h? y1 : (signed)dst->h);
 
-    for (x = x0; x < x1; ++x) {
-      dx = abs(x-where[0]);
-      for (y = y0; y < y1; ++y) {
-        dy = abs(y-where[1]);
+    for (y = y0; y < y1; ++y) {
+      dy = abs(y-where[1]);
+      if (!dst->interlacing[y]) continue;
+      for (x = x0; x < x1; ++x) {
+        dx = abs(x-where[0]);
         if (dx*dx + dy*dy <= (coord_offset)rad2)
           canvas_write(dst, x, y, spec->colour, where[2]);
       }
