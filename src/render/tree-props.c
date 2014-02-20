@@ -95,6 +95,7 @@ static const canvas_pixel temp_tree_leaf_pallet[] = {
   argb(255, 0, 32, 0),
   argb(255, 0, 48, 0),
   argb(255, 20, 96, 16),
+  argb(255, 30, 96, 24),
 };
 
 static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
@@ -107,6 +108,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   vc3 root;
   fast_brush_accum accum;
   lsystem_state sys;
+  coord_offset base_size;
 
   root[0] = this->x;
   root[1] = terrain_base_y(world, this->x, this->z);
@@ -117,6 +119,8 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
 
   /* Don't do anything of too far behind the camera */
   if (simd_vs(turtle[0].pos.curr, 2) > 4*METRE) return;
+
+  base_size = 4*METRE + this->variant * (METRE / 64);
 
   /* Move level to a less linear scale. */
   if      (level < 32) level = 0;
@@ -162,7 +166,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
     case '-':
       turtle[depth+1] = turtle[depth];
       turtle_move(turtle+depth+1, 0,
-                  (5 * METRE >> size_shift)
+                  (base_size >> size_shift)
                   / TURTLE_UNIT,
                   0);
       turtle_put_draw_line(&burst, turtle+depth+1,
@@ -175,7 +179,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
     case '7':
     case '6':
       turtle_move(turtle+depth, 0,
-                  (5 * METRE >> ('9' - sys.buffer[i]) >> size_shift)
+                  (base_size >> ('9' - sys.buffer[i]) >> size_shift)
                   / TURTLE_UNIT,
                   0);
       break;
