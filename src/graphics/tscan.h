@@ -79,56 +79,7 @@ typedef void (*triangle_shader)(canvas*restrict,
                    userdata);                                           \
   }
 
-/**
- * Defines a function named <name> which shades an above-axis-aligned triangle
- * using the given shader. The triangle must have an axis-alinged base, the
- * third point lying at or above the base. (y0,xt) is the third point; (y1,xb0)
- * and (y1,xb1) are the base points. xb0 must be less than or equal to xb1.
- *
- * Values in each z array are linearly interpolated (according to screen space)
- * between the vertices. The length of these arrays is given by nz.
- */
-#define SHADE_UAXIS_TRIANGLE(name, shader, nz)                          \
-  static void name(canvas*restrict dst,                                 \
-                   coord_offset y0, coord_offset y1,                    \
-                   coord_offset xt,                                     \
-                   coord_offset xb0, coord_offset xb1,                  \
-                   const coord_offset*restrict zt,                      \
-                   const coord_offset*restrict zb0,                     \
-                   const coord_offset*restrict zb1,                     \
-                   void* userdata) {                                    \
-    coord_offset x, xl, xh, dx, y, dy, z[nz], zl[nz], zh[nz];           \
-    signed long long xo, yo;                                            \
-    fraction idy, idx;                                                  \
-    unsigned i;                                                         \
-                                                                        \
-    dy = y1 - y0;                                                       \
-    if (!dy) return; /* degenerate */                                   \
-    idy = fraction_of(dy);                                              \
-    for (y = (y0 > 0? y0 : 0); y <= y1 && y < (signed)dst->h; ++y) {    \
-      yo = y - y0;                                                      \
-      xl = fraction_smul((dy-yo)*xt + yo*xb0, idy);                     \
-      xh = fraction_smul((dy-yo)*xt + yo*xb1, idy)+1;                   \
-      for (i = 0; i < nz; ++i) {                                        \
-        zl[i] = fraction_smul((dy-yo)*zt[i] + yo*zb0[i], idy);          \
-        zh[i] = fraction_smul((dy-yo)*zt[i] + yo*zb1[i], idy);          \
-      }                                                                 \
-      dx = xh-xl;                                                       \
-      if (!dx) continue; /* nothing to draw */                          \
-      idx = fraction_of(dx);                                            \
-      for (x = (xl > 0? xl : 0); x <= xh && x < (signed)dst->w; ++x) {  \
-        xo = x-xl;                                                      \
-        for (i = 0; i < nz; ++i)                                        \
-          z[i] = fraction_smul((dx-xo)*zl[i] + xo*zh[i], idx);          \
-        shader(userdata, x, y, z);                                      \
-      }                                                                 \
-    }                                                                   \
-  }
-
-/**
- * Like SHADE_UAXIS_TRIANGLE, but the tip must be at or below the base.
- */
-#define SHADE_LAXIS_TRIANGLE(name, shader, nz)                          \
+#define SHADE__AXIS_TRIANGLE(name, shader, nz, prim, sec, iy0, iy1)     \
   static void name(canvas*restrict dst,                                 \
                    coord_offset y0, coord_offset y1,                    \
                    coord_offset xt,                                     \
@@ -142,16 +93,16 @@ typedef void (*triangle_shader)(canvas*restrict,
     fraction idx, idy;                                                  \
     unsigned i;                                                         \
                                                                         \
-    dy = y0 - y1;                                                       \
+    dy = iy1 - iy0;                                                     \
     if (!dy) return; /* degenerate */                                   \
     idy = fraction_of(dy);                                              \
-    for (y = (y1 > 0? y1 : 0); y <= y0 && y < (signed)dst->h; ++y) {    \
-      yo = y - y1;                                                      \
-      xl = fraction_smul((dy-yo)*xb0 + yo*xt, idy);                     \
-      xh = fraction_smul((dy-yo)*xb1 + yo*xt, idy)+1;                   \
+    for (y = (iy0 > 0? iy0 : 0); y <= iy1 && y < (signed)dst->h; ++y) { \
+      yo = y - iy0;                                                     \
+      xl = fraction_smul((dy-yo)*prim(x,0) + yo*sec(x,0), idy);         \
+      xh = fraction_smul((dy-yo)*prim(x,1) + yo*sec(x,1), idy)+1;       \
       for (i = 0; i < nz; ++i) {                                        \
-        zl[i] = fraction_smul((dy-yo)*zb0[i] + yo*zt[i], idy);          \
-        zh[i] = fraction_smul((dy-yo)*zb1[i] + yo*zt[i], idy);          \
+        zl[i] = fraction_smul((dy-yo)*prim(z,0)[i] + yo*sec(z,0)[i], idy); \
+        zh[i] = fraction_smul((dy-yo)*prim(z,1)[i] + yo*sec(z,1)[i], idy); \
       }                                                                 \
       dx = xh-xl;                                                       \
       if (!dx) continue; /* nothing to draw here */                     \
@@ -164,6 +115,29 @@ typedef void (*triangle_shader)(canvas*restrict,
       }                                                                 \
     }                                                                   \
   }
+
+/**
+ * Defines a function named <name> which shades an above-axis-aligned triangle
+ * using the given shader. The triangle must have an axis-alinged base, the
+ * third point lying at or above the base. (y0,xt) is the third point; (y1,xb0)
+ * and (y1,xb1) are the base points. xb0 must be less than or equal to xb1.
+ *
+ * Values in each z array are linearly interpolated (according to screen space)
+ * between the vertices. The length of these arrays is given by nz.
+ */
+#define SHADE_UAXIS_TRIANGLE(name, shader, nz)                          \
+  SHADE__AXIS_TRIANGLE(name, shader, nz,                                \
+                       TSCAN_TIP_VAR, TSCAN_BORD_VAR, y0, y1)
+
+/**
+ * Like SHADE_UAXIS_TRIANGLE, but the tip must be at or below the base.
+ */
+#define SHADE_LAXIS_TRIANGLE(name, shader, nz)                          \
+  SHADE__AXIS_TRIANGLE(name, shader, nz,                                \
+                       TSCAN_BORD_VAR, TSCAN_TIP_VAR, y1, y0)
+
+#define TSCAN_TIP_VAR(var,off) var##t
+#define TSCAN_BORD_VAR(var,off) var##b##off
 
 typedef void (*partial_triangle_shader)(
   canvas*restrict,
