@@ -103,8 +103,25 @@ static inline usimd8s simd_umulhi8s(usimd8s a, usimd8s b) {
 #endif
 }
 
+static inline usimd8s simd_umullo8s(usimd8s a, usimd8s b) {
+#if defined(__SSE2__)
+  __asm__("pmullw %1, %0" : "+x"(a) : "x"(b));
+  return a;
+#else
+  unsigned a32 __attribute__((vector_size(32))) =
+    { a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], };
+  unsigned b32 __attribute__((vector_size(32))) =
+    { b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], };
+  unsigned m32 __attribute__((vector_size(32))) = a32 * b32;
+  /* implicit truncation */
+  usimd8s ret = { m32[0], m32[1], m32[2], m32[3],
+                  m32[4], m32[5], m32[6], m32[7] };
+  return ret;
+#endif
+}
+
 static inline usimd8s simd_ufrac8s(unsigned denominator) {
-  unsigned n = 65536 / denominator;
+  unsigned n = 0xFFFF / denominator;
   usimd8s ret = { n, n, n, n, n, n, n, n, };
   return ret;
 }
@@ -201,8 +218,19 @@ static inline usimd8s simd_umulhi8s(usimd8s a, usimd8s b) {
   }
 }
 
+static inline usimd8s simd_umullo8s(usimd8s a, usimd8s b) {
+  usimd8s ret;
+  unsigned i, tmp;
+
+  for (i = 0; i < 8; ++i) {
+    tmp = a.v[i];
+    tmp *= b.v[i];
+    ret.v[i] = tmp & 0xFFFF;
+  }
+}
+
 static inline usimd8s simd_ufrac8s(unsigned denominator) {
-  unsigned n = 65536 / denominator;
+  unsigned n = 0xFFFF / denominator;
   usimd8s ret = { { n, n, n, n, n, n, n, n, } };
   return ret;
 }
