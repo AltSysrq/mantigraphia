@@ -126,6 +126,9 @@ static inline usimd8s simd_ufrac8s(unsigned denominator) {
   return ret;
 }
 
+#define simd_uadd8s(a,b) ((a)+(b))
+#define simd_usub8s(a,b) ((a)-(b))
+#define simd_initu8s(a,b,c,d,e,f,g,h) {a,b,c,d,e,f,g,h}
 #else /* End actual vector instructions, begin compatibility */
 
 typedef struct {
@@ -234,11 +237,46 @@ static inline usimd8s simd_ufrac8s(unsigned denominator) {
   usimd8s ret = { { n, n, n, n, n, n, n, n, } };
   return ret;
 }
+
+#define simd_initu8s(a,b,c,d,e,f,g,h) {{a,b,c,d,e,f,g,h}}
+
+static inline usimd8s simd_uadd8s(usimd8s a, usimd8s b) {
+  usimd8s ret = { {
+    a.v[0] + b.v[0],
+    a.v[1] + b.v[1],
+    a.v[2] + b.v[2],
+    a.v[3] + b.v[3],
+    a.v[4] + b.v[4],
+    a.v[5] + b.v[5],
+    a.v[6] + b.v[6],
+    a.v[7] + b.v[7],
+  } };
+  return ret;
+}
+
+static inline usimd8s simd_usub8s(usimd8s a, usimd8s b) {
+  usimd8s ret = { {
+    a.v[0] - b.v[0],
+    a.v[1] - b.v[1],
+    a.v[2] - b.v[2],
+    a.v[3] - b.v[3],
+    a.v[4] - b.v[4],
+    a.v[5] - b.v[5],
+    a.v[6] - b.v[6],
+    a.v[7] - b.v[7],
+  } };
+  return ret;
+}
 #endif /* Not GCC>=4.7 or clang */
 
 
 static inline simd4 simd_inits(signed s) {
   simd4 ret = simd_init4(s,s,s,s);
+  return ret;
+}
+
+static inline usimd8s simd_initsu8s(unsigned short s) {
+  usimd8s ret = simd_initu8s(s,s,s,s,s,s,s,s);
   return ret;
 }
 

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,8 +28,9 @@
 #ifndef GRAPHICS_TILED_TEXTURE_H_
 #define GRAPHICS_TILED_TEXTURE_H_
 
-#include "canvas.h"
+#include "../simd.h"
 #include "../coords.h"
+#include "canvas.h"
 
 /**
  * References and describes the data to be painted when an area is to be filled
@@ -91,11 +92,11 @@ void tiled_texture_fill(
 void tiled_texture_fill_a(
   canvas*restrict,
   const coord_offset*restrict,
+  usimd8s,
   const coord_offset*restrict,
+  usimd8s,
   const coord_offset*restrict,
-  const coord_offset*restrict,
-  const coord_offset*restrict,
-  const coord_offset*restrict,
+  usimd8s,
   void*);
 
 #endif /* GRAPHICS_TILED_TEXTURE_H_ */

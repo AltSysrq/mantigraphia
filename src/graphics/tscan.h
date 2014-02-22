@@ -30,8 +30,9 @@
 
 #include "../coords.h"
 #include "../frac.h"
-#include "canvas.h"
+#include "../simd.h"
 #include "../defs.h"
+#include "canvas.h"
 
 /**
  * A pixel-shader is a function applied to every pixel of a triangle being
@@ -41,7 +42,7 @@
  */
 typedef void (*pixel_shader)(void* userdata,
                              coord_offset x, coord_offset y,
-                             const coord_offset* interps);
+                             usimd8s);
 
 /**
  * A triangle-shader is a function which shades triangles. They are usually
@@ -49,69 +50,84 @@ typedef void (*pixel_shader)(void* userdata,
  */
 typedef void (*triangle_shader)(canvas*restrict,
                                 const coord_offset*restrict,
+                                usimd8s,
                                 const coord_offset*restrict,
+                                usimd8s,
                                 const coord_offset*restrict,
-                                const coord_offset*restrict,
-                                const coord_offset*restrict,
-                                const coord_offset*restrict,
+                                usimd8s,
                                 void* userdata);
 /**
  * Defines a function named <name> which can be used to shade arbitrary
- * triangles. The function <shader> will be called for each pixel. nz
- * coord_offsets will be interpolated linearly between vertices.
+ * triangles. The function <shader> will be called for each pixel.
  *
  * a, b, and c are the vertices of the triangle, and must be at least two
  * elements long. za, zb, and zc are the attributes to be interpolated.
  */
-#define SHADE_TRIANGLE(name, shader, nz)                                \
-  SHADE_UAXIS_TRIANGLE(_GLUE(name,_uaxis), shader, nz)                  \
-  SHADE_LAXIS_TRIANGLE(_GLUE(name,_laxis), shader, nz)                  \
+#define SHADE_TRIANGLE(name, shader)                                    \
+  SHADE_UAXIS_TRIANGLE(_GLUE(name,_uaxis), shader)                      \
+  SHADE_LAXIS_TRIANGLE(_GLUE(name,_laxis), shader)                      \
   static void name(canvas*restrict dst,                                 \
                    const coord_offset*restrict a,                       \
-                   const coord_offset*restrict za,                      \
+                   usimd8s za,                                          \
                    const coord_offset*restrict b,                       \
-                   const coord_offset*restrict zb,                      \
+                   usimd8s zb,                                          \
                    const coord_offset*restrict c,                       \
-                   const coord_offset*restrict zc,                      \
+                   usimd8s zc,                                          \
                    void* userdata) {                                    \
-    shade_triangle(dst, a, za, b, zb, c, zc, nz,                        \
+    shade_triangle(dst, a, za, b, zb, c, zc,                            \
                    _GLUE(name,_uaxis), _GLUE(name,_laxis),              \
                    userdata);                                           \
   }
 
-#define SHADE__AXIS_TRIANGLE(name, shader, nz, prim, sec, iy0, iy1)     \
+#define SHADE__AXIS_TRIANGLE(name, shader, prim, sec, iy0, iy1)         \
   static void name(canvas*restrict dst,                                 \
                    coord_offset y0, coord_offset y1,                    \
                    coord_offset xt,                                     \
                    coord_offset xb0, coord_offset xb1,                  \
-                   const coord_offset*restrict zt,                      \
-                   const coord_offset*restrict zb0,                     \
-                   const coord_offset*restrict zb1,                     \
+                   usimd8s zt,                                          \
+                   usimd8s zb0,                                         \
+                   usimd8s zb1,                                         \
                    void* userdata) {                                    \
-    coord_offset x, xl, xh, dx, y, dy, z[nz], zl[nz], zh[nz];           \
-    signed long long xo, yo;                                            \
-    fraction idx, idy;                                                  \
-    unsigned i;                                                         \
+    coord_offset x, xl, xh, dx, y, dy;                                  \
+    usimd8s xo8, yo8, dx8, dy8, zl, zh, z;                              \
+    const usimd8s one = simd_initsu8s(1);                               \
+    signed long long yo;                                                \
+    fraction idy;                                                       \
+    usimd8s idx8, idy8;                                                 \
                                                                         \
     dy = iy1 - iy0;                                                     \
     if (!dy) return; /* degenerate */                                   \
     idy = fraction_of(dy);                                              \
+    dy8 = simd_initsu8s(dy);                                            \
+    idy8 = simd_ufrac8s(dy);                                            \
     for (y = (iy0 > 0? iy0 : 0); y <= iy1 && y < (signed)dst->h; ++y) { \
       yo = y - iy0;                                                     \
+      yo8 = simd_initsu8s(yo);                                          \
       xl = fraction_smul((dy-yo)*prim(x,0) + yo*sec(x,0), idy);         \
       xh = fraction_smul((dy-yo)*prim(x,1) + yo*sec(x,1), idy)+1;       \
-      for (i = 0; i < nz; ++i) {                                        \
-        zl[i] = fraction_smul((dy-yo)*prim(z,0)[i] + yo*sec(z,0)[i], idy); \
-        zh[i] = fraction_smul((dy-yo)*prim(z,1)[i] + yo*sec(z,1)[i], idy); \
-      }                                                                 \
+      zl = simd_uadd8s(simd_umulhi8s(simd_umullo8s(simd_usub8s(dy8,yo8),\
+                                                   idy8),               \
+                                     prim(z,0)),                        \
+                       simd_umulhi8s(simd_umullo8s(yo8, idy8),          \
+                                     sec(z,0)));                        \
+      zh = simd_uadd8s(simd_umulhi8s(simd_umullo8s(simd_usub8s(dy8,yo8),\
+                                                   idy8),               \
+                                     prim(z,1)),                        \
+                       simd_umulhi8s(simd_umullo8s(yo8, idy8),          \
+                                     sec(z,1)));                        \
       dx = xh-xl;                                                       \
       if (!dx) continue; /* nothing to draw here */                     \
-      idx = fraction_of(dx);                                            \
+      idx8 = simd_ufrac8s(dx);                                          \
+      dx8 = simd_initsu8s(dx);                                          \
+      xo8 = simd_initsu8s(xl > 0? 0 : -xl);                             \
       for (x = (xl > 0? xl : 0); x <= xh && x < (signed)dst->w; ++x) {  \
-        xo = x-xl;                                                      \
-        for (i = 0; i < nz; ++i)                                        \
-          z[i] = fraction_smul((dx-xo)*zl[i] + xo*zh[i], idx);          \
+        z = simd_uadd8s(simd_umulhi8s(simd_umullo8s(simd_usub8s(dx8,    \
+                                                                 xo8),  \
+                                                     idx8),             \
+                                      zl),                              \
+                        simd_umulhi8s(simd_umullo8s(xo8, idx8), zh));   \
         shader(userdata, x, y, z);                                      \
+        xo8 = simd_uadd8s(xo8, one);                                    \
       }                                                                 \
     }                                                                   \
   }
@@ -122,18 +138,18 @@ typedef void (*triangle_shader)(canvas*restrict,
  * third point lying at or above the base. (y0,xt) is the third point; (y1,xb0)
  * and (y1,xb1) are the base points. xb0 must be less than or equal to xb1.
  *
- * Values in each z array are linearly interpolated (according to screen space)
- * between the vertices. The length of these arrays is given by nz.
+ * Values in each z vector are linearly interpolated (according to screen
+ * space) between the vertices.
  */
-#define SHADE_UAXIS_TRIANGLE(name, shader, nz)                          \
-  SHADE__AXIS_TRIANGLE(name, shader, nz,                                \
+#define SHADE_UAXIS_TRIANGLE(name, shader)                              \
+  SHADE__AXIS_TRIANGLE(name, shader,                                    \
                        TSCAN_TIP_VAR, TSCAN_BORD_VAR, y0, y1)
 
 /**
  * Like SHADE_UAXIS_TRIANGLE, but the tip must be at or below the base.
  */
-#define SHADE_LAXIS_TRIANGLE(name, shader, nz)                          \
-  SHADE__AXIS_TRIANGLE(name, shader, nz,                                \
+#define SHADE_LAXIS_TRIANGLE(name, shader)                              \
+  SHADE__AXIS_TRIANGLE(name, shader,                                    \
                        TSCAN_BORD_VAR, TSCAN_TIP_VAR, y1, y0)
 
 #define TSCAN_TIP_VAR(var,off) var##t
@@ -143,19 +159,16 @@ typedef void (*partial_triangle_shader)(
   canvas*restrict,
   coord_offset, coord_offset,
   coord_offset, coord_offset, coord_offset,
-  const coord_offset*restrict,
-  const coord_offset*restrict,
-  const coord_offset*restrict,
+  usimd8s, usimd8s, usimd8s,
   void*);
 
 void shade_triangle(canvas*restrict,
                     const coord_offset*restrict,
+                    usimd8s,
                     const coord_offset*restrict,
+                    usimd8s,
                     const coord_offset*restrict,
-                    const coord_offset*restrict,
-                    const coord_offset*restrict,
-                    const coord_offset*restrict,
-                    unsigned nz,
+                    usimd8s,
                     partial_triangle_shader upper,
                     partial_triangle_shader lower,
                     void* userdata);
