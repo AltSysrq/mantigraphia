@@ -43,22 +43,25 @@
 #include "tscan.h"
 #include "fast-brush.h"
 
+#define FB_SPLOTCH_DIM (4*BRUSH_SPLOTCH_DIM)
+
 /* Typed so it can be used by simd instructions. We add an additional garbage
  * row at the bottom so that we can safely read past the end of the texture
  * boundaries.
  */
 static signed fast_brush_splotches
-[NUM_BRUSH_SPLOTCHES][BRUSH_SPLOTCH_DIM*(BRUSH_SPLOTCH_DIM+1)];
+[NUM_BRUSH_SPLOTCHES][FB_SPLOTCH_DIM*(FB_SPLOTCH_DIM+1)];
 
 void fast_brush_load(void) {
-  unsigned splotch, i;
+  unsigned splotch, i, x, y, sx, sy;
   const unsigned char* src, * variant;
   signed* dst;
+  signed tmp[BRUSH_SPLOTCH_DIM*BRUSH_SPLOTCH_DIM];
 
   for (splotch = 0; splotch < NUM_BRUSH_SPLOTCHES; ++splotch) {
     src = brush_splotches[splotch];
     variant = brush_splotches[(splotch+1) % NUM_BRUSH_SPLOTCHES];
-    dst = fast_brush_splotches[splotch];
+    dst = tmp;
 
     for (i = 0; i < BRUSH_SPLOTCH_DIM * BRUSH_SPLOTCH_DIM;
          ++i, ++src, ++variant, ++dst) {
@@ -68,6 +71,20 @@ void fast_brush_load(void) {
         *dst = !!(*src - MAX_BRUSH_BRISTLES/2)
              + !!((*variant - MAX_BRUSH_BRISTLES/2) / 8)
              + (brush_splotches[rand() % NUM_BRUSH_SPLOTCHES][i] & 1);
+      }
+    }
+
+    for (y = 0; y < FB_SPLOTCH_DIM; ++y) {
+      for (x = 0; x < FB_SPLOTCH_DIM; ++x) {
+        sx = x / (FB_SPLOTCH_DIM/BRUSH_SPLOTCH_DIM);
+        sy = y / (FB_SPLOTCH_DIM/BRUSH_SPLOTCH_DIM);
+        if ((rand() & 3) < (x & 3) && sx+1 < BRUSH_SPLOTCH_DIM)
+          ++sx;
+        if ((rand() & 3) < (y & 3) && sy+1 < BRUSH_SPLOTCH_DIM)
+          ++sy;
+
+        fast_brush_splotches[splotch][y*FB_SPLOTCH_DIM+x] =
+          tmp[sy*BRUSH_SPLOTCH_DIM+sx];
       }
     }
   }
@@ -197,7 +214,7 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
   unsigned i;
 
   if (!size) return;
-  sizemul = ZO_SCALING_FACTOR_MAX * BRUSH_SPLOTCH_DIM / size;
+  sizemul = ZO_SCALING_FACTOR_MAX * FB_SPLOTCH_DIM / size;
 
   ax0 = where[0] - size/2;
   ax1 = ax0 + size;
@@ -224,7 +241,7 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
     ty = (y-ay0) * sizemul / ZO_SCALING_FACTOR_MAX;
     depth = accum.dst->depth + canvas_offset(accum.dst, x0, y);
     px = accum.dst->px + canvas_offset(accum.dst, x0, y);
-    texture = fast_brush_splotches[texix] + ty * BRUSH_SPLOTCH_DIM;
+    texture = fast_brush_splotches[texix] + ty * FB_SPLOTCH_DIM;
 
     for (x = x0; x < x1 && (x & 3); ++x, ++depth, ++px) {
       /* one at a time */
