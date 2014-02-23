@@ -143,10 +143,10 @@ int turtle_put_draw_point(drawing_queue_burst* dst, const turtle_state* this,
                                where[2], logical_size);
   size = zo_scale(screen_width, weight);
 
-  /* Don't draw anything bigger than the screen. It isn't useful, and can
-   * sometimes be too big for the drawing queue.
+  /* Don't draw anything too much bigger than the screen. It isn't useful, and
+   * can sometimes be too big for the drawing queue.
    */
-  if (size > screen_width) return 0;
+  if (size > screen_width*2) return 0;
 
   drawing_queue_put_point(dst, where, weight);
   drawing_queue_draw_point(dst, size);

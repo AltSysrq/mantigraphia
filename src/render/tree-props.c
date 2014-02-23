@@ -93,7 +93,8 @@ static const canvas_pixel temp_trunk_pallet[] = {
 static const canvas_pixel temp_tree_leaf_pallet[] = {
   argb(255, 0, 32, 0),
   argb(255, 0, 48, 0),
-  argb(255, 20, 96, 16),
+  argb(255, 20, 64, 16),
+  argb(255, 16, 52, 8),
 };
 
 static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
@@ -106,6 +107,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   glbrush_spec brush;
   glbrush_accum accum = { 0.0f };
   lsystem_state sys;
+  coord_offset base_size;
 
   root[0] = this->x;
   root[1] = terrain_base_y(world, this->x, this->z);
@@ -116,6 +118,8 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
 
   /* Don't do anything of too far behind the camera */
   if (simd_vs(turtle[0].pos.curr, 2) > 4*METRE) return;
+
+  base_size = 8*METRE + this->variant * (METRE / 64);
 
   glbrush_init(&brush);
   brush.xscale = fraction_of(16);
@@ -136,6 +140,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   else if (level < 58) level = 5;
   else if (level < 61) level = 6;
   else                 level = 6;
+  level /= 2;
 
   lsystem_execute(&sys, &temp_tree_system, "-9A", level, this->x^this->z);
 
@@ -163,7 +168,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
     case '-':
       turtle[depth+1] = turtle[depth];
       turtle_move(turtle+depth+1, 0,
-                  (5 * METRE >> size_shift)
+                  (base_size >> size_shift)
                   / TURTLE_UNIT,
                   0);
       turtle_draw_line(&accum, &brush, turtle+depth+1,
@@ -176,7 +181,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
     case '7':
     case '6':
       turtle_move(turtle+depth, 0,
-                  (5 * METRE >> ('9' - sys.buffer[i]) >> size_shift)
+                  (base_size >> ('9' - sys.buffer[i]) >> size_shift)
                   / TURTLE_UNIT,
                   0);
       break;
@@ -211,11 +216,8 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
     case 'F':
     case 'G':
     case 'H':
-      /* Don't bother drawing leaves at level 0 */
-      if (!level) break;
-
       turtle_draw_point(&accum, &brush, turtle+depth,
-                        2*METRE,
+                        level? 8*METRE : 16*METRE,
                         screen_width);
       break;
     }

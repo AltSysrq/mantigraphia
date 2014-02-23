@@ -74,6 +74,61 @@ static inline int simd_eq(simd4 a, simd4 b) {
 #define simd_shuffle(src,mask) __builtin_shuffle(src,mask)
 #endif
 
+typedef unsigned short usimd8s __attribute__((vector_size(16)));
+
+static inline usimd8s simd_umulhi8s(usimd8s a, usimd8s b) {
+#if defined(__SSE2__)
+  /*
+   * return __builtin_ia32_pmulhuw(a,b);
+   *
+   * GCC and Clang both seem to think that pulhuw operates on a vector of size
+   * 4, despite Intel's docs indicating that it works on 8 (as well as the
+   * actual effect of the call here), so they complain if we use the builtin to
+   * access it. So just write the assembly ourselves. Oh well.
+   *
+   * (Unfortunately Clang's partial support for intel syntax is broken here, so
+   * we have to use the backwards ATT syntax...)
+   */
+  __asm__("pmulhuw %1, %0" : "+x"(a) : "x"(b));
+  return a;
+#else
+  unsigned a32 __attribute__((vector_size(32))) =
+    { a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], };
+  unsigned b32 __attribute__((vector_size(32))) =
+    { b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], };
+  unsigned m32 __attribute__((vector_size(32))) = (a32 * b32) >> 16;
+  usimd8s ret = { m32[0], m32[1], m32[2], m32[3],
+                  m32[4], m32[5], m32[6], m32[7] };
+  return ret;
+#endif
+}
+
+static inline usimd8s simd_umullo8s(usimd8s a, usimd8s b) {
+#if defined(__SSE2__)
+  __asm__("pmullw %1, %0" : "+x"(a) : "x"(b));
+  return a;
+#else
+  unsigned a32 __attribute__((vector_size(32))) =
+    { a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], };
+  unsigned b32 __attribute__((vector_size(32))) =
+    { b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], };
+  unsigned m32 __attribute__((vector_size(32))) = a32 * b32;
+  /* implicit truncation */
+  usimd8s ret = { m32[0], m32[1], m32[2], m32[3],
+                  m32[4], m32[5], m32[6], m32[7] };
+  return ret;
+#endif
+}
+
+static inline usimd8s simd_ufrac8s(unsigned denominator) {
+  unsigned n = 0xFFFF / denominator;
+  usimd8s ret = { n, n, n, n, n, n, n, n, };
+  return ret;
+}
+
+#define simd_uadd8s(a,b) ((a)+(b))
+#define simd_usub8s(a,b) ((a)-(b))
+#define simd_initu8s(a,b,c,d,e,f,g,h) {a,b,c,d,e,f,g,h}
 #else /* End actual vector instructions, begin compatibility */
 
 typedef struct {
@@ -149,11 +204,79 @@ static inline simd4 simd_shuffle(simd4 src, simd4 mask) {
                          src.v[mask.v[3]]);
   return ret;
 }
+
+typedef struct {
+  unsigned short v[8];
+} usimd8s;
+
+static inline usimd8s simd_umulhi8s(usimd8s a, usimd8s b) {
+  usimd8s ret;
+  unsigned i, tmp;
+
+  for (i = 0; i < 8; ++i) {
+    tmp = a.v[i];
+    tmp *= b.v[i];
+    tmp >>= 16;
+    ret.v[i] = tmp;
+  }
+}
+
+static inline usimd8s simd_umullo8s(usimd8s a, usimd8s b) {
+  usimd8s ret;
+  unsigned i, tmp;
+
+  for (i = 0; i < 8; ++i) {
+    tmp = a.v[i];
+    tmp *= b.v[i];
+    ret.v[i] = tmp & 0xFFFF;
+  }
+}
+
+static inline usimd8s simd_ufrac8s(unsigned denominator) {
+  unsigned n = 0xFFFF / denominator;
+  usimd8s ret = { { n, n, n, n, n, n, n, n, } };
+  return ret;
+}
+
+#define simd_initu8s(a,b,c,d,e,f,g,h) {{a,b,c,d,e,f,g,h}}
+
+static inline usimd8s simd_uadd8s(usimd8s a, usimd8s b) {
+  usimd8s ret = { {
+    a.v[0] + b.v[0],
+    a.v[1] + b.v[1],
+    a.v[2] + b.v[2],
+    a.v[3] + b.v[3],
+    a.v[4] + b.v[4],
+    a.v[5] + b.v[5],
+    a.v[6] + b.v[6],
+    a.v[7] + b.v[7],
+  } };
+  return ret;
+}
+
+static inline usimd8s simd_usub8s(usimd8s a, usimd8s b) {
+  usimd8s ret = { {
+    a.v[0] - b.v[0],
+    a.v[1] - b.v[1],
+    a.v[2] - b.v[2],
+    a.v[3] - b.v[3],
+    a.v[4] - b.v[4],
+    a.v[5] - b.v[5],
+    a.v[6] - b.v[6],
+    a.v[7] - b.v[7],
+  } };
+  return ret;
+}
 #endif /* Not GCC>=4.7 or clang */
 
 
 static inline simd4 simd_inits(signed s) {
   simd4 ret = simd_init4(s,s,s,s);
+  return ret;
+}
+
+static inline usimd8s simd_initsu8s(unsigned short s) {
+  usimd8s ret = simd_initu8s(s,s,s,s,s,s,s,s);
   return ret;
 }
 

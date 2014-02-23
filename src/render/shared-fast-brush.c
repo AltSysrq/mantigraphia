@@ -59,6 +59,11 @@ void shared_fast_brush_context_set(rendering_context*restrict context) {
   for (i = 0; i < MAX_BRUSH_BRISTLES; ++i)
     brush.init_bristles[i] = 1;
 
+  brush.inner_strengthening_chance = 3680;
+  brush.outer_strengthening_chance = 128;
+  brush.inner_weakening_chance = 128;
+  brush.outer_weakening_chance = 1000;
+
   *shared_fast_brush_getm(context) = fast_brush_new(&brush, sw/16, sw*2, 0);
 }
 

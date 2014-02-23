@@ -43,8 +43,10 @@ propped_world* propped_world_new(basic_world* terrain,
   this->terrain = terrain;
   this->grass.size = num_grass;
   this->grass.props = (world_prop*)(this+1);
-  this->trees.size = num_trees;
-  this->trees.props = this->grass.props + num_grass;
+  this->trees[0].size = num_trees/2;
+  this->trees[0].props = this->grass.props + num_grass;
+  this->trees[1].size = num_trees/2;
+  this->trees[1].props = this->trees[0].props + num_trees/2;
   return this;
 }
 

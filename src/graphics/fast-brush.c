@@ -43,22 +43,25 @@
 #include "tscan.h"
 #include "fast-brush.h"
 
+#define FB_SPLOTCH_DIM (4*BRUSH_SPLOTCH_DIM)
+
 /* Typed so it can be used by simd instructions. We add an additional garbage
  * row at the bottom so that we can safely read past the end of the texture
  * boundaries.
  */
 static signed fast_brush_splotches
-[NUM_BRUSH_SPLOTCHES][BRUSH_SPLOTCH_DIM*(BRUSH_SPLOTCH_DIM+1)];
+[NUM_BRUSH_SPLOTCHES][FB_SPLOTCH_DIM*(FB_SPLOTCH_DIM+1)];
 
 void fast_brush_load(void) {
-  unsigned splotch, i;
+  unsigned splotch, i, x, y, sx, sy;
   const unsigned char* src, * variant;
   signed* dst;
+  signed tmp[BRUSH_SPLOTCH_DIM*BRUSH_SPLOTCH_DIM];
 
   for (splotch = 0; splotch < NUM_BRUSH_SPLOTCHES; ++splotch) {
     src = brush_splotches[splotch];
     variant = brush_splotches[(splotch+1) % NUM_BRUSH_SPLOTCHES];
-    dst = fast_brush_splotches[splotch];
+    dst = tmp;
 
     for (i = 0; i < BRUSH_SPLOTCH_DIM * BRUSH_SPLOTCH_DIM;
          ++i, ++src, ++variant, ++dst) {
@@ -68,6 +71,20 @@ void fast_brush_load(void) {
         *dst = !!(*src - MAX_BRUSH_BRISTLES/2)
              + !!((*variant - MAX_BRUSH_BRISTLES/2) / 8)
              + (brush_splotches[rand() % NUM_BRUSH_SPLOTCHES][i] & 1);
+      }
+    }
+
+    for (y = 0; y < FB_SPLOTCH_DIM; ++y) {
+      for (x = 0; x < FB_SPLOTCH_DIM; ++x) {
+        sx = x / (FB_SPLOTCH_DIM/BRUSH_SPLOTCH_DIM);
+        sy = y / (FB_SPLOTCH_DIM/BRUSH_SPLOTCH_DIM);
+        if ((rand() & 3) < (x & 3) && sx+1 < BRUSH_SPLOTCH_DIM)
+          ++sx;
+        if ((rand() & 3) < (y & 3) && sy+1 < BRUSH_SPLOTCH_DIM)
+          ++sy;
+
+        fast_brush_splotches[splotch][y*FB_SPLOTCH_DIM+x] =
+          tmp[sy*BRUSH_SPLOTCH_DIM+sx];
       }
     }
   }
@@ -146,7 +163,10 @@ drawing_method* fast_brush_new(const brush_spec* orig_brush,
 
   /* Draw the brush into the scratch canvas */
   top[0] = max_width / 2;
-  top[1] = 0;
+  /* Advance a bit into the canvas so that the initial splotch is shown
+   * correctly.
+   */
+  top[1] = max_width / 6;
   top[2] = 0;
   bottom[0] = max_width / 2;
   bottom[1] = max_length;
@@ -197,7 +217,7 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
   unsigned i;
 
   if (!size) return;
-  sizemul = ZO_SCALING_FACTOR_MAX * BRUSH_SPLOTCH_DIM / size;
+  sizemul = ZO_SCALING_FACTOR_MAX * FB_SPLOTCH_DIM / size;
 
   ax0 = where[0] - size/2;
   ax1 = ax0 + size;
@@ -224,7 +244,7 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
     ty = (y-ay0) * sizemul / ZO_SCALING_FACTOR_MAX;
     depth = accum.dst->depth + canvas_offset(accum.dst, x0, y);
     px = accum.dst->px + canvas_offset(accum.dst, x0, y);
-    texture = fast_brush_splotches[texix] + ty * BRUSH_SPLOTCH_DIM;
+    texture = fast_brush_splotches[texix] + ty * FB_SPLOTCH_DIM;
 
     for (x = x0; x < x1 && (x & 3); ++x, ++depth, ++px) {
       /* one at a time */
@@ -289,38 +309,41 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
   }
 }
 
+#define INTERP_ZSCALE 64
 typedef struct {
   fast_brush_accum*restrict accum;
   const fast_brush*restrict this;
+  coord base_z;
 } fast_brush_data;
-
-typedef struct {
-  coord_offset tx, ty, z;
-} fast_brush_interps;
 
 static inline void fast_brush_pixel_shader(
   const fast_brush_data*restrict d,
   coord_offset x, coord_offset y,
-  const coord_offset*restrict vi)
+  usimd8s interps)
 {
-  const fast_brush_interps*restrict i = (const fast_brush_interps*)vi;
-  unsigned char ix = d->this->texture[i->tx + i->ty*d->this->width];
+  unsigned short tx = simd_vs(interps, 0), ty = simd_vs(interps, 1);
+  unsigned z = simd_vs(interps, 2);
+
+  unsigned char ix = d->this->texture[tx + ty*d->this->width];
+
+  z *= INTERP_ZSCALE;
+  z += d->base_z;
+
   if (ix < d->accum->num_colours)
-    canvas_write(d->accum->dst, x, y, d->accum->colours[ix], i->z);
+    canvas_write(d->accum->dst, x, y, d->accum->colours[ix], z);
 }
 
-SHADE_TRIANGLE(fast_brush_triangle_shader, fast_brush_pixel_shader,
-               sizeof(fast_brush_interps) / sizeof(coord_offset))
+SHADE_TRIANGLE(fast_brush_triangle_shader, fast_brush_pixel_shader)
 
 void fast_brush_draw_line(fast_brush_accum*restrict accum,
                           const fast_brush*restrict this,
                           const vo3 from, zo_scaling_factor from_size_scale,
                           const vo3 to, zo_scaling_factor to_size_scale) {
-  fast_brush_data data = { accum, this };
+  fast_brush_data data = { accum, this, 0 };
   vo3 delta;
   coord_offset v00[2], v01[2], v10[2], v11[2];
   coord_offset xoff, yoff;
-  fast_brush_interps z00, z01, z10, z11;
+  usimd8s z00, z01, z10, z11;
   signed length;
 
   delta[0] = from[0] - to[0];
@@ -335,18 +358,19 @@ void fast_brush_draw_line(fast_brush_accum*restrict accum,
   if (accum->distance + length >= this->length)
     accum->distance = this->length - length;
 
-  z00.tx = 0;
-  z00.ty = accum->distance;
-  z00.z = from[2];
-  z01.tx = this->width;
-  z01.ty = accum->distance;
-  z01.z = from[2];
-  z10.tx = 0;
-  z10.ty = accum->distance + length;
-  z10.z = to[2];
-  z11.tx = this->width;
-  z11.ty = accum->distance + length;
-  z11.z = to[2];
+  data.base_z = (from[2] < to[2]? from[2] : to[2]);
+  simd_vs(z00,0) = 0;
+  simd_vs(z00,1) = accum->distance;
+  simd_vs(z00,2) = (from[2] - data.base_z) / INTERP_ZSCALE;
+  simd_vs(z01,0) = this->width;
+  simd_vs(z01,1) = accum->distance;
+  simd_vs(z01,2) = (from[2] - data.base_z) / INTERP_ZSCALE;
+  simd_vs(z10,0) = 0;
+  simd_vs(z10,1) = accum->distance + length;
+  simd_vs(z10,2) = (to[2] - data.base_z) / INTERP_ZSCALE;
+  simd_vs(z11,0) = this->width;
+  simd_vs(z11,1) = accum->distance + length;
+  simd_vs(z11,2) = (to[2] - data.base_z) / INTERP_ZSCALE;
 
   accum->distance += length;
 
@@ -361,13 +385,13 @@ void fast_brush_draw_line(fast_brush_accum*restrict accum,
   v11[0] = to  [0] + zo_scale(xoff,   to_size_scale);
   v11[1] = to  [1] + zo_scale(yoff,   to_size_scale);
   fast_brush_triangle_shader(accum->dst,
-                             v00, (const coord_offset*)&z00,
-                             v01, (const coord_offset*)&z01,
-                             v10, (const coord_offset*)&z10,
+                             v00, z00,
+                             v01, z01,
+                             v10, z10,
                              &data);
   fast_brush_triangle_shader(accum->dst,
-                             v01, (const coord_offset*)&z01,
-                             v10, (const coord_offset*)&z10,
-                             v11, (const coord_offset*)&z11,
+                             v01, z01,
+                             v10, z10,
+                             v11, z11,
                              &data);
 }
