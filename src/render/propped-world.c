@@ -44,7 +44,8 @@
 
 #define GRASS_DIST (128*METRE)
 #define GRASS_DISTSQ_SHIFT (2*(7+16-6))
-#define TREES_DIST (1024*METRE)
+#define TREES0_DIST (1024*METRE)
+#define TREES1_DIST (512*METRE)
 #define TREES_DISTSQ_SHIFT (2*(10+16-6))
 
 /* One drawing_queue per thread */
@@ -127,14 +128,25 @@ static void render_propped_world_enqueue(unsigned ix, unsigned count) {
                      GRASS_DISTSQ_SHIFT,
                      grass_prop_renderers,
                      context);
-  zoff_low  = 2 * TREES_DIST * ix / count - TREES_DIST;
-  zoff_high = 2 * TREES_DIST * (ix+1) / count - TREES_DIST;
-  render_world_props(queue, this->trees.props, this->trees.size,
+  zoff_low  = 2 * TREES0_DIST * ix / count - TREES0_DIST;
+  zoff_high = 2 * TREES0_DIST * (ix+1) / count - TREES0_DIST;
+  render_world_props(queue, this->trees[0].props, this->trees[0].size,
                      this->terrain,
-                     (cx - TREES_DIST) & (this->terrain->xmax * TILE_SZ - 1),
-                     (cx + TREES_DIST) & (this->terrain->xmax * TILE_SZ - 1),
-                     (cz + zoff_low  ) & (this->terrain->zmax * TILE_SZ - 1),
-                     (cz + zoff_high ) & (this->terrain->zmax * TILE_SZ - 1),
+                     (cx - TREES0_DIST) & (this->terrain->xmax * TILE_SZ - 1),
+                     (cx + TREES0_DIST) & (this->terrain->xmax * TILE_SZ - 1),
+                     (cz + zoff_low  )  & (this->terrain->zmax * TILE_SZ - 1),
+                     (cz + zoff_high )  & (this->terrain->zmax * TILE_SZ - 1),
+                     TREES_DISTSQ_SHIFT,
+                     tree_prop_renderers,
+                     context);
+  zoff_low  = 2 * TREES1_DIST * ix / count - TREES1_DIST;
+  zoff_high = 2 * TREES1_DIST * (ix+1) / count - TREES1_DIST;
+  render_world_props(queue, this->trees[1].props, this->trees[1].size,
+                     this->terrain,
+                     (cx - TREES1_DIST) & (this->terrain->xmax * TILE_SZ - 1),
+                     (cx + TREES1_DIST) & (this->terrain->xmax * TILE_SZ - 1),
+                     (cz + zoff_low  )  & (this->terrain->zmax * TILE_SZ - 1),
+                     (cz + zoff_high )  & (this->terrain->zmax * TILE_SZ - 1),
                      TREES_DISTSQ_SHIFT,
                      tree_prop_renderers,
                      context);

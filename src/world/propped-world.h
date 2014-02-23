@@ -61,10 +61,11 @@ typedef struct {
    */
   prop_array grass;
   /**
-   * The tree prop layer. Very long draw distance, and can obstruct objects in
-   * the environment.
+   * The tree prop layers. Very long draw distance, and can obstruct objects in
+   * the environment. The maximum draw distance of layer 0 is twice that of
+   * layer 1, but the two use the same levels of detail.
    */
-  prop_array trees;
+  prop_array trees[2];
 } propped_world;
 
 /**
@@ -74,7 +75,8 @@ typedef struct {
  * @param terrain The value for the terrain field of the propped_world. The
  * basic_world becomes owned by this propped_world.
  * @param num_grass The size of the grass layer prop_array.
- * @param num_trees The size of the trees layer prop_array.
+ * @param num_trees The size of the trees layers prop_array. Each tree level
+ * gets half of this value.
  */
 propped_world* propped_world_new(basic_world* terrain,
                                  unsigned num_grass,
