@@ -105,7 +105,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   unsigned screen_width = CTXTINV(context)->screen_width;
   vc3 root;
   glbrush_spec brush;
-  glbrush_accum accum = { 0.0f };
+  glbrush_accum accum = { 10.0f };
   lsystem_state sys;
   coord_offset base_size;
 
@@ -123,11 +123,11 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
 
   glbrush_init(&brush);
   brush.xscale = fraction_of(16);
-  brush.yscale = fraction_of(4);
-  brush.decay = 0.25f;
+  brush.yscale = fraction_of(2);
+  brush.decay = 0.1f;
   brush.noise = 1.0f;
   brush.texoff = 0;
-  brush.colour[0] = argb(255, 32, 28, 0);
+  brush.colour[0] = argb(255, 0, 0, 0);
   brush.colour[1] = argb(255, 48, 32, 0);
   brush.screen_width = screen_width;
 
