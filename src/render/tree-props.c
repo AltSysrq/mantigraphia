@@ -94,8 +94,8 @@ static const canvas_pixel temp_trunk_pallet[] = {
 static const canvas_pixel temp_tree_leaf_pallet[] = {
   argb(255, 0, 32, 0),
   argb(255, 0, 48, 0),
-  argb(255, 20, 96, 16),
-  argb(255, 30, 96, 24),
+  argb(255, 20, 64, 16),
+  argb(255, 16, 52, 8),
 };
 
 static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
