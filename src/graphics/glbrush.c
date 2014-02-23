@@ -48,7 +48,7 @@ static void glbrush_activate_line(void*);
 void glbrush_load(void) {
   canvas* canv;
   unsigned char monochrome[TEXSZ*TEXSZ];
-  canvas_pixel pallet[256], p;
+  canvas_pixel pallet[2], p;
 
   glmsg_line = glm_slab_group_new(glbrush_activate_line,
                                   NULL, NULL,
@@ -56,8 +56,8 @@ void glbrush_load(void) {
                                   sizeof(shader_brush_vertex));
 
   /* Render a bluescale version of the texture */
-  for (p = 0; p < lenof(pallet); ++p)
-    pallet[p] = argb(0,0,0,p);
+  pallet[0] = argb(0,0,0,0);
+  pallet[1] = argb(0,0,0,255);
 
   canv = canvas_new(TEXSZ, TEXSZ);
   linear_paint_tile_render(canv->px, canv->w, canv->h, 4, 32,
@@ -115,7 +115,7 @@ void glbrush_draw_line(glbrush_accum* accum, const glbrush_spec* spec,
   delta[1] = from[1] - to[1];
   delta[2] = 0;
   pixel_length = omagnitude(delta);
-  if (!pixel_length || pixel_length > 1024) return;
+  if (!pixel_length || pixel_length > 65535) return;
 
   xoff = - ((signed)(spec->screen_width * delta[1])) / 2 / (signed)pixel_length;
   yoff = + ((signed)(spec->screen_width * delta[0])) / 2 / (signed)pixel_length;
