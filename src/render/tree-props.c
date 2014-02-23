@@ -131,6 +131,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   else if (level < 58) level = 5;
   else if (level < 61) level = 6;
   else                 level = 6;
+  level /= 2;
 
   lsystem_execute(&sys, &temp_tree_system, "-9A", level, this->x^this->z);
 
@@ -222,7 +223,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
       accum.num_colours = lenof(temp_tree_leaf_pallet);
       DQACC(burst, accum);
       turtle_put_draw_point(&burst, turtle+depth,
-                            2*METRE,
+                            4*METRE,
                             screen_width);
       drawing_queue_flush(&burst);
       accum.colours = temp_trunk_pallet;
