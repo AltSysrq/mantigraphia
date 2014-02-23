@@ -215,15 +215,12 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
     case 'F':
     case 'G':
     case 'H':
-      /* Don't bother drawing leaves at level 0 */
-      if (!level) break;
-
       drawing_queue_flush(&burst);
       accum.colours = temp_tree_leaf_pallet;
       accum.num_colours = lenof(temp_tree_leaf_pallet);
       DQACC(burst, accum);
       turtle_put_draw_point(&burst, turtle+depth,
-                            8*METRE,
+                            level? 8*METRE : 16*METRE,
                             screen_width);
       drawing_queue_flush(&burst);
       accum.colours = temp_trunk_pallet;
