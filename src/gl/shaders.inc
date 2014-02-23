@@ -53,8 +53,9 @@ shader(terrabuff) {
 shader(brush) {
   composed_of(fbrush, vbrush)
   with_texture_coordinates
-  with_colour
-  with_secondary_colour
   uniform(tex2d, tex)
-  attrib(4, parms)
+  uniform(tex2d, pallet)
+  uniform(float, decay)
+  uniform(float, noise)
+  attrib(1, width)
 }

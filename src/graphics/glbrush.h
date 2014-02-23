@@ -52,6 +52,52 @@ typedef struct {
    */
   fraction xscale, yscale;
   /**
+   * A value between 0 and 1 which offsets the texture used by the shader, to
+   * add variety to the brush strokes produced.
+   *
+   * This value is passed directly to the shader without processing in
+   * software.
+   */
+  float texoff;
+  /**
+   * The initial value for the accumulator's distance. This is often zero, but
+   * non-zero values are sometimes useful.
+   */
+  float base_distance;
+  /**
+   * The logical width, in pixels, of the screen.
+   */
+  unsigned screen_width;
+  /**
+   * The slab to which drawing operations will occur.
+   *
+   * Initialised by glbrush_init().
+   */
+  glm_slab* slab;
+} glbrush_spec;
+
+/**
+ * Accumulator for glbrush.
+ */
+typedef struct {
+  /**
+   * The total distance covered so far, in terms of texture
+   * coordinates. Initialise to zero, in most cases.
+   */
+  float distance;
+} glbrush_accum;
+
+/**
+ * A glbrush_handle is a heavy-weight handle on the GL information needed to
+ * render a glbrush.
+ */
+typedef struct glbrush_handle_s glbrush_handle;
+
+/**
+ * Information which is constant wrt a glbrush_handle.
+ */
+typedef struct {
+  /**
    * The rate of brush decay. Larger values cause the brush to transition more
    * quickly to the secondary colour before petering out.
    *
@@ -72,41 +118,13 @@ typedef struct {
    */
   float noise;
   /**
-   * A value between 0 and 1 which offsets the texture used by the shader, to
-   * add variety to the brush strokes produced.
-   *
-   * This value is passed directly to the shader without processing in
-   * software.
+   * The colour pallet for the brush. The brush begins with the zeroth colour,
+   * and progresses through the others, becomming blank after the final is
+   * passed. Adjacent colours are blended into one another as necessary.
    */
-  float texoff;
-  /**
-   * The primary and secondary colours for the brush. The brush begins with the
-   * primary colour, and progresses to the secondary colour, becomming blank
-   * after the secondary colour is passed.
-   */
-  canvas_pixel colour[2];
-  /**
-   * The logical width, in pixels, of the screen.
-   */
-  unsigned screen_width;
-  /**
-   * The slab to which drawing operations will occur.
-   *
-   * Initialised by glbrush_init().
-   */
-  glm_slab* slab;
-} glbrush_spec;
-
-/**
- * Accumulator for glbrush.
- */
-typedef struct {
-  /**
-   * The total distance covered so far, in terms of texture
-   * coordinates. Initialise to zero.
-   */
-  float distance;
-} glbrush_accum;
+  const canvas_pixel* pallet;
+  unsigned pallet_size;
+} glbrush_handle_info;
 
 /**
  * Prepares static resources needed by glbrush. This must be called exactly
@@ -115,10 +133,20 @@ typedef struct {
 void glbrush_load(void);
 
 /**
- * Initialises the vtable and slab for the given spec. Other fields are left
- * uninitialised.
+ * Creates a glbrush_handle with the given parameters.
  */
-void glbrush_init(glbrush_spec*);
+glbrush_handle* glbrush_hnew(const glbrush_handle_info*);
+/**
+ * Destroys the given glbrush_handle.
+ */
+void glbrush_hdelete(glbrush_handle*);
+
+/**
+ * Initialises the vtable and slab for the given spec. Other fields are left
+ * uninitialised. The brush becomes invalid when the associated handle is
+ * destroyed. No action need be taken to destroy the brush itself.
+ */
+void glbrush_init(glbrush_spec*, glbrush_handle*);
 
 void glbrush_draw_point(glbrush_accum*, const glbrush_spec*,
                         const vo3, zo_scaling_factor);

@@ -28,10 +28,18 @@
 #ifndef RENDER_TREE_PROPS_H_
 #define RENDER_TREE_PROPS_H_
 
+#include <stdlib.h>
+
 #include "props.h"
+#include "context.h"
 
 void tree_props_init(void);
 
 extern const prop_renderer*const tree_prop_renderers;
+
+size_t tree_props_put_context_offset(size_t);
+void tree_props_context_ctor(rendering_context*restrict);
+void tree_props_context_dtor(rendering_context*restrict);
+void tree_props_context_set(rendering_context*restrict);
 
 #endif /* RENDER_TREE_PROPS_H_ */

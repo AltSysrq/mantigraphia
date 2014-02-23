@@ -37,6 +37,7 @@
 #include "basic-world.h"
 #include "propped-world.h"
 #include "shared-fast-brush.h"
+#include "tree-props.h"
 #include "context.h"
 
 static size_t space_for_invariant(size_t);
@@ -46,11 +47,13 @@ static size_t (*const context_put[])(size_t) = {
   render_basic_world_put_context_offset,
   render_propped_world_put_context_offset,
   shared_fast_brush_put_context_offset,
+  tree_props_put_context_offset,
   NULL
 };
 
 static void (*const context_set[])(rendering_context*restrict) = {
   shared_fast_brush_context_set,
+  tree_props_context_set,
   NULL
 };
 
@@ -58,6 +61,7 @@ static void (*const context_ctor[])(rendering_context*restrict) = {
   render_basic_world_context_ctor,
   render_propped_world_context_ctor,
   shared_fast_brush_context_ctor,
+  tree_props_context_ctor,
   NULL
 };
 
@@ -65,6 +69,7 @@ static void (*const context_dtor[])(rendering_context*restrict) = {
   render_basic_world_context_dtor,
   render_propped_world_context_dtor,
   shared_fast_brush_context_dtor,
+  tree_props_context_dtor,
   NULL
 };
 

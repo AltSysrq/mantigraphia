@@ -33,27 +33,28 @@
 
 #include "../frac.h"
 #include "../defs.h"
+#include "../alloc.h"
 #include "../gl/marshal.h"
 #include "../gl/shaders.h"
 #include "canvas.h"
 #include "linear-paint-tile.h"
 #include "glbrush.h"
 
-static glm_slab_group* glmsg_line;
-static GLuint texture;
+static GLuint noise_texture;
 #define TEXSZ 256
 
-static void glbrush_activate_line(void*);
+struct glbrush_handle_s {
+  glm_slab_group* glmsg_line;
+  GLuint pallet_texture;
+  float decay, noise;
+};
+
+static void glbrush_activate_line(glbrush_handle*);
 
 void glbrush_load(void) {
   canvas* canv;
   unsigned char monochrome[TEXSZ*TEXSZ];
   canvas_pixel pallet[2], p;
-
-  glmsg_line = glm_slab_group_new(glbrush_activate_line,
-                                  NULL, NULL,
-                                  shader_brush_configure_vbo,
-                                  sizeof(shader_brush_vertex));
 
   /* Render a bluescale version of the texture */
   pallet[0] = argb(0,0,0,0);
@@ -68,19 +69,45 @@ void glbrush_load(void) {
     monochrome[p] = get_blue(canv->px[p]);
   canvas_delete(canv);
 
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
+  glGenTextures(1, &noise_texture);
+  glBindTexture(GL_TEXTURE_2D, noise_texture);
   glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
                TEXSZ, TEXSZ, 0,
                GL_RED, GL_UNSIGNED_BYTE, monochrome);
 }
 
-void glbrush_init(glbrush_spec* this) {
+glbrush_handle* glbrush_hnew(const glbrush_handle_info* info) {
+  glbrush_handle* handle = xmalloc(sizeof(glbrush_handle));
+  glGenTextures(1, &handle->pallet_texture);
+  /* Even though this is a one-dimensional texture, we need to make it 2D,
+   * since the activation of GL_TEXTURE_2D supercedes the use of 1D textures.
+   */
+  glBindTexture(GL_TEXTURE_2D, handle->pallet_texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+               info->pallet_size, 1, 0,
+               GL_BGRA, GL_UNSIGNED_BYTE, info->pallet);
+
+  handle->glmsg_line = glm_slab_group_new((void(*)(void*))glbrush_activate_line,
+                                          NULL, handle,
+                                          shader_brush_configure_vbo,
+                                          sizeof(shader_brush_vertex));
+  handle->decay = info->decay;
+  handle->noise = info->noise;
+  return handle;
+}
+
+void glbrush_hdelete(glbrush_handle* handle) {
+  glm_slab_group_delete(handle->glmsg_line);
+  glDeleteTextures(1, &handle->pallet_texture);
+  free(handle);
+}
+
+void glbrush_init(glbrush_spec* this, glbrush_handle* handle) {
   this->meth.draw_point = (drawing_method_draw_point_t)glbrush_draw_point;
   this->meth.draw_line  = (drawing_method_draw_line_t) glbrush_draw_line;
   this->meth.flush      = (drawing_method_flush_t)     glbrush_flush;
-  this->slab = glm_slab_get(glmsg_line);
+  this->slab = glm_slab_get(handle->glmsg_line);
 }
 
 void glbrush_draw_point(glbrush_accum* accum, const glbrush_spec* spec,
@@ -88,16 +115,26 @@ void glbrush_draw_point(glbrush_accum* accum, const glbrush_spec* spec,
   /* TODO */
 }
 
-static void glbrush_activate_line(void* ignored) {
+static void glbrush_activate_line(glbrush_handle* handle) {
   shader_brush_uniform uniform;
 
-  glBindTexture(GL_TEXTURE_2D, texture);
+  glBindTexture(GL_TEXTURE_2D, noise_texture);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, handle->pallet_texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  glActiveTexture(GL_TEXTURE0);
 
   uniform.tex = 0;
+  uniform.pallet = 1;
+  uniform.decay = handle->decay;
+  uniform.noise = handle->noise;
   shader_brush_activate(&uniform);
 }
 
@@ -107,7 +144,7 @@ void glbrush_draw_line(glbrush_accum* accum, const glbrush_spec* spec,
   shader_brush_vertex* vertices;
   unsigned short* indices, base;
   vo3 delta;
-  unsigned pixel_length, from_pixel_w, to_pixel_w, i;
+  unsigned pixel_length, from_pixel_w, to_pixel_w;
   float distance, from_w, to_w;
   coord_offset xoff, yoff;
 
@@ -129,13 +166,6 @@ void glbrush_draw_line(glbrush_accum* accum, const glbrush_spec* spec,
              (float)fraction_umul(spec->screen_width, spec->yscale);
 
   base = GLM_ALLOC(&vertices, &indices, spec->slab, 4, 6);
-  for (i = 0; i < 4; ++i) {
-    vertices[i].parms[0] = spec->decay;
-    vertices[i].parms[2] = spec->texoff;
-    vertices[i].parms[3] = spec->noise;
-    canvas_pixel_to_gl4fv(vertices[i].colour, spec->colour[0]);
-    canvas_pixel_to_gl4fv(vertices[i].sec_colour, spec->colour[1]);
-  }
 
   vertices[0].v[0] = from[0] - zo_scale(xoff, from_weight);
   vertices[0].v[1] = from[1] - zo_scale(yoff, from_weight);
@@ -159,10 +189,10 @@ void glbrush_draw_line(glbrush_accum* accum, const glbrush_spec* spec,
   vertices[3].tc[0] = 0.5f + to_w / 2.0f;
   vertices[3].tc[1] = accum->distance + distance;
 
-  vertices[0].parms[1] = from_w;
-  vertices[1].parms[1] = from_w;
-  vertices[2].parms[1] = to_w;
-  vertices[3].parms[1] = to_w;
+  vertices[0].width[0] = from_w;
+  vertices[1].width[0] = from_w;
+  vertices[2].width[0] = to_w;
+  vertices[3].width[0] = to_w;
 
   indices[0] = base + 0;
   indices[1] = base + 1;
@@ -175,5 +205,5 @@ void glbrush_draw_line(glbrush_accum* accum, const glbrush_spec* spec,
 }
 
 void glbrush_flush(glbrush_accum* accum, const glbrush_spec* this) {
-  accum->distance = 0.0f;
+  accum->distance = this->base_distance;
 }
