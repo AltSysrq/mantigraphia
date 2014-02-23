@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -121,7 +121,9 @@ void hull_render(canvas*restrict dst,
     interp[1][stride-3] = pb[2];
     interp[2][stride-3] = pc[2];
 
+    /* XXX Fix when needed
     (*shader)(dst, pa, interp[0], pb, interp[1], pc, interp[2], userdata);
+    */
   }
 }
 

@@ -54,7 +54,7 @@
 
 #define SIZE 4096
 #define NUM_GRASS (1024*1024)
-#define NUM_TREES 32768*4
+#define NUM_TREES 32768*2
 
 typedef struct {
   game_state vtab;
@@ -120,11 +120,16 @@ static void cosine_world_init_world(cosine_world_state* this) {
                  this->world->terrain, 7);
   props_sort_z(this->world->grass.props,
                this->world->grass.size);
-  trees_generate(this->world->trees.props,
-                 this->world->trees.size,
-                 this->world->terrain, 8);
-  props_sort_z(this->world->trees.props,
-               this->world->trees.size);
+  trees_generate(this->world->trees[0].props,
+                 this->world->trees[0].size,
+                 this->world->terrain, 8, 9);
+  props_sort_z(this->world->trees[0].props,
+               this->world->trees[0].size);
+  trees_generate(this->world->trees[1].props,
+                 this->world->trees[1].size,
+                 this->world->terrain, 8, 10);
+  props_sort_z(this->world->trees[1].props,
+               this->world->trees[1].size);
 }
 
 #define SPEED (4*METRES_PER_SECOND)

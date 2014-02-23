@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ typedef struct {
 static inline void tiled_texture_shader(void* vinfo,
                                         coord_offset x,
                                         coord_offset y,
-                                        const coord_offset* z) {
+                                        usimd8s z) {
   const tt_info* info = vinfo;
   coord_offset ox, oy, tx, ty;
 
@@ -60,35 +60,42 @@ static inline void tiled_texture_shader(void* vinfo,
 
   canvas_write_c(info->dst, x, y,
                  info->tex->texture[tx + ty*info->tex->pitch],
-                 *z);
+                 /* XXX This is broken */
+                 simd_vs(z,0));
 }
 
-SHADE_TRIANGLE(shade_tiled_texture, tiled_texture_shader, 1)
+SHADE_TRIANGLE(shade_tiled_texture, tiled_texture_shader)
 
 void tiled_texture_fill(
   canvas*restrict dst,
   const tiled_texture*restrict tex,
   const vo3 a, const vo3 b, const vo3 c
 ) {
+  usimd8s za, zb, zc;
   tt_info info = {
     tex, dst,
     65536 * dst->w / tex->nominal_resolution
   };
-  shade_tiled_texture(dst, a, a+2, b, b+2, c, c+2, &info);
+
+  /* XXX This truncates Z to 0..1 metre */
+  simd_vs(za, 0) = a[2];
+  simd_vs(zb, 0) = b[2];
+  simd_vs(zc, 0) = c[2];
+  shade_tiled_texture(dst, a, za, b, zb, c, zc, &info);
 }
 
 void tiled_texture_fill_a(
   canvas*restrict dst,
   const coord_offset*restrict a,
-  const coord_offset*restrict za,
+  usimd8s za,
   const coord_offset*restrict b,
-  const coord_offset*restrict zb,
+  usimd8s zb,
   const coord_offset*restrict c,
-  const coord_offset*restrict zc,
+  usimd8s zc,
   void* tex
 ) {
-  vo3 va = { a[0], a[1], za[0] },
-      vb = { b[0], b[1], zb[0] },
-      vc = { c[0], c[1], zc[0] };
+  vo3 va = { a[0], a[1], simd_vs(za,0) },
+      vb = { b[0], b[1], simd_vs(zb,1) },
+      vc = { c[0], c[1], simd_vs(zc,1) };
   tiled_texture_fill(dst, tex, va, vb, vc);
 }

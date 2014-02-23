@@ -241,7 +241,8 @@ static int may_place_tree_at(const basic_world* world,
 }
 
 void trees_generate(world_prop* props, unsigned count,
-                    const basic_world* world, unsigned seed) {
+                    const basic_world* world,
+                    unsigned distrib_seed, unsigned pos_seed) {
   mersenne_twister twister;
   unsigned i;
   coord x, z, wx, wz;
@@ -252,11 +253,11 @@ void trees_generate(world_prop* props, unsigned count,
   density = xmalloc(density_sz);
   memset(density, 0, density_sz);
   perlin_noise(density, world->xmax, world->zmax,
-               world->xmax / 256, 0xC000, seed+1);
+               world->xmax / 256, 0xC000, distrib_seed+1);
   perlin_noise(density, world->xmax, world->zmax,
-               world->xmax / 32, 0x4000, seed+2);
+               world->xmax / 32, 0x4000, distrib_seed+2);
 
-  twister_seed(&twister, seed);
+  twister_seed(&twister, pos_seed);
 
   for (i = 0; i < count; ++i) {
     do {

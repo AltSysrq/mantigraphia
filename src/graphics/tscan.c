@@ -33,35 +33,33 @@
 
 void shade_triangle(canvas*restrict dst,
                     const coord_offset*restrict a,
-                    const coord_offset*restrict za,
+                    usimd8s za,
                     const coord_offset*restrict b,
-                    const coord_offset*restrict zb,
+                    usimd8s zb,
                     const coord_offset*restrict c,
-                    const coord_offset*restrict zc,
-                    unsigned nz,
+                    usimd8s zc,
                     partial_triangle_shader upper,
                     partial_triangle_shader lower,
                     void* userdata) {
   const coord_offset* tmp;
-  coord_offset dy, yo, midx, x0, x1, zmid[nz];
-  const coord_offset* z0, * z1;
-  unsigned i;
+  coord_offset dy, yo, midx, x0, x1;
+  usimd8s z0, zmid, z1, ztmp;
 
-#define SWAP(a,b) tmp=a, a=b, b=tmp
+#define SWAP(a,b,tmp) tmp=a, a=b, b=tmp
   /* Sort a,b,c into ascending order by Y axis */
   if (a[1] > b[1] || a[1] > c[1]) {
     if (b[1] < c[1]) {
-      SWAP(a,b);
-      SWAP(za,zb);
+      SWAP(a,b,tmp);
+      SWAP(za,zb,ztmp);
     } else {
-      SWAP(a,c);
-      SWAP(za,zc);
+      SWAP(a,c,tmp);
+      SWAP(za,zc,ztmp);
     }
   }
 
   if (b[1] > c[1]) {
-    SWAP(b,c);
-    SWAP(zb,zc);
+    SWAP(b,c,tmp);
+    SWAP(zb,zc,ztmp);
   }
 #undef SWAP
 
@@ -72,8 +70,13 @@ void shade_triangle(canvas*restrict dst,
   if (!dy) return; /* degenerate triangle, nothing to do anyway */
   yo = b[1] - a[1];
   midx = (yo*c[0] + (dy-yo)*a[0])/dy;
-  for (i = 0; i < nz; ++i)
-    zmid[i] = (yo*zc[i] + (dy-yo)*za[i])/dy;
+  zmid = simd_uadd8s(
+    simd_umulhi8s(simd_umullo8s(simd_initsu8s(yo),
+                                simd_ufrac8s(dy)),
+                  zc),
+    simd_umulhi8s(simd_umullo8s(simd_initsu8s(dy-yo),
+                                simd_ufrac8s(dy)),
+                  za));
 
   if (midx < b[0]) {
     x0 = midx;
