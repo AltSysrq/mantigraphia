@@ -120,7 +120,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   /* Don't do anything of too far behind the camera */
   if (simd_vs(turtle[0].pos.curr, 2) > 4*METRE) return;
 
-  base_size = 4*METRE + this->variant * (METRE / 64);
+  base_size = 8*METRE + this->variant * (METRE / 64);
 
   /* Move level to a less linear scale. */
   if      (level < 32) level = 0;
@@ -223,7 +223,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
       accum.num_colours = lenof(temp_tree_leaf_pallet);
       DQACC(burst, accum);
       turtle_put_draw_point(&burst, turtle+depth,
-                            4*METRE,
+                            8*METRE,
                             screen_width);
       drawing_queue_flush(&burst);
       accum.colours = temp_trunk_pallet;

@@ -54,7 +54,7 @@
 
 #define SIZE 4096
 #define NUM_GRASS (1024*1024)
-#define NUM_TREES 32768*4
+#define NUM_TREES 32768*2
 
 typedef struct {
   game_state vtab;
