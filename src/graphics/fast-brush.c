@@ -163,7 +163,10 @@ drawing_method* fast_brush_new(const brush_spec* orig_brush,
 
   /* Draw the brush into the scratch canvas */
   top[0] = max_width / 2;
-  top[1] = 0;
+  /* Advance a bit into the canvas so that the initial splotch is shown
+   * correctly.
+   */
+  top[1] = max_width / 6;
   top[2] = 0;
   bottom[0] = max_width / 2;
   bottom[1] = max_length;
