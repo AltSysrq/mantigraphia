@@ -173,6 +173,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
       turtle_put_draw_line(&burst, turtle+depth+1,
                            METRE >> size_shift, METRE >> size_shift,
                            screen_width);
+      drawing_queue_flush(&burst);
       break;
 
     case '9':
