@@ -77,8 +77,8 @@ void tree_props_context_set(rendering_context*restrict context) {
   glbrush_handle_info info;
 
   if (!*tree_props_trunk_get(context)) {
-    info.decay = 0.1f;
-    info.noise = 1.0f;
+    info.decay = 0.25f;
+    info.noise = 0.5f;
     info.pallet = temp_trunk_pallet;
     info.pallet_size = lenof(temp_trunk_pallet);
     *tree_props_trunk_getm(context) = glbrush_hnew(&info);
@@ -132,7 +132,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   unsigned screen_width = CTXTINV(context)->screen_width;
   vc3 root;
   glbrush_spec brush;
-  glbrush_accum accum = { 10.0f };
+  glbrush_accum accum = { 1.5f / 0.25f };
   lsystem_state sys;
   coord_offset base_size;
 
@@ -149,9 +149,10 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   base_size = 8*METRE + this->variant * (METRE / 64);
 
   glbrush_init(&brush, *tree_props_trunk_get(context));
-  brush.xscale = fraction_of(16);
+  brush.xscale = fraction_of(12);
   brush.yscale = fraction_of(2);
   brush.screen_width = screen_width;
+  brush.base_distance = accum.distance;
 
   /* Move level to a less linear scale. */
   if      (level < 32) level = 0;
