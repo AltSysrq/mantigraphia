@@ -7,7 +7,7 @@ void main() {
 
   float val = texture2D(tex, gl_TexCoord[0].st).r;
   val = noise * val + (1.0f - noise);
-  val -= decay * gl_TexCoord[0].t * dist_from_centre *
+  val -= decay * gl_TexCoord[0].t * (0.25f + dist_from_centre) *
     texture2D(tex, vec2(gl_TexCoord[0].s,
                         gl_TexCoord[0].t * 2.0f + 0.5f)).r;
 
