@@ -30,6 +30,8 @@ shader_source(fterrabuff)
 shader_source(vterrabuff)
 shader_source(fbrush)
 shader_source(vbrush)
+shader_source(fsplotch)
+shader_source(vsplotch)
 
 shader(fixed_texture) {
   fixed_function
@@ -58,4 +60,12 @@ shader(brush) {
   uniform(float, decay)
   uniform(float, noise)
   attrib(1, width)
+}
+
+shader(splotch) {
+  composed_of(fsplotch, vsplotch)
+  with_texture_coordinates
+  uniform(tex2d, tex)
+  uniform(tex2d, pallet)
+  uniform(float, noise)
 }

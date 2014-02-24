@@ -45,18 +45,23 @@
 #include "tree-props.h"
 
 RENDERING_CONTEXT_STRUCT(tree_props_trunk, glbrush_handle*)
+RENDERING_CONTEXT_STRUCT(tree_props_leaves, glbrush_handle*)
 
 size_t tree_props_put_context_offset(size_t sz) {
-  return tree_props_trunk_put_context_offset(sz);
+  return tree_props_trunk_put_context_offset(
+    tree_props_leaves_put_context_offset(sz));
 }
 
 void tree_props_context_ctor(rendering_context*restrict context) {
   *tree_props_trunk_getm(context) = NULL;
+  *tree_props_leaves_getm(context) = NULL;
 }
 
 void tree_props_context_dtor(rendering_context*restrict context) {
-  if (*tree_props_trunk_get(context))
+  if (*tree_props_trunk_get(context)) {
     glbrush_hdelete(*tree_props_trunk_get(context));
+    glbrush_hdelete(*tree_props_leaves_get(context));
+  }
 }
 
 static const canvas_pixel temp_trunk_pallet[] = {
@@ -88,6 +93,14 @@ void tree_props_context_set(rendering_context*restrict context) {
     info.pallet = temp_trunk_pallet;
     info.pallet_size = lenof(temp_trunk_pallet);
     *tree_props_trunk_getm(context) = glbrush_hnew(&info);
+  }
+
+  if (!*tree_props_leaves_get(context)) {
+    info.decay = 0;
+    info.noise = 0.75f;
+    info.pallet = temp_tree_leaf_pallet;
+    info.pallet_size = lenof(temp_tree_leaf_pallet);
+    *tree_props_leaves_getm(context) = glbrush_hnew(&info);
   }
 }
 
@@ -137,7 +150,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   unsigned depth = 0, size_shift = 0, i;
   unsigned screen_width = CTXTINV(context)->screen_width;
   vc3 root;
-  glbrush_spec brush;
+  glbrush_spec trunk_brush, leaf_brush;
   glbrush_accum accum = { 1.5f / 0.2f };
   lsystem_state sys;
   coord_offset base_size;
@@ -154,11 +167,16 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
 
   base_size = 8*METRE + this->variant * (METRE / 64);
 
-  glbrush_init(&brush, *tree_props_trunk_get(context));
-  brush.xscale = fraction_of(12);
-  brush.yscale = fraction_of(2);
-  brush.screen_width = screen_width;
-  brush.base_distance = accum.distance;
+  glbrush_init(&trunk_brush, *tree_props_trunk_get(context));
+  trunk_brush.xscale = fraction_of(12);
+  trunk_brush.yscale = fraction_of(2);
+  trunk_brush.screen_width = screen_width;
+  trunk_brush.base_distance = accum.distance;
+  glbrush_init(&leaf_brush, *tree_props_leaves_get(context));
+  leaf_brush.xscale = fraction_of(4);
+  leaf_brush.yscale = fraction_of(4);
+  leaf_brush.screen_width = screen_width;
+  leaf_brush.base_distance = 0;
 
   /* Move level to a less linear scale. */
   if      (level < 32) level = 0;
@@ -200,7 +218,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
                   (base_size >> size_shift)
                   / TURTLE_UNIT,
                   0);
-      turtle_draw_line(&accum, &brush, turtle+depth+1,
+      turtle_draw_line(&accum, &trunk_brush, turtle+depth+1,
                        METRE >> size_shift, METRE >> size_shift,
                        screen_width);
       break;
@@ -245,7 +263,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
     case 'F':
     case 'G':
     case 'H':
-      turtle_draw_point(&accum, &brush, turtle+depth,
+      turtle_draw_point(&accum, &leaf_brush, turtle+depth,
                         level? 8*METRE : 16*METRE,
                         screen_width);
       break;

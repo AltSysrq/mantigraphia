@@ -69,11 +69,11 @@ typedef struct {
    */
   unsigned screen_width;
   /**
-   * The slab to which drawing operations will occur.
+   * The slabs to which drawing operations will occur.
    *
    * Initialised by glbrush_init().
    */
-  glm_slab* slab;
+  glm_slab* line_slab, * point_slab;
 } glbrush_spec;
 
 /**
