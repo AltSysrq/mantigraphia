@@ -264,7 +264,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
     case 'G':
     case 'H':
       turtle_draw_point(&accum, &leaf_brush, turtle+depth,
-                        level? 8*METRE : 16*METRE,
+                        level? 4*METRE : 8*METRE,
                         screen_width);
       break;
     }
