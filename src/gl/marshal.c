@@ -198,12 +198,18 @@ static void flush_slab(glm_slab* this, int reallocate) {
     clone = xmalloc(sizeof(glm_slab));
     memcpy(clone, this, sizeof(glm_slab));
     glm_do((void(*)(void*))execute_slab, clone);
-  }
 
-  if (reallocate) {
-    this->indices = xmalloc(this->data_max + 65536*sizeof(short));
-    this->data = this->indices + 65536;
-    this->data_off = this->index_off = this->vertex_off = 0;
+    if (reallocate) {
+      this->indices = xmalloc(this->data_max + 65536*sizeof(short));
+      this->data = this->indices + 65536;
+      this->data_off = this->index_off = this->vertex_off = 0;
+    }
+  } else {
+    /* Need to free the memory, even though it currently contains nothing,
+     * unless the caller has requested allocated memory to be present.
+     */
+    if (!reallocate)
+      free(this->indices);
   }
 }
 
