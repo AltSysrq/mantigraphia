@@ -61,9 +61,15 @@ void tree_props_context_dtor(rendering_context*restrict context) {
 
 static const canvas_pixel temp_trunk_pallet[] = {
   argb(255, 0, 0, 0),
+  argb(255, 0, 0, 0),
   argb(255, 32, 28, 0),
+  argb(255, 48, 48, 32),
   argb(255, 48, 32, 0),
+  argb(255, 48, 48, 32),
   argb(255, 48, 40, 0),
+  argb(255, 48, 48, 32),
+  argb(255, 48, 32, 0),
+  argb(255, 48, 48, 32),
 };
 
 static const canvas_pixel temp_tree_leaf_pallet[] = {
@@ -77,8 +83,8 @@ void tree_props_context_set(rendering_context*restrict context) {
   glbrush_handle_info info;
 
   if (!*tree_props_trunk_get(context)) {
-    info.decay = 0.25f;
-    info.noise = 0.5f;
+    info.decay = 0.2f;
+    info.noise = 0.75f;
     info.pallet = temp_trunk_pallet;
     info.pallet_size = lenof(temp_trunk_pallet);
     *tree_props_trunk_getm(context) = glbrush_hnew(&info);
@@ -132,7 +138,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   unsigned screen_width = CTXTINV(context)->screen_width;
   vc3 root;
   glbrush_spec brush;
-  glbrush_accum accum = { 1.5f / 0.25f };
+  glbrush_accum accum = { 1.5f / 0.2f };
   lsystem_state sys;
   coord_offset base_size;
 
