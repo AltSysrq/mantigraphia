@@ -79,7 +79,9 @@ void glbrush_load(void) {
                GL_RED, GL_UNSIGNED_BYTE, monochrome);
 
   memset(canv->px, 0, canv->pitch * canv->h * sizeof(canvas_pixel));
-  perlin_noise(canv->px, canv->w, canv->h, 64, 256, 0);
+  perlin_noise(canv->px, canv->w, canv->h, 32, 128, 0);
+  perlin_noise(canv->px, canv->w, canv->h, 64, 64, 1);
+  perlin_noise(canv->px, canv->w, canv->h, 128, 32, 2);
   for (p = 0; p < lenof(monochrome); ++p)
     monochrome[p] = get_blue(canv->px[p]);
 
