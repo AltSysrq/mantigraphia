@@ -220,6 +220,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
       turtle_draw_line(&accum, &trunk_brush, turtle+depth+1,
                        METRE >> size_shift, METRE >> size_shift,
                        screen_width);
+      glbrush_flush(&accum, &trunk_brush);
       break;
 
     case '9':
