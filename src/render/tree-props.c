@@ -153,7 +153,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   glbrush_spec trunk_brush, leaf_brush;
   glbrush_accum accum = { 1.5f / 0.2f };
   lsystem_state sys;
-  coord_offset base_size;
+  coord_offset base_size, trunk_size;
 
   root[0] = this->x;
   root[1] = terrain_base_y(world, this->x, this->z);
@@ -166,6 +166,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   if (simd_vs(turtle[0].pos.curr, 2) > 4*METRE) return;
 
   base_size = 8*METRE + this->variant * (METRE / 64);
+  trunk_size = METRE + this->variant * (METRE / 256);
 
   glbrush_init(&trunk_brush, *tree_props_trunk_get(context));
   trunk_brush.xscale = fraction_of(12);
@@ -218,7 +219,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
                   / TURTLE_UNIT,
                   0);
       turtle_draw_line(&accum, &trunk_brush, turtle+depth+1,
-                       METRE >> size_shift, METRE >> size_shift,
+                       trunk_size >> size_shift, trunk_size >> size_shift,
                        screen_width);
       glbrush_flush(&accum, &trunk_brush);
       break;
