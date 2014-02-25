@@ -13,7 +13,7 @@ void main() {
   gl_TexCoord[0] = gl_MultiTexCoord0;
   frel = vec2(frel_of(gl_MultiTexCoord0.s), frel_of(gl_MultiTexCoord0.t));
   if (gl_MultiTexCoord0.s < 1.0)
-    colour_var = gl_MultiTexCoord0;
+    colour_var = gl_MultiTexCoord0.s;
   else
-    colour_var = gl_MultiTexCoord0 - 1.0f;
+    colour_var = gl_MultiTexCoord0.s - 1.0f;
 }
