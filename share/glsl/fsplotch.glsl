@@ -11,4 +11,5 @@ void main() {
                              noise * texture2D(tex, gl_TexCoord[0].st).r +
                              (1.0f - noise) * (1.0f - length(frel)),
                              0.0f) + colour_var / 8.0f);
+  gl_FragDepth = gl_FragCoord.z * (0.99f + 0.01f * control);
 }
