@@ -59,10 +59,10 @@ typedef struct turtle_state_s turtle_state;
  * Base unit for turtle space. External coordinates/distances are divided by
  * this amount before undergoing computation.
  *
- * This value reduces precision within turtle space to 32mm. This should be
+ * This value reduces precision within turtle space to 2mm. This should be
  * sufficient for virtually all drawing operations, however.
  */
-#define TURTLE_UNIT 2048
+#define TURTLE_UNIT 128
 
 /**
  * Stores the current and previous position of the turtle, in screen

@@ -38,6 +38,9 @@
 #include "draw-queue.h"
 #include "turtle.h"
 
+#define SCALE_SHIFT 8
+#define SCALE_MUL (1 << SCALE_SHIFT)
+
 int turtle_init(turtle_state* this, const perspective* proj,
                 const vc3 init, unsigned scale) {
   vc3 wtsx, wtsy, wtsz;
@@ -50,9 +53,9 @@ int turtle_init(turtle_state* this, const perspective* proj,
 
   this->proj = proj;
 
-  wtsx[0] = init[0] + scale;
-  wtsy[1] = init[1] + scale;
-  wtsz[2] = init[2] + scale;
+  wtsx[0] = init[0] + scale * SCALE_MUL;
+  wtsy[1] = init[1] + scale * SCALE_MUL;
+  wtsz[2] = init[2] + scale * SCALE_MUL;
   wtsy[0] = wtsz[0] = init[0];
   wtsx[1] = wtsz[1] = init[1];
   wtsx[2] = wtsy[2] = init[2];
@@ -86,11 +89,13 @@ void turtle_move(turtle_state* this, coord_offset dx,
   this->pos.prev = this->pos.curr;
   this->pos.curr =
     simd_addvv(this->pos.curr,
-               simd_addvv(
-                 simd_mulvs(this->space.x, dx),
+               simd_divvs(
                  simd_addvv(
-                   simd_mulvs(this->space.y, dy),
-                   simd_mulvs(this->space.z, dz))));
+                   simd_mulvs(this->space.x, dx),
+                   simd_addvv(
+                     simd_mulvs(this->space.y, dy),
+                     simd_mulvs(this->space.z, dz))),
+                 SCALE_MUL));
 }
 
 void turtle_rotate_axes(simd4*restrict xp, simd4*restrict yp, angle ang) {
