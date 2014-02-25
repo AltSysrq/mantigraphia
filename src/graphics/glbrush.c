@@ -162,6 +162,10 @@ void glbrush_draw_point(glbrush_accum* accum, const glbrush_spec* spec,
   shader_splotch_vertex* vertices;
   unsigned short* indices, base;
   signed size;
+  float txxoff, txyoff;
+
+  txxoff = lcgrand(&accum->rand) / 65536.0f;
+  txyoff = lcgrand(&accum->rand) / 65536.0f;
 
   size = zo_scale(spec->screen_width, weight);
   if (!size || size > 65536) return;
@@ -179,14 +183,14 @@ void glbrush_draw_point(glbrush_accum* accum, const glbrush_spec* spec,
   vertices[3].v[0] = where[0] + size/2;
   vertices[3].v[1] = where[1] + size/2;
   vertices[3].v[2] = where[2];
-  vertices[0].tc[0] = 0;
-  vertices[0].tc[1] = 0;
-  vertices[1].tc[0] = 1;
-  vertices[1].tc[1] = 0;
-  vertices[2].tc[0] = 0;
-  vertices[2].tc[1] = 1;
-  vertices[3].tc[0] = 1;
-  vertices[3].tc[1] = 1;
+  vertices[0].tc[0] = 0 + txxoff;
+  vertices[0].tc[1] = 0 + txyoff;
+  vertices[1].tc[0] = 1 + txxoff;
+  vertices[1].tc[1] = 0 + txyoff;
+  vertices[2].tc[0] = 0 + txxoff;
+  vertices[2].tc[1] = 1 + txyoff;
+  vertices[3].tc[0] = 1 + txxoff;
+  vertices[3].tc[1] = 1 + txyoff;
 
   indices[0] = base + 0;
   indices[1] = base + 1;
@@ -287,4 +291,5 @@ void glbrush_draw_line(glbrush_accum* accum, const glbrush_spec* spec,
 
 void glbrush_flush(glbrush_accum* accum, const glbrush_spec* this) {
   accum->distance = this->base_distance;
+  accum->rand = this->random_seed;
 }

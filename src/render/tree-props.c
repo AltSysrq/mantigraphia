@@ -151,7 +151,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   unsigned screen_width = CTXTINV(context)->screen_width;
   vc3 root;
   glbrush_spec trunk_brush, leaf_brush;
-  glbrush_accum accum = { 1.5f / 0.2f };
+  glbrush_accum accum = { 1.5f / 0.2f, this->x ^ this->z };
   lsystem_state sys;
   coord_offset base_size, trunk_size;
 
@@ -173,11 +173,13 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   trunk_brush.yscale = fraction_of(2);
   trunk_brush.screen_width = screen_width;
   trunk_brush.base_distance = accum.distance;
+  trunk_brush.random_seed = accum.rand;
   glbrush_init(&leaf_brush, *tree_props_leaves_get(context));
   leaf_brush.xscale = fraction_of(4);
   leaf_brush.yscale = fraction_of(4);
   leaf_brush.screen_width = screen_width;
   leaf_brush.base_distance = 0;
+  leaf_brush.random_seed = accum.rand;
 
   /* Move level to a less linear scale. */
   if      (level < 32) level = 0;
@@ -265,7 +267,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
     case 'G':
     case 'H':
       turtle_draw_point(&accum, &leaf_brush, turtle+depth,
-                        level? 4*METRE : 8*METRE,
+                        level > 2? 4*METRE : 16*METRE,
                         screen_width);
       break;
     }

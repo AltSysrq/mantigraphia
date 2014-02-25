@@ -65,6 +65,10 @@ typedef struct {
    */
   float base_distance;
   /**
+   * The random seed to use.
+   */
+  unsigned random_seed;
+  /**
    * The logical width, in pixels, of the screen.
    */
   unsigned screen_width;
@@ -85,6 +89,10 @@ typedef struct {
    * coordinates. Initialise to zero, in most cases.
    */
   float distance;
+  /**
+   * The current random value. Initialise to random_seed.
+   */
+  unsigned rand;
 } glbrush_accum;
 
 /**
