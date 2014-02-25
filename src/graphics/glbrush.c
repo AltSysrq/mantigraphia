@@ -55,15 +55,18 @@ static void glbrush_activate_line(glbrush_handle*);
 static void glbrush_activate_point(glbrush_handle*);
 
 void glbrush_load(void) {
-  canvas* canv;
+  canvas* canv, * brush;
   unsigned char monochrome[TEXSZ*TEXSZ];
-  canvas_pixel pallet[2], p;
+  canvas_pixel pallet[2];
+  unsigned x, y, p;
+  angle theta;
 
   /* Render a bluescale version of the texture */
   pallet[0] = argb(0,0,0,0);
   pallet[1] = argb(0,0,0,255);
 
   canv = canvas_new(TEXSZ, TEXSZ);
+  brush = canvas_new(TEXSZ, TEXSZ);
   linear_paint_tile_render(canv->px, canv->w, canv->h, 4, 32,
                            pallet, lenof(pallet));
 
@@ -78,11 +81,26 @@ void glbrush_load(void) {
                TEXSZ, TEXSZ, 0,
                GL_RED, GL_UNSIGNED_BYTE, monochrome);
 
-  memset(canv->px, 0, canv->pitch * canv->h * sizeof(canvas_pixel));
-  perlin_noise(canv->px, canv->w, canv->h, 16, 128, 0);
-  perlin_noise(canv->px, canv->w, canv->h, 32, 64, 1);
-  perlin_noise(canv->px, canv->w, canv->h, 64, 32, 2);
-  perlin_noise(canv->px, canv->w, canv->h, 128, 32, 2);
+  memset(canv->px, 0, sizeof(canvas_pixel) * canv->w * canv->h);
+  perlin_noise(canv->px, canv->w, canv->h, 16, 64, 0);
+  perlin_noise(canv->px, canv->w, canv->h, 32, 32, 1);
+  perlin_noise(canv->px, canv->w, canv->h, 64, 16, 2);
+  perlin_noise(canv->px, canv->w, canv->h, 128, 16, 2);
+
+  pallet[1] = argb(0,0,0,128);
+  linear_paint_tile_render(brush->px, brush->w, brush->h, 16, 1,
+                           pallet, lenof(pallet));
+  for (y = 0; y < brush->h; ++y) {
+    for (x = 0; x < brush->w; ++x) {
+      p = x + TEXSZ * y;
+      theta = x * 65536 * 2 / TEXSZ;
+      theta += canv->px[p] * 128;
+      canv->px[p] += brush->px[
+        x + TEXSZ *
+        ((TEXSZ - 1) & (y + zo_cosms(theta, TEXSZ)/10))];
+    }
+  }
+
   for (p = 0; p < lenof(monochrome); ++p)
     monochrome[p] = get_blue(canv->px[p]);
 
@@ -93,6 +111,7 @@ void glbrush_load(void) {
                GL_RED, GL_UNSIGNED_BYTE, monochrome);
 
   canvas_delete(canv);
+  canvas_delete(brush);
 }
 
 glbrush_handle* glbrush_hnew(const glbrush_handle_info* info) {
