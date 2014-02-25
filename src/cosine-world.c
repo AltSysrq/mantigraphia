@@ -58,6 +58,7 @@
 
 typedef struct {
   game_state vtab;
+  unsigned seed;
   int is_running;
   coord x, z;
   mouselook_state look;
@@ -79,7 +80,7 @@ static void cosine_world_mmotion(cosine_world_state*, SDL_MouseMotionEvent*);
 static void cosine_world_init_world(cosine_world_state*);
 static void cosine_world_delete(cosine_world_state*);
 
-game_state* cosine_world_new(void) {
+game_state* cosine_world_new(unsigned seed) {
   cosine_world_state template = {
     { (game_state_update_t) cosine_world_update,
       (game_state_predraw_t)cosine_world_predraw,
@@ -89,6 +90,7 @@ game_state* cosine_world_new(void) {
       (game_state_mmotion_t)cosine_world_mmotion,
       NULL, NULL, NULL,
     },
+    seed,
     1,
     0, 0,
     { 0, 0 },
@@ -118,20 +120,21 @@ static void cosine_world_delete(cosine_world_state* this) {
 }
 
 static void cosine_world_init_world(cosine_world_state* this) {
-  world_generate(this->world->terrain, 3);
+  unsigned seed = this->seed;
+  world_generate(this->world->terrain, seed);
   grass_generate(this->world->grass.props,
                  this->world->grass.size,
-                 this->world->terrain, 7);
+                 this->world->terrain, seed+1);
   props_sort_z(this->world->grass.props,
                this->world->grass.size);
   trees_generate(this->world->trees[0].props,
                  this->world->trees[0].size,
-                 this->world->terrain, 8, 9);
+                 this->world->terrain, seed+2, seed+3);
   props_sort_z(this->world->trees[0].props,
                this->world->trees[0].size);
   trees_generate(this->world->trees[1].props,
                  this->world->trees[1].size,
-                 this->world->terrain, 8, 10);
+                 this->world->terrain, seed+2, seed+4);
   props_sort_z(this->world->trees[1].props,
                this->world->trees[1].size);
 }

@@ -34,6 +34,6 @@
  * Creates a new instance of the "cosine world" demo, which runs until the ESC
  * key is pressed.
  */
-game_state* cosine_world_new(void);
+game_state* cosine_world_new(unsigned seed);
 
 #endif /* COSINE_WORLD_H_ */

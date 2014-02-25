@@ -134,7 +134,7 @@ int SDL_GetWindowDisplayIndex(SDL_Window* window) {
 }
 #endif
 
-int main(void) {
+int main(int argc, char** argv) {
   unsigned ww, wh;
   SDL_Window* screen;
   SDL_GLContext glcontext;
@@ -202,7 +202,7 @@ int main(void) {
 
   canv = canvas_new(ww, wh);
 
-  state = cosine_world_new();
+  state = cosine_world_new(2 == argc? atoi(argv[1]) : 3);
 
   do {
     draw(canv, state, screen);
