@@ -67,5 +67,6 @@ shader(splotch) {
   with_texture_coordinates
   uniform(tex2d, tex)
   uniform(tex2d, pallet)
+  uniform(tex2d, brush)
   uniform(float, noise)
 }
