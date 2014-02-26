@@ -83,7 +83,7 @@ static void initialise(basic_world* world) {
 
   max = world->xmax * world->zmax;
   for (i = 0; i < max; ++i) {
-    world->tiles[i].elts[0].type = terrain_type_grass;
+    world->tiles[i].elts[0].type = terrain_type_grass << TERRAIN_SHADOW_BITS;
     world->tiles[i].elts[0].thickness = 0;
   }
 }
@@ -95,7 +95,7 @@ static void randomise(basic_world* world,
 
   max = world->xmax * world->zmax;
   for (i = 0; i < max; ++i) {
-    world->tiles[i].elts[0].type = terrain_type_grass;
+    world->tiles[i].elts[0].type = terrain_type_grass << TERRAIN_SHADOW_BITS;
     world->tiles[i].elts[0].thickness = 0;
     world->tiles[i].elts[0].altitude =
       twist(twister) & (4*(1 << level) - 1);
@@ -168,7 +168,7 @@ static void select_terrain(basic_world* world, mersenne_twister* twister) {
       /* Sometimes patches of snow, depending on altitude */
       if (((signed)(twist(twister)/2)) <
           world->tiles[i].elts[0].altitude * TILE_YMUL) {
-        world->tiles[i].elts[0].type = terrain_type_snow;
+        world->tiles[i].elts[0].type = terrain_type_snow << TERRAIN_SHADOW_BITS;
       } else {
         /* Stone if max dy*2 > dx, grass otherwise */
         miny = 32767 * TILE_YMUL;
@@ -187,11 +187,14 @@ static void select_terrain(basic_world* world, mersenne_twister* twister) {
         }
 
         if (maxy - miny > TILE_SZ/2)
-          world->tiles[i].elts[0].type = terrain_type_stone;
+          world->tiles[i].elts[0].type =
+            terrain_type_stone << TERRAIN_SHADOW_BITS;
         else if (twist(twister) & 7)
-          world->tiles[i].elts[0].type = terrain_type_bare_grass;
+          world->tiles[i].elts[0].type =
+            terrain_type_bare_grass << TERRAIN_SHADOW_BITS;
         else
-          world->tiles[i].elts[0].type = terrain_type_grass;
+          world->tiles[i].elts[0].type =
+            terrain_type_grass << TERRAIN_SHADOW_BITS;
       }
     }
   }
@@ -220,7 +223,8 @@ void grass_generate(world_prop* props, unsigned count,
 
       /* Can only place grass in non-bare grass tiles */
     } while (terrain_type_grass !=
-             world->tiles[basic_world_offset(world, wx, wz)].elts[0].type);
+             world->tiles[basic_world_offset(world, wx, wz)].elts[0].type
+             >> TERRAIN_SHADOW_BITS);
 
     props[i].x = x;
     props[i].z = z;
@@ -233,15 +237,20 @@ void grass_generate(world_prop* props, unsigned count,
 static int may_place_tree_at(const basic_world* world,
                              unsigned offset,
                              mersenne_twister* twister) {
-  switch (world->tiles[offset].elts[0].type) {
+  switch (world->tiles[offset].elts[0].type >> TERRAIN_SHADOW_BITS) {
   case terrain_type_stone: return 0;
   case terrain_type_snow: return twist(twister) & 1;
   default: return 1;
   }
 }
 
+static void update_shadows(basic_world* world,
+                           world_prop* props,
+                           unsigned count,
+                           signed radius);
+
 void trees_generate(world_prop* props, unsigned count,
-                    const basic_world* world,
+                    basic_world* world,
                     unsigned distrib_seed, unsigned pos_seed) {
   mersenne_twister twister;
   unsigned i;
@@ -277,4 +286,31 @@ void trees_generate(world_prop* props, unsigned count,
   }
 
   free(density);
+
+  update_shadows(world, props, count, 10);
+}
+
+static void update_shadows(basic_world* world,
+                           world_prop* props,
+                           unsigned count,
+                           signed radius) {
+  coord x, z;
+  coord_offset xo, zo;
+  unsigned i, off;
+
+  for (i = 0; i < count; ++i) {
+    for (zo = -radius; zo <= +radius; ++zo) {
+      for (xo = -radius; xo <= +radius; ++xo) {
+        if (fisqrt(xo*xo + zo*zo) <= (unsigned)radius) {
+          x = props[i].x / TILE_SZ + xo;
+          z = props[i].z / TILE_SZ + zo;
+          x &= (world->xmax - 1);
+          z &= (world->zmax - 1);
+          off = basic_world_offset(world, x, z);
+          if (3 != (world->tiles[off].elts[0].type & 3))
+            ++world->tiles[off].elts[0].type;
+        }
+      }
+    }
+  }
 }

@@ -32,6 +32,11 @@
 #include "../coords.h"
 #include "../simd.h"
 
+/**
+ * The base terrain types, used for bits 7..2 of the tile type byte. The lower
+ * two bits indicate shadow level (3 = high shadow, 0 = no shadow). Shift left
+ * by TERRAIN_SHADOW_BITS to convert to an actual type value.
+ */
 enum terrain_type {
   terrain_type_snow = 0,
   terrain_type_stone,
@@ -39,6 +44,8 @@ enum terrain_type {
   terrain_type_bare_grass,
   terrain_type_gravel
 };
+
+#define TERRAIN_SHADOW_BITS 2
 
 /**
  * Returns the base Y coordinate of the terrain at the given world X and Z

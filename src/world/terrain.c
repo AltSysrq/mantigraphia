@@ -36,10 +36,29 @@
 
 static const simd4 terrain_colours[] = {
   simd_init4(255, 255, 255, 0),
+  simd_init4(196, 196, 204, 0),
+  simd_init4(128, 128, 132, 0),
+  simd_init4( 64,  64,  72, 0),
+
   simd_init4(100, 100, 100, 0),
+  simd_init4( 75,  75,  80, 0),
+  simd_init4( 50,  50,  55, 0),
+  simd_init4( 25,  25,  30, 0),
+
   simd_init4( 24, 100,  16, 0),
+  simd_init4( 16,  75,  12, 0),
+  simd_init4( 12,  50,   8, 0),
+  simd_init4(  8,  25,   4, 0),
+
   simd_init4( 24, 100,  16, 0),
+  simd_init4( 16,  75,  12, 0),
+  simd_init4( 12,  50,   8, 0),
+  simd_init4(  8,  25,   4, 0),
+
   simd_init4(100,  86,  20, 0),
+  simd_init4( 75,  64,  15, 0),
+  simd_init4( 50,  43,  10, 0),
+  simd_init4( 25,  21,   8, 0),
 };
 
 static inline coord_offset altitude(const basic_world* world,

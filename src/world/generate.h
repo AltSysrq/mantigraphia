@@ -35,7 +35,7 @@ void world_generate(basic_world*, unsigned seed);
 void grass_generate(world_prop*, unsigned count,
                     const basic_world*, unsigned seed);
 void trees_generate(world_prop*, unsigned count,
-                    const basic_world*,
+                    basic_world*,
                     unsigned distribution_seed,
                     unsigned position_seed);
 
