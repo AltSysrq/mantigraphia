@@ -144,10 +144,10 @@ static const prop_renderer tree_prop_renderers_[] = {
 const prop_renderer*const tree_prop_renderers = tree_prop_renderers_;
 
 static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
-                                  const basic_world* world, unsigned level,
+                                  const basic_world* world, unsigned base_level,
                                   const rendering_context*restrict context) {
   turtle_state turtle[17];
-  unsigned depth = 0, size_shift = 0, i;
+  unsigned level, depth = 0, size_shift = 0, i;
   unsigned screen_width = CTXTINV(context)->screen_width;
   vc3 root;
   glbrush_spec trunk_brush, leaf_brush;
@@ -166,6 +166,8 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   if (simd_vs(turtle[0].pos.curr, 2) > 4*METRE) return;
 
   base_size = 8*METRE + this->variant * (METRE / 64);
+  if (base_level < 32)
+    base_size = base_size * (base_level + 32) / 64;
   trunk_size = METRE + this->variant * (METRE / 256);
 
   glbrush_init(&trunk_brush, *tree_props_trunk_get(context));
@@ -182,14 +184,14 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   leaf_brush.random_seed = accum.rand;
 
   /* Move level to a less linear scale. */
-  if      (level < 32) level = 0;
-  else if (level < 40) level = 1;
-  else if (level < 48) level = 2;
-  else if (level < 52) level = 3;
-  else if (level < 55) level = 4;
-  else if (level < 58) level = 5;
-  else if (level < 61) level = 6;
-  else                 level = 6;
+  if      (base_level < 32) level = 0;
+  else if (base_level < 40) level = 1;
+  else if (base_level < 48) level = 2;
+  else if (base_level < 52) level = 3;
+  else if (base_level < 55) level = 4;
+  else if (base_level < 58) level = 5;
+  else if (base_level < 61) level = 6;
+  else                      level = 6;
 
   lsystem_execute(&sys, &temp_tree_system, "-9A", level, this->x^this->z);
 
@@ -267,7 +269,10 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
     case 'G':
     case 'H':
       turtle_draw_point(&accum, &leaf_brush, turtle+depth,
-                        level > 2? 4*METRE : 16*METRE,
+                        4*METRE +
+                        (base_level > 48? 0 :
+                         base_level > 16? (48 - base_level)*16*METRE / 32 :
+                         16*METRE),
                         screen_width);
       break;
     }
