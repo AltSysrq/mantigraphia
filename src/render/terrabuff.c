@@ -502,7 +502,10 @@ static void terrabuff_activate(void* ignored) {
 
 static void terrabuff_deactivate(void* ignored) {
   glDepthFunc(GL_LESS);
-  free(terrabuff_interp);
+  /* We can't safely free the interps here, as rendering might have fragmented
+   * into multiple slabs. Just free them before the next time we allocate a new
+   * group, instead.
+   */
 }
 
 void terrabuff_render(canvas*restrict dst,
@@ -518,6 +521,8 @@ void terrabuff_render(canvas*restrict dst,
   terrabuff_this = this;
   /* Assume canvas's pitch achieves the same alignment we'd want */
   terrabuff_interp_pitch = dst->pitch;
+  /* Free the previous frame's interps if present */
+  if (terrabuff_interp) free(terrabuff_interp);
   terrabuff_interp = xmalloc(dst->pitch * this->scan * sizeof(screen_yz));
   terrabuff_uniform.hmap = 0;
   terrabuff_uniform.tex = 1;
