@@ -45,15 +45,15 @@ static const simd4 terrain_colours[] = {
   simd_init4( 50,  50,  55, 0),
   simd_init4( 25,  25,  30, 0),
 
-  simd_init4( 24, 100,  16, 0),
-  simd_init4( 16,  75,  12, 0),
-  simd_init4( 12,  50,   8, 0),
-  simd_init4(  8,  25,   4, 0),
+  simd_init4( 24,  80,  16, 0),
+  simd_init4( 16,  60,  12, 0),
+  simd_init4( 12,  40,   8, 0),
+  simd_init4(  8,  20,   4, 0),
 
-  simd_init4( 24, 100,  16, 0),
-  simd_init4( 16,  75,  12, 0),
-  simd_init4( 12,  50,   8, 0),
-  simd_init4(  8,  25,   4, 0),
+  simd_init4( 24,  80,  16, 0),
+  simd_init4( 16,  60,  12, 0),
+  simd_init4( 12,  40,   8, 0),
+  simd_init4(  8,  20,   4, 0),
 
   simd_init4(100,  86,  20, 0),
   simd_init4( 75,  64,  15, 0),
