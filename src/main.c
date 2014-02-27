@@ -72,6 +72,24 @@ static game_state* update(game_state*);
 static void draw(canvas*, game_state*, SDL_Window*);
 static int handle_input(game_state*);
 
+/* Whether the multi-display configuration might be a Zaphod configuration. If
+ * this is true, we need to try to force SDL to respect the environment and
+ * choose the correct display. Otherwise, allow SDL to decide on its own.
+ *
+ * (We can't just assume that the format :%d.%d indicates Zaphod, as Xinerama
+ * displays often use :0.0 for the assembly of all the screens.)
+ */
+static int might_be_zaphod = 1;
+
+static int parse_x11_screen(signed* screen, const char* display) {
+  if (!display) return 0;
+
+  if (':' == display[0])
+    return 1 == sscanf(display, ":%*d.%d", screen);
+  else
+    return 1 == sscanf(display, "%*64s:%*d.%d", screen);
+}
+
 #ifdef ENABLE_SDL_ZAPHOD_MODE_FIX
 /* On X11 with "Zaphod mode" multiple displays, all displays have a position of
  * (0,0), so SDL always uses the same screen regardless of $DISPLAY. Work
@@ -97,11 +115,7 @@ int SDL_GetWindowDisplayIndex(SDL_Window* window) {
   if (screen < 0 && !do_delegate) {
     display_name = getenv("DISPLAY");
 
-    if (display_name &&
-        1 == sscanf(display_name,
-                    (display_name[0] == ':'? ":%*d.%d" : "%*64s:%*d.%d"),
-                    &screen) &&
-        screen >= 0)
+    if (parse_x11_screen(&screen, display_name) && screen >= 0)
       do_delegate = 0;
     else
       do_delegate = 1;
@@ -134,6 +148,59 @@ int SDL_GetWindowDisplayIndex(SDL_Window* window) {
 }
 #endif
 
+void select_window_bounds(SDL_Rect* window_bounds) {
+  SDL_Rect display_bounds;
+  int i, n, zaphod_screen;
+  unsigned largest_index, largest_width;
+
+  n = SDL_GetNumVideoDisplays();
+  if (n <= 0) {
+    warnx("Unable to determine number of video displays: %s",
+          SDL_GetError());
+    goto use_conservative_boundaries;
+  }
+
+  /* Generally prefer the display with the greatest width */
+  largest_width = 0;
+  largest_index = n;
+  for (i = 0; i < n; ++i) {
+    if (SDL_GetDisplayBounds(i, &display_bounds)) {
+      warnx("Unable to determine bounds of display %d: %s",
+            i, SDL_GetError());
+    } else {
+      /* A Zaphod configuration has all displays at (0,0) */
+      might_be_zaphod &= (0 == display_bounds.x && 0 == display_bounds.y);
+
+      if (display_bounds.w > (signed)largest_width) {
+        largest_width = display_bounds.w;
+        largest_index = i;
+      }
+    }
+  }
+
+  if (largest_index >= (unsigned)n) {
+    warnx("Failed to query the bounds of any display...");
+    goto use_conservative_boundaries;
+  }
+
+  /* If still a candidate for zaphod mode, and $DISPLAY indicates a particular
+   * screen, force that screen. Otherwise, use the one we selected above.
+   */
+  if (might_be_zaphod && parse_x11_screen(&zaphod_screen, getenv("DISPLAY")) &&
+      zaphod_screen >= 0 && zaphod_screen < n) {
+    SDL_GetDisplayBounds(zaphod_screen, window_bounds);
+  } else {
+    SDL_GetDisplayBounds(largest_index, window_bounds);
+  }
+  return;
+
+  use_conservative_boundaries:
+  window_bounds->x = SDL_WINDOWPOS_UNDEFINED;
+  window_bounds->y = SDL_WINDOWPOS_UNDEFINED;
+  window_bounds->w = 640;
+  window_bounds->h = 480;
+}
+
 int main(int argc, char** argv) {
   unsigned ww, wh;
   SDL_Window* screen;
@@ -142,16 +209,19 @@ int main(int argc, char** argv) {
   canvas* canv;
   game_state* state;
   GLenum glew_status;
+  SDL_Rect window_bounds;
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
     errx(EX_SOFTWARE, "Unable to initialise SDL: %s", SDL_GetError());
 
   atexit(SDL_Quit);
 
+  select_window_bounds(&window_bounds);
   screen = SDL_CreateWindow("Mantigraphia",
-                            SDL_WINDOWPOS_UNDEFINED,
-                            SDL_WINDOWPOS_UNDEFINED,
-                            1280, 1024,
+                            window_bounds.x,
+                            window_bounds.y,
+                            window_bounds.w,
+                            window_bounds.h,
                             SDL_WINDOW_OPENGL);
   if (!screen)
     errx(EX_OSERR, "Unable to create window: %s", SDL_GetError());
