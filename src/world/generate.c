@@ -62,6 +62,10 @@ void world_generate(basic_world* world, unsigned seed) {
   basic_world_calc_next(world);
 }
 
+static int above_perlin_threshold(const basic_world* world) {
+  return world->xmax > 512 && world->zmax > 512;
+}
+
 static void generate_level(basic_world* world, signed level,
                            mersenne_twister* twister) {
   basic_world* next;
@@ -69,7 +73,7 @@ static void generate_level(basic_world* world, signed level,
   printf("Generating level %d\n", level);
 
   next = SLIST_NEXT(world, next);
-  if (next) {
+  if (next && above_perlin_threshold(world)) {
     initialise(world);
     generate_level(next, level+1, twister);
     rmp_up(world, next, level, twister);
@@ -91,15 +95,31 @@ static void initialise(basic_world* world) {
 static void randomise(basic_world* world,
                       signed level,
                       mersenne_twister* twister) {
-  unsigned i, max;
+  unsigned* hmap, hmap_size, i, freq, amp, altitude_reduction;
 
-  max = world->xmax * world->zmax;
-  for (i = 0; i < max; ++i) {
-    world->tiles[i].elts[0].type = terrain_type_grass << TERRAIN_SHADOW_BITS;
-    world->tiles[i].elts[0].thickness = 0;
-    world->tiles[i].elts[0].altitude =
-      twist(twister) & (4*(1 << level) - 1);
-  }
+  hmap_size = sizeof(unsigned) * world->xmax * world->zmax;
+  hmap = xmalloc(hmap_size);
+  memset(hmap, 0, hmap_size);
+
+  freq = 2;
+  amp = 128*METRE / TILE_YMUL;
+  altitude_reduction = amp * 6 / 10;
+
+  do {
+    perlin_noise(hmap, world->xmax, world->zmax, freq, amp, twist(twister));
+
+    freq *= 2;
+    amp /= 2;
+  } while (amp && freq < world->xmax && freq < world->zmax);
+
+  initialise(world);
+  for (i = 0; i < world->xmax * world->zmax; ++i)
+    if (hmap[i] < altitude_reduction)
+      world->tiles[i].elts[0].altitude = 0;
+    else
+      world->tiles[i].elts[0].altitude = hmap[i] - altitude_reduction;
+
+  free(hmap);
 }
 
 static inline signed altitude(const basic_world* world,
