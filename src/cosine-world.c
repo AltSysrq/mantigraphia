@@ -140,7 +140,7 @@ static void cosine_world_init_world(cosine_world_state* this) {
                this->world->trees[1].size);
 }
 
-#define SPEED (40*METRES_PER_SECOND)
+#define SPEED (4*METRES_PER_SECOND)
 static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
   this->now += et;
 
