@@ -66,13 +66,6 @@ void terrabuff_init(void) {
 
   static const canvas_pixel pallet[] = {
     argb(255,255,255,255),
-    argb(255,254,254,254),
-    argb(255,252,252,252),
-    argb(255,248,248,248),
-    argb(255,240,240,240),
-    argb(255,224,224,224),
-    argb(255,192,192,192),
-    argb(255,128,128,128),
     argb(255,64,64,64),
   };
 

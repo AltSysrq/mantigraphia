@@ -32,7 +32,7 @@ void main() {
     value = texture2D(tex,
                       vec2(screen_coords.x, screen_coords.y - high) *
                       4 / screen_size).r;
-    if (rel + value*4 > 3.5)
+    if (rel + value*5 > 3.5)
       gl_FragColor = value * gl_SecondaryColor;
     else
       gl_FragColor = value * gl_Color;
