@@ -165,8 +165,14 @@ static void select_terrain(basic_world* world, mersenne_twister* twister) {
     for (x = 0; x < world->xmax; ++x) {
       i = basic_world_offset(world, x, z);
 
+      if (world->tiles[i].elts[0].altitude <= 2*METRE / TILE_YMUL) {
+        world->tiles[i].elts[0].type =
+          terrain_type_water << TERRAIN_SHADOW_BITS;
+      } else if (world->tiles[i].elts[0].altitude <= 4*METRE / TILE_YMUL) {
+        world->tiles[i].elts[0].type =
+          terrain_type_gravel << TERRAIN_SHADOW_BITS;
       /* Sometimes patches of snow, depending on altitude */
-      if (((signed)(twist(twister)/2)) <
+      } else if (((signed)(twist(twister)/2)) <
           world->tiles[i].elts[0].altitude * TILE_YMUL) {
         world->tiles[i].elts[0].type = terrain_type_snow << TERRAIN_SHADOW_BITS;
       } else {
@@ -238,6 +244,8 @@ static int may_place_tree_at(const basic_world* world,
                              unsigned offset,
                              mersenne_twister* twister) {
   switch (world->tiles[offset].elts[0].type >> TERRAIN_SHADOW_BITS) {
+  case terrain_type_water:
+  case terrain_type_gravel:
   case terrain_type_stone: return 0;
   case terrain_type_snow: return twist(twister) & 1;
   default: return 1;

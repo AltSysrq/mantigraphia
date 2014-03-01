@@ -59,6 +59,11 @@ static const simd4 terrain_colours[] = {
   simd_init4( 75,  64,  15, 0),
   simd_init4( 50,  43,  10, 0),
   simd_init4( 25,  21,   8, 0),
+
+  simd_init4( 64,  72, 100, 0),
+  simd_init4( 48,  54,  75, 0),
+  simd_init4( 32,  36,  50, 0),
+  simd_init4( 16,  18,  25, 0),
 };
 
 static inline coord_offset altitude(const basic_world* world,
@@ -81,6 +86,24 @@ coord terrain_base_y(const basic_world* world, coord wx, coord wz) {
   coord y1 = ((TILE_SZ-ox)*y01 + ox*y11) / TILE_SZ;
 
   return ((TILE_SZ-oz)*y0 + oz*y1) / TILE_SZ;
+}
+
+coord terrain_graphical_y(const basic_world* world, coord wx, coord wz,
+                          chronon t) {
+  coord base = terrain_base_y(world, wx, wz);
+  coord x = wx / TILE_SZ;
+  coord z = wz / TILE_SZ;
+
+  if (terrain_type_water ==
+      world->tiles[basic_world_offset(world, x, z)].elts[0].type >>
+      TERRAIN_SHADOW_BITS) {
+    return 3 * METRE / 2 + zo_cosms((wx+wz+t*65536/8)/16, METRE/2);
+  } else {
+    if (base < 4 * METRE)
+      return 4 * METRE;
+    else
+      return base;
+  }
 }
 
 static simd4 colour_of(const basic_world* world,

@@ -61,6 +61,7 @@ typedef struct {
   unsigned seed;
   int is_running;
   coord x, z;
+  chronon now;
   mouselook_state look;
   parchment* bg;
   propped_world* world;
@@ -92,7 +93,7 @@ game_state* cosine_world_new(unsigned seed) {
     },
     seed,
     1,
-    0, 0,
+    0, 0, 0,
     { 0, 0 },
     parchment_new(),
     propped_world_new(
@@ -139,8 +140,10 @@ static void cosine_world_init_world(cosine_world_state* this) {
                this->world->trees[1].size);
 }
 
-#define SPEED (4*METRES_PER_SECOND)
+#define SPEED (40*METRES_PER_SECOND)
 static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
+  this->now += et;
+
   if (this->moving_forward) {
     this->x -= zo_sinms(this->look.yrot, et * SPEED);
     this->z -= zo_cosms(this->look.yrot, et * SPEED);
@@ -178,6 +181,7 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   context_inv.proj = proj;
   context_inv.long_yrot = this->look.yrot;
   context_inv.screen_width = dst->w;
+  context_inv.now = this->now;
 
   proj->camera[0] = this->x;
   proj->camera[1] = terrain_base_y(this->world->terrain, this->x, this->z) +

@@ -88,7 +88,7 @@ static void put_point(terrabuff* dst, const vc3 centre,
                       terrabuff_slice slice,
                       coord_offset distance, coord_offset sample_len,
                       const basic_world*restrict world, unsigned char level,
-                      const perspective* proj, unsigned xmax) {
+                      const perspective* proj, unsigned xmax, chronon t) {
   vc3 point;
   vo3 relative, projected;
   coord tx, tz;
@@ -107,9 +107,11 @@ static void put_point(terrabuff* dst, const vc3 centre,
 
   for (soz = -sample_len; soz <= sample_len; soz += TILE_SZ) {
     for (sox = -sample_len; sox <= sample_len; sox += TILE_SZ) {
-      altitude_sum += terrain_base_y(world,
-                                     (tx + sox) & (world->xmax*TILE_SZ - 1),
-                                     (tz + soz) & (world->zmax*TILE_SZ - 1));
+      altitude_sum += terrain_graphical_y(
+        world,
+        (tx + sox) & (world->xmax*TILE_SZ - 1),
+        (tz + soz) & (world->zmax*TILE_SZ - 1),
+        t);
       colour = terrain_colour(world,
                               (tx + sox) & (world->xmax*TILE_SZ - 1),
                               (tz + soz) & (world->zmax*TILE_SZ - 1));
@@ -188,6 +190,7 @@ static void render_basic_world_terrain_subrange(unsigned ix, unsigned count) {
   terrabuff_slice local_smin, local_smax;
   unsigned char level = 0;
   coord_offset distance = 1 * METRE, distance_incr = 1 * METRE;
+  chronon t = CTXTINV(context)->now;
 
   /* Start by assuming 180 deg effective field. The terrabuff will give us
    * better boundaries after the first scan.
@@ -214,7 +217,7 @@ static void render_basic_world_terrain_subrange(unsigned ix, unsigned count) {
 
     for (scurr = smin; scurr != smax; scurr = (scurr+1) & (SLICE_CAP-1))
       put_point(terra, proj->camera, scurr, distance, distance_incr,
-                world, level, proj, dst->w);
+                world, level, proj, dst->w, t);
 
     if (!terrabuff_next(terra, &smin, &smax)) break;
 

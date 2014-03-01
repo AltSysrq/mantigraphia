@@ -42,7 +42,8 @@ enum terrain_type {
   terrain_type_stone,
   terrain_type_grass,
   terrain_type_bare_grass,
-  terrain_type_gravel
+  terrain_type_gravel,
+  terrain_type_water,
 };
 
 #define TERRAIN_SHADOW_BITS 2
@@ -55,6 +56,15 @@ enum terrain_type {
  * provides the smoothed value.
  */
 coord terrain_base_y(const basic_world*, coord x, coord z);
+
+/**
+ * Returns the base Y coordinate of the terrain at the given world X and Z
+ * coordinate, as it is to be rendered. This is often the same as the true base
+ * Y, but varies for things such as water.
+ */
+coord terrain_graphical_y(const basic_world*, coord x, coord z,
+                          chronon t);
+
 /**
  * Calculates the normal of the terrain at the *centre* of the tile at (tx,tz)
  * (tile coordinates, not world coordinates). The normal vector will have no
