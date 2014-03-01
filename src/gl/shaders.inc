@@ -59,7 +59,7 @@ shader(brush) {
   uniform(tex2d, pallet)
   uniform(float, decay)
   uniform(float, noise)
-  attrib(1, width)
+  attrib(2, info)
 }
 
 shader(splotch) {

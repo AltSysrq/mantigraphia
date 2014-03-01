@@ -293,10 +293,10 @@ void glbrush_draw_line(glbrush_accum* accum, const glbrush_spec* spec,
   vertices[3].tc[0] = 0.5f + to_w / 2.0f;
   vertices[3].tc[1] = accum->distance + distance;
 
-  vertices[0].width[0] = from_w;
-  vertices[1].width[0] = from_w;
-  vertices[2].width[0] = to_w;
-  vertices[3].width[0] = to_w;
+  vertices[0].info[0] = vertices[1].info[0] = from_w;
+  vertices[2].info[0] = vertices[3].info[0] = to_w;
+  vertices[0].info[1] = vertices[1].info[1] = -1.0f;
+  vertices[2].info[1] = vertices[3].info[1] = +1.0f;
 
   indices[0] = base + 0;
   indices[1] = base + 1;
