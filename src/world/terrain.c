@@ -99,8 +99,8 @@ coord terrain_graphical_y(const basic_world* world, coord wx, coord wz,
       TERRAIN_SHADOW_BITS) {
     return 3 * METRE / 2 + zo_cosms((wx+wz+t*65536/8)/16, METRE/2);
   } else {
-    if (base < 4 * METRE)
-      return 4 * METRE;
+    if (base < 2 * METRE)
+      return 2 * METRE;
     else
       return base;
   }
