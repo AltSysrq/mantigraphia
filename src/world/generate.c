@@ -316,6 +316,7 @@ void trees_generate(world_prop* props, unsigned count,
   free(density);
 
   update_shadows(world, props, count, 10);
+  basic_world_calc_next(world);
 }
 
 static void update_shadows(basic_world* world,
