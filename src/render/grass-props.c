@@ -29,6 +29,7 @@
 #include <config.h>
 #endif
 
+#include "../frac.h"
 #include "../graphics/pencil.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
@@ -39,7 +40,8 @@
 #include "grass-props.h"
 
 static void render_grass_prop_simple(drawing_queue*, const world_prop*,
-                                     const basic_world*, unsigned,
+                                     const basic_world*,
+                                     unsigned, fraction,
                                      const rendering_context*restrict);
 
 static const prop_renderer grass_prop_renderers_[] = {
@@ -50,7 +52,8 @@ const prop_renderer*const grass_prop_renderers = grass_prop_renderers_;
 
 static void render_grass_prop_simple(drawing_queue* dst,
                                      const world_prop* this,
-                                     const basic_world* world, unsigned level,
+                                     const basic_world* world,
+                                     unsigned level, fraction progression,
                                      const rendering_context*restrict context) {
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;

@@ -31,6 +31,7 @@
 
 #include <stdlib.h>
 
+#include "../frac.h"
 #include "../defs.h"
 #include "../simd.h"
 #include "../graphics/canvas.h"
@@ -108,8 +109,10 @@ static lsystem temp_tree_system;
 
 void tree_props_init(void) {
   /* 9..6: Branch lengths (movement)
-   * -   : Draw branch
-   * A..H: Leaf splotches
+   * -   : Draw branch (full size)
+   * _   : Draw branch (scale by progression)
+   * A   : Leaf splotch (full size)
+   * B   : Leaf splotch (scale by progression)
    * [  ]: Push/pop
    * (  ): Push/pop with size reduction
    * a..h: Rotations (10 degree increments, a = 30 deg)
@@ -122,20 +125,16 @@ void tree_props_init(void) {
     "9 8[z.]8",
     "8 7[z.]7",
     "7 6[z.]6",
-    "A B",
-    "B C",
-    "C D",
-    "D E",
-    "E F",
-    "F G",
-    "G H",
-    ". . [(q-9B)z.] [(r-9B)z.] [(s-9B)z.] [(t-9B)z.] [(u-9B)z.] [(v-9B)z.]",
+    "B A",
+    "_ -",
+    ". . [(q_9B)z.] [(r_9B)z.] [(s_9B)z.] [(t_9B)z.] [(u_9B)z.] [(v_9B)z.]",
     "z a b c d e f g h",
     NULL);
 }
 
 static void render_tree_prop_temp(drawing_queue*, const world_prop*,
-                                  const basic_world*, unsigned,
+                                  const basic_world*,
+                                  unsigned, fraction,
                                   const rendering_context*restrict);
 static const prop_renderer tree_prop_renderers_[] = {
   0,
@@ -144,7 +143,8 @@ static const prop_renderer tree_prop_renderers_[] = {
 const prop_renderer*const tree_prop_renderers = tree_prop_renderers_;
 
 static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
-                                  const basic_world* world, unsigned base_level,
+                                  const basic_world* world,
+                                  unsigned base_level, fraction progression,
                                   const rendering_context*restrict context) {
   turtle_state turtle[17];
   unsigned level, depth = 0, size_shift = 0, i;
@@ -184,16 +184,21 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   leaf_brush.random_seed = accum.rand;
 
   /* Move level to a less linear scale. */
-  if      (base_level < 32) level = 0;
-  else if (base_level < 40) level = 1;
-  else if (base_level < 48) level = 2;
-  else if (base_level < 52) level = 3;
-  else if (base_level < 55) level = 4;
-  else if (base_level < 58) level = 5;
-  else if (base_level < 61) level = 6;
-  else                      level = 6;
+  if      (base_level < 32) level = 0, progression = fraction_of(1);
+  else if (base_level== 32) level = 1;
+  else if (base_level < 40) level = 1, progression = fraction_of(1);
+  else if (base_level== 40) level = 2;
+  else if (base_level < 48) level = 2, progression = fraction_of(1);
+  else if (base_level== 48) level = 3;
+  else if (base_level < 52) level = 3, progression = fraction_of(1);
+  else if (base_level== 52) level = 4;
+  else if (base_level < 55) level = 4, progression = fraction_of(1);
+  else if (base_level== 55) level = 5;
+  else if (base_level < 58) level = 5, progression = fraction_of(1);
+  else if (base_level== 58) level = 6;
+  else                      level = 6, progression = fraction_of(1);
 
-  lsystem_execute(&sys, &temp_tree_system, "-9A", level, this->x^this->z);
+  lsystem_execute(&sys, &temp_tree_system, "_9B", level, this->x^this->z);
 
   for (i = 0; sys.buffer[i]; ++i) {
     switch (sys.buffer[i]) {
@@ -214,6 +219,21 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
       /* fall through */
     case ']':
       --depth;
+      break;
+
+    case '_':
+      turtle[depth+1] = turtle[depth];
+      turtle_move(turtle+depth+1, 0,
+                  (base_size >> size_shift)
+                  / TURTLE_UNIT,
+                  0);
+      turtle_draw_line(&accum, &trunk_brush, turtle+depth+1,
+                       fraction_umul(trunk_size >> size_shift,
+                                     progression),
+                       fraction_umul(trunk_size >> size_shift,
+                                     progression),
+                       screen_width);
+      glbrush_flush(&accum, &trunk_brush);
       break;
 
     case '-':
@@ -261,18 +281,21 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
       break;
 
     case 'A':
-    case 'B':
-    case 'C':
-    case 'D':
-    case 'E':
-    case 'F':
-    case 'G':
-    case 'H':
       turtle_draw_point(&accum, &leaf_brush, turtle+depth,
                         4*METRE +
                         (base_level > 48? 0 :
                          base_level > 16? (48 - base_level)*16*METRE / 32 :
                          16*METRE),
+                        screen_width);
+      break;
+
+    case 'B':
+      turtle_draw_point(&accum, &leaf_brush, turtle+depth,
+                        fraction_umul(
+                          4*METRE +
+                          (base_level > 48? 0 :
+                           base_level > 16? (48 - base_level)*16*METRE / 32 :
+                           16*METRE), progression),
                         screen_width);
       break;
     }

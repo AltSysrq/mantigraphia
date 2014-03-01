@@ -28,6 +28,7 @@
 #ifndef RENDER_PROPS_H_
 #define RENDER_PROPS_H_
 
+#include "../frac.h"
 #include "../world/basic-world.h"
 #include "../world/props.h"
 #include "draw-queue.h"
@@ -38,7 +39,8 @@
  * stored in tables passed to render_world_props().
  */
 typedef void (*prop_renderer)(drawing_queue*, const world_prop*,
-                              const basic_world*, unsigned level,
+                              const basic_world*,
+                              unsigned level, fraction level_progression,
                               const rendering_context*restrict);
 
 /**

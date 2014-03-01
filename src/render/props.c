@@ -48,7 +48,9 @@ void render_world_props(drawing_queue* dst,
   unsigned lower_bound, upper_bound, i;
   coord tmp, cx, cz;
   signed long long dx, dz;
-  unsigned long long dist;
+  unsigned long long raw_distsq, distsq, inner_distsq, outer_distsq;
+  unsigned dist;
+  fraction progression;
   int inverted_x_test;
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;
@@ -95,14 +97,33 @@ void render_world_props(drawing_queue* dst,
     /* Calculate distance squared */
     dx = torus_dist(cx - props[i].x, world->xmax * TILE_SZ);
     dz = torus_dist(cz - props[i].z, world->zmax * TILE_SZ);
-    dist = dx*dx + dz*dz;
-    dist >>= distsq_shift;
+    raw_distsq = dx*dx + dz*dz;
+    distsq = raw_distsq >> distsq_shift;
     /* Skip if square root is >= 64 (maximum LOD / input to fisqrt()) */
-    if (dist >= 64*64) continue;
+    if (distsq >= 64*64) continue;
 
     /* Reduce to actual distance */
-    dist = fisqrt(dist);
+    dist = fisqrt(distsq);
 
-    (*renderers[props[i].type])(dst, props+i, world, 64 - dist, context);
+    /* Deterimen progression through level */
+    inner_distsq = dist*dist;
+    inner_distsq <<= distsq_shift;
+    outer_distsq = (dist+1)*(dist+1);
+    outer_distsq <<= distsq_shift;
+    raw_distsq /= METRE;
+    raw_distsq /= METRE;
+    inner_distsq /= METRE;
+    inner_distsq /= METRE;
+    outer_distsq /= METRE;
+    outer_distsq /= METRE;
+    if (outer_distsq > inner_distsq)
+      progression = (raw_distsq - inner_distsq) *
+        fraction_of(outer_distsq - inner_distsq);
+    else
+      progression = 0;
+
+    (*renderers[props[i].type])(dst, props+i, world,
+                                64 - dist,
+                                fraction_of(1) - progression, context);
   }
 }
