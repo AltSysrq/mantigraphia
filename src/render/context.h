@@ -44,8 +44,9 @@ typedef struct {
   const perspective*restrict proj;
 
   /**
-   * The integer value (0..11) of the current scenic month. 0,1,2 are spring;
-   * 3,4,5 are summer; 6,7,8 are autumn; 9,10,11 are winter.
+   * The integer value (0..8) of the current scenic month, starting with
+   * March=0. December is the tenth logical month, but must never be reflected
+   * here.
    */
   unsigned month_integral;
   /**

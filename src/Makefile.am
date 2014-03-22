@@ -48,6 +48,7 @@ render/draw-queue.c \
 render/grass-props.c \
 render/tree-props.c \
 render/propped-world.c \
+render/colour-palettes.c \
 control/mouselook.c \
 flower-pot.c \
 cosine-world.c

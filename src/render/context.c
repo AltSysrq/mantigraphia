@@ -38,6 +38,7 @@
 #include "propped-world.h"
 #include "shared-fast-brush.h"
 #include "tree-props.h"
+#include "colour-palettes.h"
 #include "context.h"
 
 static size_t space_for_invariant(size_t);
@@ -48,12 +49,14 @@ static size_t (*const context_put[])(size_t) = {
   render_propped_world_put_context_offset,
   shared_fast_brush_put_context_offset,
   tree_props_put_context_offset,
+  colour_palettes_put_context_offset,
   NULL
 };
 
 static void (*const context_set[])(rendering_context*restrict) = {
   shared_fast_brush_context_set,
   tree_props_context_set,
+  colour_palettes_context_set,
   NULL
 };
 

@@ -40,6 +40,7 @@
 #include "../world/terrain.h"
 #include "context.h"
 #include "terrabuff.h"
+#include "colour-palettes.h"
 #include "basic-world.h"
 
 #define SLICE_CAP 256
@@ -88,7 +89,9 @@ static void put_point(terrabuff* dst, const vc3 centre,
                       terrabuff_slice slice,
                       coord_offset distance, coord_offset sample_len,
                       const basic_world*restrict world, unsigned char level,
-                      const perspective* proj, unsigned xmax, chronon t) {
+                      const rendering_context*restrict context,
+                      unsigned xmax, chronon t) {
+  const perspective*restrict proj = CTXTINV(context)->proj;
   vc3 point;
   vo3 relative, projected;
   coord tx, tz;
@@ -114,7 +117,8 @@ static void put_point(terrabuff* dst, const vc3 centre,
         t);
       colour = terrain_colour(world,
                               (tx + sox) & (world->xmax*TILE_SZ - 1),
-                              (tz + soz) & (world->zmax*TILE_SZ - 1));
+                              (tz + soz) & (world->zmax*TILE_SZ - 1),
+                              get_colour_palettes(context)->terrain);
       red_sum   += simd_vs(colour, 0);
       green_sum += simd_vs(colour, 1);
       blue_sum  += simd_vs(colour, 2);
@@ -217,7 +221,7 @@ static void render_basic_world_terrain_subrange(unsigned ix, unsigned count) {
 
     for (scurr = smin; scurr != smax; scurr = (scurr+1) & (SLICE_CAP-1))
       put_point(terra, proj->camera, scurr, distance, distance_incr,
-                world, level, proj, dst->w, t);
+                world, level, context, dst->w, t);
 
     if (!terrabuff_next(terra, &smin, &smax)) break;
 

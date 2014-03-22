@@ -80,7 +80,11 @@ void terrain_basic_normal(vo3 normal, const basic_world*, coord tx, coord tz);
  * The return value contains four 32-bit integers representing red, green, and
  * blue, respectively, ranging between 0 and 255, inclusive. The fourth integer
  * has no particular value.
+ *
+ * The given palette determines the base colours for each tile type, and must
+ * be compatible with the `terrain` field of the colour_palettes struct.
  */
-simd4 terrain_colour(const basic_world*, coord x, coord z);
+simd4 terrain_colour(const basic_world*, coord x, coord z,
+                     const simd4* palette);
 
 #endif /* WORLD_TERRAIN_H_ */

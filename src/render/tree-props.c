@@ -65,7 +65,7 @@ void tree_props_context_dtor(rendering_context*restrict context) {
   }
 }
 
-static const canvas_pixel temp_trunk_pallet[] = {
+static const canvas_pixel oak_trunk_pallet[] = {
   argb(255, 0, 0, 0),
   argb(255, 0, 0, 0),
   argb(255, 32, 28, 0),
@@ -78,7 +78,7 @@ static const canvas_pixel temp_trunk_pallet[] = {
   argb(255, 48, 48, 32),
 };
 
-static const canvas_pixel temp_tree_leaf_pallet[] = {
+static const canvas_pixel oak_leaf_pallet[] = {
   argb(255, 0, 32, 0),
   argb(255, 0, 48, 0),
   argb(255, 20, 64, 16),
@@ -91,21 +91,21 @@ void tree_props_context_set(rendering_context*restrict context) {
   if (!*tree_props_trunk_get(context)) {
     info.decay = 0.2f;
     info.noise = 0.75f;
-    info.pallet = temp_trunk_pallet;
-    info.pallet_size = lenof(temp_trunk_pallet);
+    info.pallet = oak_trunk_pallet;
+    info.pallet_size = lenof(oak_trunk_pallet);
     *tree_props_trunk_getm(context) = glbrush_hnew(&info);
   }
 
   if (!*tree_props_leaves_get(context)) {
     info.decay = 0;
     info.noise = 0.75f;
-    info.pallet = temp_tree_leaf_pallet;
-    info.pallet_size = lenof(temp_tree_leaf_pallet);
+    info.pallet = oak_leaf_pallet;
+    info.pallet_size = lenof(oak_leaf_pallet);
     *tree_props_leaves_getm(context) = glbrush_hnew(&info);
   }
 }
 
-static lsystem temp_tree_system;
+static lsystem oak_tree_system;
 
 void tree_props_init(void) {
   /* 9..6: Branch lengths (movement)
@@ -121,7 +121,7 @@ void tree_props_init(void) {
    * z   : Random rotation on next iteration
    */
   lsystem_compile(
-    &temp_tree_system,
+    &oak_tree_system,
     "9 8[z.]8",
     "8 7[z.]7",
     "7 6[z.]6",
@@ -132,20 +132,20 @@ void tree_props_init(void) {
     NULL);
 }
 
-static void render_tree_prop_temp(drawing_queue*, const world_prop*,
+static void render_tree_prop_oak(drawing_queue*, const world_prop*,
                                   const basic_world*,
                                   unsigned, fraction,
                                   const rendering_context*restrict);
 static const prop_renderer tree_prop_renderers_[] = {
   0,
-  render_tree_prop_temp,
+  render_tree_prop_oak,
 };
 const prop_renderer*const tree_prop_renderers = tree_prop_renderers_;
 
-static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
-                                  const basic_world* world,
-                                  unsigned base_level, fraction progression,
-                                  const rendering_context*restrict context) {
+static void render_tree_prop_oak(drawing_queue* queue, const world_prop* this,
+                                 const basic_world* world,
+                                 unsigned base_level, fraction progression,
+                                 const rendering_context*restrict context) {
   turtle_state turtle[17];
   unsigned level, depth = 0, size_shift = 0, i;
   unsigned screen_width = CTXTINV(context)->screen_width;
@@ -198,7 +198,7 @@ static void render_tree_prop_temp(drawing_queue* queue, const world_prop* this,
   else if (base_level== 58) level = 6;
   else                      level = 6, progression = fraction_of(1);
 
-  lsystem_execute(&sys, &temp_tree_system, "_9B", level, this->x^this->z);
+  lsystem_execute(&sys, &oak_tree_system, "_9B", level, this->x^this->z);
 
   for (i = 0; sys.buffer[i]; ++i) {
     switch (sys.buffer[i]) {

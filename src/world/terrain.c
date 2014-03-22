@@ -34,38 +34,6 @@
 #include "basic-world.h"
 #include "terrain.h"
 
-static const simd4 terrain_colours[] = {
-  simd_init4(255, 255, 255, 0),
-  simd_init4(196, 196, 204, 0),
-  simd_init4(128, 128, 132, 0),
-  simd_init4( 64,  64,  72, 0),
-
-  simd_init4(100, 100, 100, 0),
-  simd_init4( 75,  75,  80, 0),
-  simd_init4( 50,  50,  55, 0),
-  simd_init4( 25,  25,  30, 0),
-
-  simd_init4( 24,  80,  16, 0),
-  simd_init4( 16,  60,  12, 0),
-  simd_init4( 12,  40,   8, 0),
-  simd_init4(  8,  20,   4, 0),
-
-  simd_init4( 24,  80,  16, 0),
-  simd_init4( 16,  60,  12, 0),
-  simd_init4( 12,  40,   8, 0),
-  simd_init4(  8,  20,   4, 0),
-
-  simd_init4(100,  86,  20, 0),
-  simd_init4( 75,  64,  15, 0),
-  simd_init4( 50,  43,  10, 0),
-  simd_init4( 25,  21,   8, 0),
-
-  simd_init4( 64,  72, 100, 0),
-  simd_init4( 48,  54,  75, 0),
-  simd_init4( 32,  36,  50, 0),
-  simd_init4( 16,  18,  25, 0),
-};
-
 static inline coord_offset altitude(const basic_world* world,
                                     coord tx, coord tz) {
   return world->tiles[basic_world_offset(world, tx, tz)].elts[0].altitude *
@@ -107,7 +75,8 @@ coord terrain_graphical_y(const basic_world* world, coord wx, coord wz,
 }
 
 static simd4 colour_of(const basic_world* world,
-                       coord x, coord z) {
+                       coord x, coord z,
+                       const simd4* terrain_colours) {
   return terrain_colours[
     world->tiles[
       basic_world_offset(world, x, z)
@@ -115,15 +84,16 @@ static simd4 colour_of(const basic_world* world,
 }
 
 simd4 terrain_colour(const basic_world* world,
-                     coord wx, coord wz) {
+                     coord wx, coord wz,
+                     const simd4* terrain_colours) {
   signed ox = wx % TILE_SZ, oz = wz % TILE_SZ;
   coord x = wx / TILE_SZ;
   coord z = wz / TILE_SZ;
   coord x2 = (x+1) & (world->xmax-1), z2 = (z+1) & (world->zmax-1);
-  simd4 c00 = colour_of(world, x, z),
-        c01 = colour_of(world, x, z2),
-        c10 = colour_of(world, x2, z),
-        c11 = colour_of(world, x2, z2);
+  simd4 c00 = colour_of(world, x, z, terrain_colours),
+        c01 = colour_of(world, x, z2, terrain_colours),
+        c10 = colour_of(world, x2, z, terrain_colours),
+        c11 = colour_of(world, x2, z2, terrain_colours);
   simd4 c0, c1;
 
   c0 = simd_divvs(simd_addvv(simd_mulvs(c00, TILE_SZ-ox),

@@ -68,6 +68,9 @@ typedef struct {
   rendering_context*restrict context;
 
   int moving_forward, moving_backward, moving_left, moving_right;
+  unsigned month_integral;
+  fraction month_fraction;
+  int advancing_time;
 
   perspective proj;
 } cosine_world_state;
@@ -101,6 +104,7 @@ game_state* cosine_world_new(unsigned seed) {
       NUM_GRASS, NUM_TREES),
     rendering_context_new(),
     0,0,0,0,
+    0, 0, 0,
   };
 
   cosine_world_state* this = xmalloc(sizeof(cosine_world_state));
@@ -166,6 +170,15 @@ static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
   this->x &= this->world->terrain->xmax*TILE_SZ - 1;
   this->z &= this->world->terrain->zmax*TILE_SZ - 1;
 
+  if (this->advancing_time) {
+    this->month_fraction += fraction_of(8*SECOND) * et;
+    if (this->month_fraction > fraction_of(1)) {
+      this->month_fraction -= fraction_of(1);
+      if (this->month_integral < 8)
+        ++this->month_integral;
+    }
+  }
+
   if (this->is_running) {
     return (game_state*)this;
   } else {
@@ -182,6 +195,8 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   context_inv.long_yrot = this->look.yrot;
   context_inv.screen_width = dst->w;
   context_inv.now = this->now;
+  context_inv.month_integral = this->month_integral;
+  context_inv.month_fraction = this->month_fraction;
 
   proj->camera[0] = this->x;
   proj->camera[1] = terrain_base_y(this->world->terrain, this->x, this->z) +
@@ -230,6 +245,34 @@ static void cosine_world_key(cosine_world_state* this,
 
   case SDLK_e:
     this->moving_right = down;
+    break;
+
+  case SDLK_F11:
+    evt->keysym.sym = SDLK_F6;
+  case SDLK_F1:
+  case SDLK_F2:
+  case SDLK_F3:
+  case SDLK_F4:
+  case SDLK_F5:
+  case SDLK_F6:
+  case SDLK_F7:
+  case SDLK_F8:
+  case SDLK_F9:
+    if (down) {
+      this->month_integral = evt->keysym.sym - SDLK_F1;
+      this->month_fraction = 0;
+    }
+    break;
+
+  case SDLK_F10:
+    if (down) {
+      this->month_integral = 8;
+      this->month_fraction = fraction_of(1);
+    }
+    break;
+
+  case SDLK_F12:
+    this->advancing_time = down;
     break;
   }
 }
