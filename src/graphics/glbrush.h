@@ -145,6 +145,17 @@ void glbrush_load(void);
  */
 glbrush_handle* glbrush_hnew(const glbrush_handle_info*);
 /**
+ * Reconfigures the given glbrush_handle to carry the given parameters. The
+ * effect this change has on pending drawing operations is undefined.
+ */
+void glbrush_hconfig(glbrush_handle*, const glbrush_handle_info*);
+/**
+ * If *handle is NULL, sets *handle to the result of glbrush_hnew() with the
+ * given info. Otherwise, calls glbrush_hconfig() on the handle with the given
+ * info.
+ */
+void glbrush_hset(glbrush_handle**, const glbrush_handle_info*);
+/**
  * Destroys the given glbrush_handle.
  */
 void glbrush_hdelete(glbrush_handle*);

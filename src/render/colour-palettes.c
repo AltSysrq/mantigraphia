@@ -117,6 +117,92 @@ static const unsigned terrain_palettes[10][6*4] = {
   },
 };
 
+static const unsigned oak_leaf_palettes[10][8] = {
+  /* M */ {
+    0x002000, 0x002000, 0x003000, 0x003000,
+    0x144010, 0x144010, 0x103408, 0x103408,
+  },
+  /* A */ {
+    0x002000, 0x002000, 0x003000, 0x003000,
+    0x144010, 0x144010, 0x103408, 0x103408,
+  },
+  /* M */ {
+    0x002000, 0x002000, 0x003000, 0x003000,
+    0x144010, 0x144010, 0x103408, 0x103408,
+  },
+  /* J */ {
+    0x002000, 0x002000, 0x003000, 0x003000,
+    0x144010, 0x144010, 0x103408, 0x103408,
+  },
+  /* J */ {
+    0x002000, 0x002000, 0x003000, 0x003000,
+    0x144010, 0x144010, 0x103408, 0x103408,
+  },
+  /* A */ {
+    0x002000, 0x002000, 0x003000, 0x003000,
+    0x144010, 0x144010, 0x103408, 0x103408,
+  },
+  /* S */ {
+    0x002000, 0x002000, 0x003000, 0x003000,
+    0x144010, 0x144010, 0x103408, 0x103408,
+  },
+  /* O */ {
+    0x002000, 0x002000, 0x003000, 0x003000,
+    0x144010, 0x144010, 0x103408, 0x103408,
+  },
+  /* N */ {
+    0x002000, 0x002000, 0x003000, 0x003000,
+    0x144010, 0x144010, 0x103408, 0x103408,
+  },
+  /* D */ {
+    0x002000, 0x002000, 0x003000, 0x003000,
+    0x144010, 0x144010, 0x103408, 0x103408,
+  },
+};
+
+static const unsigned oak_trunk_palettes[10][10] = {
+  /* M */ {
+    0x000000, 0x000000, 0x201c00, 0x303020, 0x302000,
+    0x303020, 0x302800, 0x303020, 0x302000, 0x303020,
+  },
+  /* A */ {
+    0x000000, 0x000000, 0x201c00, 0x303020, 0x302000,
+    0x303020, 0x302800, 0x303020, 0x302000, 0x303020,
+  },
+  /* M */ {
+    0x000000, 0x000000, 0x201c00, 0x303020, 0x302000,
+    0x303020, 0x302800, 0x303020, 0x302000, 0x303020,
+  },
+  /* J */ {
+    0x000000, 0x000000, 0x201c00, 0x303020, 0x302000,
+    0x303020, 0x302800, 0x303020, 0x302000, 0x303020,
+  },
+  /* J */ {
+    0x000000, 0x000000, 0x201c00, 0x303020, 0x302000,
+    0x303020, 0x302800, 0x303020, 0x302000, 0x303020,
+  },
+  /* A */ {
+    0x000000, 0x000000, 0x201c00, 0x303020, 0x302000,
+    0x303020, 0x302800, 0x303020, 0x302000, 0x303020,
+  },
+  /* S */ {
+    0x000000, 0x000000, 0x201c00, 0x303020, 0x302000,
+    0x303020, 0x302800, 0x303020, 0x302000, 0x303020,
+  },
+  /* O */ {
+    0x000000, 0x000000, 0x201c00, 0x303020, 0x302000,
+    0x303020, 0x302800, 0x303020, 0x302000, 0x303020,
+  },
+  /* N */ {
+    0x000000, 0x000000, 0x201c00, 0x303020, 0x302000,
+    0x303020, 0x302800, 0x303020, 0x302000, 0x303020,
+  },
+  /* D */ {
+    0x000000, 0x000000, 0x201c00, 0x303020, 0x302000,
+    0x303020, 0x302800, 0x303020, 0x302000, 0x303020,
+  },
+};
+
 static void interpolate_simd(simd4* dst,
                              const unsigned* src1, const unsigned* src2,
                              unsigned n, fraction p) {
@@ -131,6 +217,23 @@ static void interpolate_simd(simd4* dst,
       + fraction_umul((src2[i] & 0x0000FF) >>  0, p);
 
     dst[i] = simd_initl(r,g,b,0);
+  }
+}
+
+static void interpolate_px(canvas_pixel* dst,
+                           const unsigned* src1, const unsigned* src2,
+                           unsigned n, fraction p) {
+  unsigned i, r, g, b;
+
+  for (i = 0; i < n; ++i) {
+    r = fraction_umul((src1[i] & 0xFF0000) >> 16, fraction_of(1) - p)
+      + fraction_umul((src2[i] & 0xFF0000) >> 16, p);
+    g = fraction_umul((src1[i] & 0x00FF00) >>  8, fraction_of(1) - p)
+      + fraction_umul((src2[i] & 0x00FF00) >>  8, p);
+    b = fraction_umul((src1[i] & 0x0000FF) >>  0, fraction_of(1) - p)
+      + fraction_umul((src2[i] & 0x0000FF) >>  0, p);
+
+    dst[i] = argb(255,r,g,b);
   }
 }
 
@@ -165,9 +268,15 @@ const colour_palettes* get_colour_palettes(
 void colour_palettes_context_set(rendering_context*restrict context) {
   colour_palettes* this = align_to_simd4(colour_palettes_getm(context));
   const rendering_context_invariant*restrict inv = CTXTINV(context);
+  unsigned ma = inv->month_integral+0;
+  unsigned mb = inv->month_integral+1;
   interpolate_simd(this->terrain,
-                   terrain_palettes[inv->month_integral+0],
-                   terrain_palettes[inv->month_integral+1],
-                   lenof(this->terrain),
-                   inv->month_fraction);
+                   terrain_palettes[ma], terrain_palettes[mb],
+                   lenof(this->terrain), inv->month_fraction);
+  interpolate_px(this->oak_leaf,
+                 oak_leaf_palettes[ma], oak_leaf_palettes[mb],
+                 lenof(this->oak_leaf), inv->month_fraction);
+  interpolate_px(this->oak_trunk,
+                 oak_trunk_palettes[ma], oak_trunk_palettes[mb],
+                 lenof(this->oak_trunk), inv->month_fraction);
 }

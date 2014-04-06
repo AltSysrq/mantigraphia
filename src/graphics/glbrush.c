@@ -117,14 +117,6 @@ void glbrush_load(void) {
 glbrush_handle* glbrush_hnew(const glbrush_handle_info* info) {
   glbrush_handle* handle = xmalloc(sizeof(glbrush_handle));
   glGenTextures(1, &handle->pallet_texture);
-  /* Even though this is a one-dimensional texture, we need to make it 2D,
-   * since the activation of GL_TEXTURE_2D supercedes the use of 1D textures.
-   */
-  glBindTexture(GL_TEXTURE_2D, handle->pallet_texture);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-               info->pallet_size, 1, 0,
-               GL_BGRA, GL_UNSIGNED_BYTE, info->pallet);
-
   handle->glmsg_line = glm_slab_group_new((void(*)(void*))glbrush_activate_line,
                                           NULL, handle,
                                           shader_brush_configure_vbo,
@@ -134,9 +126,29 @@ glbrush_handle* glbrush_hnew(const glbrush_handle_info* info) {
     NULL, handle,
     shader_splotch_configure_vbo,
     sizeof(shader_splotch_vertex));
+
+  glbrush_hconfig(handle, info);
+  return handle;
+}
+
+void glbrush_hconfig(glbrush_handle* handle, const glbrush_handle_info* info) {
+  /* Even though this is a one-dimensional texture, we need to make it 2D,
+   * since the activation of GL_TEXTURE_2D supercedes the use of 1D textures.
+   */
+  glBindTexture(GL_TEXTURE_2D, handle->pallet_texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+               info->pallet_size, 1, 0,
+               GL_BGRA, GL_UNSIGNED_BYTE, info->pallet);
+
   handle->decay = info->decay;
   handle->noise = info->noise;
-  return handle;
+}
+
+void glbrush_hset(glbrush_handle** handle, const glbrush_handle_info* info) {
+  if (*handle)
+    glbrush_hconfig(*handle, info);
+  else
+    *handle = glbrush_hnew(info);
 }
 
 void glbrush_hdelete(glbrush_handle* handle) {

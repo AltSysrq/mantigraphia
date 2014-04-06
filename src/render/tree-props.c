@@ -43,6 +43,7 @@
 #include "turtle.h"
 #include "context.h"
 #include "lsystem.h"
+#include "colour-palettes.h"
 #include "tree-props.h"
 
 RENDERING_CONTEXT_STRUCT(tree_props_trunk, glbrush_handle*)
@@ -65,44 +66,21 @@ void tree_props_context_dtor(rendering_context*restrict context) {
   }
 }
 
-static const canvas_pixel oak_trunk_pallet[] = {
-  argb(255, 0, 0, 0),
-  argb(255, 0, 0, 0),
-  argb(255, 32, 28, 0),
-  argb(255, 48, 48, 32),
-  argb(255, 48, 32, 0),
-  argb(255, 48, 48, 32),
-  argb(255, 48, 40, 0),
-  argb(255, 48, 48, 32),
-  argb(255, 48, 32, 0),
-  argb(255, 48, 48, 32),
-};
-
-static const canvas_pixel oak_leaf_pallet[] = {
-  argb(255, 0, 32, 0),
-  argb(255, 0, 48, 0),
-  argb(255, 20, 64, 16),
-  argb(255, 16, 52, 8),
-};
-
 void tree_props_context_set(rendering_context*restrict context) {
   glbrush_handle_info info;
+  const colour_palettes* palettes = get_colour_palettes(context);
 
-  if (!*tree_props_trunk_get(context)) {
-    info.decay = 0.2f;
-    info.noise = 0.75f;
-    info.pallet = oak_trunk_pallet;
-    info.pallet_size = lenof(oak_trunk_pallet);
-    *tree_props_trunk_getm(context) = glbrush_hnew(&info);
-  }
+  info.decay = 0.2f;
+  info.noise = 0.75f;
+  info.pallet = palettes->oak_trunk;
+  info.pallet_size = lenof(palettes->oak_trunk);
+  glbrush_hset(tree_props_trunk_getm(context), &info);
 
-  if (!*tree_props_leaves_get(context)) {
-    info.decay = 0;
-    info.noise = 0.75f;
-    info.pallet = oak_leaf_pallet;
-    info.pallet_size = lenof(oak_leaf_pallet);
-    *tree_props_leaves_getm(context) = glbrush_hnew(&info);
-  }
+  info.decay = 0;
+  info.noise = 0.75f;
+  info.pallet = palettes->oak_leaf;
+  info.pallet_size = lenof(palettes->oak_leaf);
+  glbrush_hset(tree_props_leaves_getm(context), &info);
 }
 
 static lsystem oak_tree_system;
