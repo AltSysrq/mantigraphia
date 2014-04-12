@@ -38,9 +38,8 @@ typedef unsigned fraction;
 #define FRACTION_BITS 31
 #define FRACTION_BASE (((fraction)1) << FRACTION_BITS)
 
-static inline fraction fraction_of(unsigned denominator) {
-  return FRACTION_BASE / denominator;
-}
+#define fraction_of(denom)                                      \
+  ((fraction)(FRACTION_BASE / ((unsigned)(denom))))
 
 static inline fraction fraction_of2(unsigned numerator, unsigned denominator) {
   unsigned long long tmp = numerator;

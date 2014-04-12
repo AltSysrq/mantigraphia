@@ -84,6 +84,23 @@ void tree_props_context_set(rendering_context*restrict context) {
 }
 
 static lsystem oak_tree_system;
+static lsystem cherry_tree_system;
+
+typedef struct {
+  const lsystem* system;
+  const char* initial_state;
+  glbrush_handle*const* (*trunk_get)(const void*restrict);
+  glbrush_handle*const* (*leaves_get)(const void*restrict);
+  coord base_size;
+  coord base_size_variant;
+  coord trunk_size;
+  coord trunk_size_variant;
+  coord normal_leaf_size;
+  coord far_leaf_size;
+  fraction trunk_xscale, trunk_yscale;
+  fraction leaf_xscale, leaf_yscale;
+  float brush_base_dist;
+} tree_spec;
 
 void tree_props_init(void) {
   /* 9..6: Branch lengths (movement)
@@ -97,6 +114,8 @@ void tree_props_init(void) {
    * q..v: Forks (15/30/45/60/75/90 degrees)
    * .   : Potential branching point
    * z   : Random rotation on next iteration
+   * :   : Delayed .
+   * ;   : New branching point at random Y rotation
    */
   lsystem_compile(
     &oak_tree_system,
@@ -108,28 +127,44 @@ void tree_props_init(void) {
     ". . [(q_9B)z.] [(r_9B)z.] [(s_9B)z.] [(t_9B)z.] [(u_9B)z.] [(v_9B)z.]",
     "z a b c d e f g h",
     NULL);
+  lsystem_compile(
+    &cherry_tree_system,
+    "; z:; ;",
+    ": .",
+    ". . [q_8(.)8B] [r_8(.)8B] [s_8(.)8B] [t_8(.)8B] [u_8(.)8B] [v_8(.)8B]",
+    "z a b c d e f g h",
+    "B A",
+    "_ -",
+    NULL);
 }
 
 static void render_tree_prop_oak(drawing_queue*, const world_prop*,
-                                  const basic_world*,
-                                  unsigned, fraction,
-                                  const rendering_context*restrict);
+                                 const basic_world*,
+                                 unsigned, fraction,
+                                 const rendering_context*restrict);
+static void render_tree_prop_cherry(drawing_queue*, const world_prop*,
+                                    const basic_world*,
+                                    unsigned, fraction,
+                                    const rendering_context*restrict);
 static const prop_renderer tree_prop_renderers_[] = {
   0,
   render_tree_prop_oak,
+  render_tree_prop_cherry,
 };
 const prop_renderer*const tree_prop_renderers = tree_prop_renderers_;
 
-static void render_tree_prop_oak(drawing_queue* queue, const world_prop* this,
-                                 const basic_world* world,
-                                 unsigned base_level, fraction progression,
-                                 const rendering_context*restrict context) {
+static void render_tree_prop_common(
+  const tree_spec* spec,
+  const world_prop* this, const basic_world* world,
+  unsigned base_level, fraction progression,
+  const rendering_context*restrict context)
+{
   turtle_state turtle[17];
   unsigned level, depth = 0, size_shift = 0, i;
   unsigned screen_width = CTXTINV(context)->screen_width;
   vc3 root;
   glbrush_spec trunk_brush, leaf_brush;
-  glbrush_accum accum = { 1.5f / 0.2f, this->x ^ this->z };
+  glbrush_accum accum = { spec->brush_base_dist, this->x ^ this->z };
   lsystem_state sys;
   coord_offset base_size, trunk_size;
 
@@ -143,20 +178,20 @@ static void render_tree_prop_oak(drawing_queue* queue, const world_prop* this,
   /* Don't do anything of too far behind the camera */
   if (simd_vs(turtle[0].pos.curr, 2) > 4*METRE) return;
 
-  base_size = 8*METRE + this->variant * (METRE / 64);
+  base_size = spec->base_size + this->variant * spec->base_size_variant;
   if (base_level < 32)
     base_size = base_size * (base_level + 32) / 64;
-  trunk_size = METRE + this->variant * (METRE / 256);
+  trunk_size = spec->trunk_size + this->variant * spec->trunk_size_variant;
 
-  glbrush_init(&trunk_brush, *tree_props_trunk_get(context));
-  trunk_brush.xscale = fraction_of(12);
-  trunk_brush.yscale = fraction_of(2);
+  glbrush_init(&trunk_brush, *(*spec->trunk_get)(context));
+  trunk_brush.xscale = spec->trunk_xscale;
+  trunk_brush.yscale = spec->trunk_yscale;
   trunk_brush.screen_width = screen_width;
   trunk_brush.base_distance = accum.distance;
   trunk_brush.random_seed = accum.rand;
-  glbrush_init(&leaf_brush, *tree_props_leaves_get(context));
-  leaf_brush.xscale = fraction_of(4);
-  leaf_brush.yscale = fraction_of(4);
+  glbrush_init(&leaf_brush, *(*spec->leaves_get)(context));
+  leaf_brush.xscale = spec->leaf_xscale;
+  leaf_brush.yscale = spec->leaf_yscale;
   leaf_brush.screen_width = screen_width;
   leaf_brush.base_distance = 0;
   leaf_brush.random_seed = accum.rand;
@@ -176,12 +211,15 @@ static void render_tree_prop_oak(drawing_queue* queue, const world_prop* this,
   else if (base_level== 58) level = 6;
   else                      level = 6, progression = fraction_of(1);
 
-  lsystem_execute(&sys, &oak_tree_system, "_9B", level, this->x^this->z);
+  lsystem_execute(&sys, spec->system, spec->initial_state,
+                  level, this->x^this->z);
 
   for (i = 0; sys.buffer[i]; ++i) {
     switch (sys.buffer[i]) {
     default: abort();
     case 'z':
+    case ';':
+    case ':':
     case '.': break;
 
     case '(':
@@ -260,22 +298,72 @@ static void render_tree_prop_oak(drawing_queue* queue, const world_prop* this,
 
     case 'A':
       turtle_draw_point(&accum, &leaf_brush, turtle+depth,
-                        4*METRE +
+                        spec->normal_leaf_size +
                         (base_level > 48? 0 :
-                         base_level > 16? (48 - base_level)*16*METRE / 32 :
-                         16*METRE),
+                         base_level > 16?
+                         (48 - base_level)*spec->far_leaf_size / 32 :
+                         spec->far_leaf_size),
                         screen_width);
       break;
 
     case 'B':
       turtle_draw_point(&accum, &leaf_brush, turtle+depth,
                         fraction_umul(
-                          4*METRE +
+                          spec->normal_leaf_size +
                           (base_level > 48? 0 :
-                           base_level > 16? (48 - base_level)*16*METRE / 32 :
-                           16*METRE), progression),
+                           base_level > 16?
+                           (48 - base_level)*spec->far_leaf_size / 32 :
+                           spec->far_leaf_size), progression),
                         screen_width);
       break;
     }
   }
+}
+
+static const tree_spec oak_tree = {
+  &oak_tree_system,
+  "_9B",
+  tree_props_trunk_get,
+  tree_props_leaves_get,
+  8*METRE, METRE/64,
+  METRE, METRE/256,
+  4*METRE, 16*METRE,
+  fraction_of(12), fraction_of(2),
+  fraction_of(4), fraction_of(4),
+  1.5f / 0.2f,
+};
+
+static const tree_spec cherry_tree = {
+  &cherry_tree_system,
+  "_8;6;6;6;6;B",
+  tree_props_trunk_get,
+  tree_props_leaves_get,
+  4*METRE, METRE/64,
+  METRE/2, METRE/256,
+  6*METRE, 32*METRE,
+  fraction_of(12), fraction_of(2),
+  fraction_of(4), fraction_of(4),
+  1.5f / 0.2f,
+};
+
+static void render_tree_prop_oak(
+  drawing_queue* queue,
+  const world_prop* this, const basic_world* world,
+  unsigned base_level, fraction progression,
+  const rendering_context*restrict context)
+{
+  render_tree_prop_common(
+    &oak_tree,
+    this, world, base_level, progression, context);
+}
+
+static void render_tree_prop_cherry(
+  drawing_queue* queue,
+  const world_prop* this, const basic_world* world,
+  unsigned base_level, fraction progression,
+  const rendering_context*restrict context)
+{
+  render_tree_prop_common(
+    &cherry_tree,
+    this, world, base_level, progression, context);
 }
