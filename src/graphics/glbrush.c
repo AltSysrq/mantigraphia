@@ -144,10 +144,12 @@ void glbrush_hconfig(glbrush_handle* handle, const glbrush_handle_info* info) {
   handle->noise = info->noise;
 }
 
-void glbrush_hset(glbrush_handle** handle, const glbrush_handle_info* info) {
+void glbrush_hset(glbrush_handle** handle,
+                  const glbrush_handle_info* info,
+                  int permit_refresh) {
   if (*handle)
     glbrush_hconfig(*handle, info);
-  else
+  else if (permit_refresh)
     *handle = glbrush_hnew(info);
 }
 

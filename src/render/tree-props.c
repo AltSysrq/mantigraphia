@@ -69,18 +69,20 @@ void tree_props_context_dtor(rendering_context*restrict context) {
 void tree_props_context_set(rendering_context*restrict context) {
   glbrush_handle_info info;
   const colour_palettes* palettes = get_colour_palettes(context);
+  /* Only refresh the textures 4 times per second */
+  int permit_refresh = !(CTXTINV(context)->now & 0xF);
 
   info.decay = 0.2f;
   info.noise = 0.75f;
   info.pallet = palettes->oak_trunk;
   info.pallet_size = lenof(palettes->oak_trunk);
-  glbrush_hset(tree_props_trunk_getm(context), &info);
+  glbrush_hset(tree_props_trunk_getm(context), &info, permit_refresh);
 
   info.decay = 0;
   info.noise = 0.75f;
   info.pallet = palettes->oak_leaf;
   info.pallet_size = lenof(palettes->oak_leaf);
-  glbrush_hset(tree_props_leaves_getm(context), &info);
+  glbrush_hset(tree_props_leaves_getm(context), &info, permit_refresh);
 }
 
 static lsystem oak_tree_system;

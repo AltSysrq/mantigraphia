@@ -151,10 +151,16 @@ glbrush_handle* glbrush_hnew(const glbrush_handle_info*);
 void glbrush_hconfig(glbrush_handle*, const glbrush_handle_info*);
 /**
  * If *handle is NULL, sets *handle to the result of glbrush_hnew() with the
- * given info. Otherwise, calls glbrush_hconfig() on the handle with the given
- * info.
+ * given info. Otherwise, if permit_refresh, calls glbrush_hconfig() on the
+ * handle with the given info.
+ *
+ * permit_refresh is intended to be used to only, eg, refresh the underlying
+ * texture four times per second. This is necessary for GL implementations like
+ * Mesa, where updating a texture, even a miniscule one as used by glbrush, is
+ * strangely expensive.
  */
-void glbrush_hset(glbrush_handle**, const glbrush_handle_info*);
+void glbrush_hset(glbrush_handle**, const glbrush_handle_info*,
+                  int permit_refresh);
 /**
  * Destroys the given glbrush_handle.
  */
