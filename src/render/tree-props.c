@@ -335,7 +335,7 @@ static const tree_spec oak_tree = {
 
 static const tree_spec cherry_tree = {
   &cherry_tree_system,
-  "_8;6;6;6;6;B",
+  "_8[;]6[;]6[;]6[;]6[;]B",
   tree_props_trunk_get,
   tree_props_leaves_get,
   4*METRE, METRE/64,
