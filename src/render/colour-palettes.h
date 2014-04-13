@@ -36,6 +36,8 @@ typedef struct {
   simd4 terrain[4*6];
   canvas_pixel oak_leaf[8];
   canvas_pixel oak_trunk[10];
+  canvas_pixel cherry_leaf[8];
+  canvas_pixel cherry_trunk[10];
 } colour_palettes;
 
 const colour_palettes* get_colour_palettes(const rendering_context*restrict);

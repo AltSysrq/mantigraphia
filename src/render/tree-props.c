@@ -46,23 +46,32 @@
 #include "colour-palettes.h"
 #include "tree-props.h"
 
-RENDERING_CONTEXT_STRUCT(tree_props_trunk, glbrush_handle*)
-RENDERING_CONTEXT_STRUCT(tree_props_leaves, glbrush_handle*)
+RENDERING_CONTEXT_STRUCT(tree_props_oak_trunk, glbrush_handle*)
+RENDERING_CONTEXT_STRUCT(tree_props_oak_leaves, glbrush_handle*)
+RENDERING_CONTEXT_STRUCT(tree_props_cherry_trunk, glbrush_handle*)
+RENDERING_CONTEXT_STRUCT(tree_props_cherry_leaves, glbrush_handle*)
 
 size_t tree_props_put_context_offset(size_t sz) {
-  return tree_props_trunk_put_context_offset(
-    tree_props_leaves_put_context_offset(sz));
+  sz = tree_props_oak_trunk_put_context_offset(sz);
+  sz = tree_props_oak_leaves_put_context_offset(sz);
+  sz = tree_props_cherry_trunk_put_context_offset(sz);
+  sz = tree_props_cherry_leaves_put_context_offset(sz);
+  return sz;
 }
 
 void tree_props_context_ctor(rendering_context*restrict context) {
-  *tree_props_trunk_getm(context) = NULL;
-  *tree_props_leaves_getm(context) = NULL;
+  *tree_props_oak_trunk_getm(context) = NULL;
+  *tree_props_oak_leaves_getm(context) = NULL;
+  *tree_props_cherry_trunk_getm(context) = NULL;
+  *tree_props_cherry_leaves_getm(context) = NULL;
 }
 
 void tree_props_context_dtor(rendering_context*restrict context) {
-  if (*tree_props_trunk_get(context)) {
-    glbrush_hdelete(*tree_props_trunk_get(context));
-    glbrush_hdelete(*tree_props_leaves_get(context));
+  if (*tree_props_oak_trunk_get(context)) {
+    glbrush_hdelete(*tree_props_oak_trunk_get(context));
+    glbrush_hdelete(*tree_props_oak_leaves_get(context));
+    glbrush_hdelete(*tree_props_cherry_trunk_get(context));
+    glbrush_hdelete(*tree_props_cherry_leaves_get(context));
   }
 }
 
@@ -76,13 +85,25 @@ void tree_props_context_set(rendering_context*restrict context) {
   info.noise = 0.75f;
   info.pallet = palettes->oak_trunk;
   info.pallet_size = lenof(palettes->oak_trunk);
-  glbrush_hset(tree_props_trunk_getm(context), &info, permit_refresh);
+  glbrush_hset(tree_props_oak_trunk_getm(context), &info, permit_refresh);
 
   info.decay = 0;
   info.noise = 0.75f;
   info.pallet = palettes->oak_leaf;
   info.pallet_size = lenof(palettes->oak_leaf);
-  glbrush_hset(tree_props_leaves_getm(context), &info, permit_refresh);
+  glbrush_hset(tree_props_oak_leaves_getm(context), &info, permit_refresh);
+
+  info.decay = 0.15f;
+  info.noise = 0.7f;
+  info.pallet = palettes->cherry_trunk;
+  info.pallet_size = lenof(palettes->cherry_trunk);
+  glbrush_hset(tree_props_cherry_trunk_getm(context), &info, permit_refresh);
+
+  info.decay = 0;
+  info.noise = 0.95f;
+  info.pallet = palettes->cherry_leaf;
+  info.pallet_size = lenof(palettes->cherry_leaf);
+  glbrush_hset(tree_props_cherry_leaves_getm(context), &info, permit_refresh);
 }
 
 static lsystem oak_tree_system;
@@ -325,8 +346,8 @@ static void render_tree_prop_common(
 static const tree_spec oak_tree = {
   &oak_tree_system,
   "_9B",
-  tree_props_trunk_get,
-  tree_props_leaves_get,
+  tree_props_oak_trunk_get,
+  tree_props_oak_leaves_get,
   8*METRE, METRE/64,
   METRE, METRE/256,
   4*METRE, 16*METRE,
@@ -338,8 +359,8 @@ static const tree_spec oak_tree = {
 static const tree_spec cherry_tree = {
   &cherry_tree_system,
   "_8[;]6[;]6[;]6[;]6[;]B",
-  tree_props_trunk_get,
-  tree_props_leaves_get,
+  tree_props_cherry_trunk_get,
+  tree_props_cherry_leaves_get,
   4*METRE, METRE/64,
   METRE/2, METRE/256,
   6*METRE, 32*METRE,
