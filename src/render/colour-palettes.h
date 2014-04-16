@@ -33,7 +33,7 @@
 #include "context.h"
 
 typedef struct {
-  simd4 terrain[4*6];
+  simd4 terrain[4*7];
   canvas_pixel oak_leaf[8];
   canvas_pixel oak_trunk[10];
   canvas_pixel cherry_leaf[8];

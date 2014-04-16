@@ -39,6 +39,7 @@
  */
 enum terrain_type {
   terrain_type_snow = 0,
+  terrain_type_road,
   terrain_type_stone,
   terrain_type_grass,
   terrain_type_bare_grass,

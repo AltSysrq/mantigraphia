@@ -51,13 +51,26 @@ static void create_path_to_from(basic_world*, mersenne_twister*,
 
 void world_generate(basic_world* world, unsigned seed) {
   mersenne_twister twister;
+  coord fx, fz, tx, tz, i;
 
   twister_seed(&twister, seed);
 
   generate_level(world, 0, &twister);
   select_terrain(world, &twister);
-  create_path_to_from(world, &twister,
-                      0, 0, world->xmax/2, world->zmax/2);
+
+  for (i = 0; i < 4; ++i) {
+    if (0 == i) {
+      fx = fz = 0;
+    } else {
+      fx = twist(&twister) & (world->xmax-1);
+      fz = twist(&twister) & (world->zmax-1);
+    }
+    tx = twist(&twister) & (world->xmax-1);
+    tz = twist(&twister) & (world->zmax-1);
+
+    create_path_to_from(world, &twister,
+                        fx, fz, tx, tz);
+  }
 
   basic_world_calc_next(world);
 }
@@ -226,10 +239,76 @@ static void select_terrain(basic_world* world, mersenne_twister* twister) {
   }
 }
 
+#define PATH_WIDTH 3
 static void create_path_to_from(basic_world* world, mersenne_twister* twister,
                                 coord xto, coord zto,
                                 coord xfrom, coord zfrom) {
-  /* TODO */
+  const vc3 to = { xto, 0, zto };
+  vc3 here = { xfrom, 0, zfrom }, curr = {0,0,0}, best;
+  vo3 distv;
+  coord current_distance, this_distance;
+  coord_offset ox, oz;
+  unsigned minimum_delta_y, this_delta_y;
+
+  while (here[0] != to[0] || here[2] != to[2]) {
+    vc3dist(distv, to, here, world->xmax, world->zmax);
+    current_distance = omagnitude(distv);
+    minimum_delta_y = ~0u;
+
+    for (oz = -PATH_WIDTH; oz < PATH_WIDTH; ++oz) {
+      for (ox = -PATH_WIDTH; ox < PATH_WIDTH; ++ox) {
+        if (!ox && !oz) continue;
+
+        curr[0] = (here[0] + ox) & (world->xmax-1);
+        curr[2] = (here[2] + oz) & (world->zmax-1);
+
+        if (curr[0] == to[0] && curr[2] == to[2]) {
+          best[0] = to[0];
+          best[1] = to[1];
+          best[2] = to[2];
+          goto fill_point;
+        }
+
+        vc3dist(distv, to, curr, world->xmax, world->zmax);
+        this_distance = omagnitude(distv);
+
+        if (this_distance < current_distance) {
+          this_delta_y = abs(
+            world->tiles[basic_world_offset(world, curr[0], curr[2])]
+            .elts[0].altitude -
+            world->tiles[basic_world_offset(world, here[0], here[2])]
+            .elts[0].altitude);
+          this_delta_y /= fisqrt(ox*ox + oz*oz);
+
+          if (this_delta_y < minimum_delta_y) {
+            minimum_delta_y = this_delta_y;
+            memcpy(best, curr, sizeof(curr));
+          }
+        }
+      }
+    }
+
+    fill_point:
+    memcpy(here, best, sizeof(here));
+    for (oz = -PATH_WIDTH; oz < PATH_WIDTH; ++oz) {
+      for (ox = -PATH_WIDTH; ox < PATH_WIDTH; ++ox) {
+        curr[0] = (here[0] + ox) & (world->xmax-1);
+        curr[2] = (here[2] + oz) & (world->zmax-1);
+        switch (world->tiles[basic_world_offset(world, curr[0], curr[2])]
+                .elts[0].type >> TERRAIN_SHADOW_BITS) {
+        case terrain_type_water:
+        case terrain_type_gravel:
+        case terrain_type_stone:
+          /* Can't put road here */
+          break;
+
+        default:
+          world->tiles[basic_world_offset(world, curr[0], curr[2])]
+            .elts[0].type = terrain_type_road << TERRAIN_SHADOW_BITS;
+        }
+      }
+    }
+  }
 }
 
 void grass_generate(world_prop* props, unsigned count,
@@ -264,6 +343,7 @@ static int may_place_tree_at(const basic_world* world,
                              unsigned offset,
                              mersenne_twister* twister) {
   switch (world->tiles[offset].elts[0].type >> TERRAIN_SHADOW_BITS) {
+  case terrain_type_road:
   case terrain_type_water:
   case terrain_type_gravel:
   case terrain_type_stone: return 0;
