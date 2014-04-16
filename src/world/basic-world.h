@@ -29,6 +29,7 @@
 #define WORLD_BASIC_WORLD_H_
 
 #include <assert.h>
+#include <stdio.h>
 
 #include "../bsd.h"
 #include "../coords.h"
@@ -155,5 +156,14 @@ void basic_world_calc_next(basic_world*);
  * tile at (x,z) has changed.
  */
 void basic_world_patch_next(basic_world*, coord x, coord z);
+
+/**
+ * Dumps a graphical representation of the map to a BMP-format image in the
+ * given stream, which is not closed.
+ *
+ * This is only useful for debugging / investigation / demonstrational
+ * purposes.
+ */
+void basic_world_bmp_dump(FILE*, const basic_world*);
 
 #endif /* WORLD_BASIC_WORLD_H_ */

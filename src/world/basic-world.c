@@ -36,6 +36,7 @@
 #include "../alloc.h"
 #include "../bsd.h"
 #include "basic-world.h"
+#include "terrain.h"
 
 basic_world* basic_world_new(coord xmax, coord zmax, coord xmin, coord zmin) {
   size_t memory_reqd = 0, bw_mem = offsetof(basic_world, tiles);
@@ -145,4 +146,120 @@ void basic_world_calc_next(basic_world* this) {
       basic_world_patch_next(this, x, z);
     }
   }
+}
+
+#define BMP_HEADER_SIZE 68
+void basic_world_bmp_dump(FILE* out, const basic_world* this) {
+  /* Save image as BMP
+   * 0000+02  Signature = "BM"
+   * 0002+04  File size, = 0x44+width*height*4
+   * 0006+04  Zero
+   * 000A+04  Offset, = 0x44
+   * 000E+04  Header size, =0x28 (BITMAPINFOHEADER)
+   * 0012+04  Width
+   * 0016+04  Height
+   * 001A+02  Planes = 1
+   * 001C+02  BPP, = 0x20
+   * 001E+04  Compression, = 3
+   * 0022+04  Image size, = 4*width*height
+   * 0026+04  Horiz resolution, = 0x1000
+   * 002A+04  Vert resolution, = 0x1000
+   * 002E+04  Palette size, = 0
+   * 0032+04  "Important colours", = 0
+   * 0036+04  Red mask, = 0x000000FF
+   * 003A+04  Grn mask, = 0x0000FF00
+   * 003E+04  Blu mask, = 0x00FF0000
+   * 0042+02  Gap
+   * 0044+end Image
+   */
+  unsigned num_px = this->xmax*this->zmax;
+  unsigned image_size = 4 * num_px;
+  unsigned file_size = BMP_HEADER_SIZE + image_size;
+  unsigned char* buffer = xmalloc(file_size);
+  unsigned char header[BMP_HEADER_SIZE] = {
+    'B', 'M',
+    (unsigned char)(file_size >>  0),
+    (unsigned char)(file_size >>  8),
+    (unsigned char)(file_size >> 16),
+    (unsigned char)(file_size >> 24), //File size
+    0, 0, 0, 0, //Zero
+    0x44, 0, 0, 0, //Offset
+    0x28, 0, 0, 0, //Header size / BITMAPINFOHEADER
+    (unsigned char)(this->xmax >>  0),
+    (unsigned char)(this->xmax >>  8),
+    (unsigned char)(this->xmax >> 16),
+    (unsigned char)(this->xmax >> 24), //Width
+    (unsigned char)(this->zmax >>  0),
+    (unsigned char)(this->zmax >>  8),
+    (unsigned char)(this->zmax >> 16),
+    (unsigned char)(this->zmax >> 24), //height
+    0x01, 0x00, 0x20, 0x00, //Planes, BPP
+    3, 0, 0, 0, //Compression
+    (unsigned char)(image_size >>  0),
+    (unsigned char)(image_size >>  8),
+    (unsigned char)(image_size >> 16),
+    (unsigned char)(image_size >> 24), //Image size
+    0x00, 0x10, 0x00, 0x00, //Horiz res
+    0x00, 0x10, 0x00, 0x00, //Vert res
+    0, 0, 0, 0, //Palette size
+    0, 0, 0, 0, //Important colours
+    0xFF, 0x00, 0x00, 0x00, //Red mask
+    0x00, 0xFF, 0x00, 0x00, //Grn mask
+    0x00, 0x00, 0xFF, 0x00, //Blu mask
+    0x00, 0x00, //Gap
+  };
+  unsigned i, alt, r, g, b;
+
+  memcpy(buffer, header, sizeof(header));
+
+  for (i = 0; i < num_px; ++i) {
+    alt = this->tiles[i].elts[0].altitude & 0x7F;
+
+    switch (this->tiles[i].elts[0].type >> TERRAIN_SHADOW_BITS) {
+    case terrain_type_snow:
+      r = g = b = 0x80 + alt;
+      break;
+
+    case terrain_type_road:
+      r = 0xFF;
+      g = b = alt;
+      break;
+
+    case terrain_type_stone:
+      r = g = b = alt;
+      break;
+
+    case terrain_type_grass:
+      r = alt * 3 / 2;
+      g = 0xA0;
+      b = alt;
+      break;
+
+    case terrain_type_bare_grass:
+      r = alt * 3 / 2;
+      g = 0xA0;
+      b = 0;
+      break;
+
+    case terrain_type_gravel:
+      r = g = 0xC0;
+      b = alt;
+      break;
+
+    case terrain_type_water:
+      r = g = alt;
+      b = 0xA0;
+      break;
+
+    default: abort();
+    }
+
+    buffer[BMP_HEADER_SIZE + i*4 + 0] = r;
+    buffer[BMP_HEADER_SIZE + i*4 + 1] = g;
+    buffer[BMP_HEADER_SIZE + i*4 + 2] = b;
+    buffer[BMP_HEADER_SIZE + i*4 + 3] = 0xFF;
+  }
+
+  fwrite(buffer, file_size, 1, out);
+  free(buffer);
 }

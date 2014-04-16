@@ -125,6 +125,7 @@ static void cosine_world_delete(cosine_world_state* this) {
 }
 
 static void cosine_world_init_world(cosine_world_state* this) {
+  FILE* out;
   unsigned seed = this->seed;
   world_generate(this->world->terrain, seed);
   grass_generate(this->world->grass.props,
@@ -142,6 +143,12 @@ static void cosine_world_init_world(cosine_world_state* this) {
                  this->world->terrain, seed+2, seed+4);
   props_sort_z(this->world->trees[1].props,
                this->world->trees[1].size);
+
+  out = fopen("world.bmp", "wb");
+  if (out) {
+    basic_world_bmp_dump(out, this->world->terrain);
+    fclose(out);
+  }
 }
 
 #define SPEED (4*METRES_PER_SECOND)
