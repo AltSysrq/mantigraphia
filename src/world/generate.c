@@ -35,6 +35,7 @@
 #include "../alloc.h"
 #include "../coords.h"
 #include "../rand.h"
+#include "../defs.h"
 #include "basic-world.h"
 #include "terrain.h"
 #include "generate.h"
@@ -51,26 +52,25 @@ static void create_path_to_from(basic_world*, mersenne_twister*,
 
 void world_generate(basic_world* world, unsigned seed) {
   mersenne_twister twister;
-  coord fx, fz, tx, tz, i;
+  coord xs[5], zs[5], i, j;
 
   twister_seed(&twister, seed);
 
   generate_level(world, 0, &twister);
   select_terrain(world, &twister);
 
-  for (i = 0; i < 4; ++i) {
-    if (0 == i) {
-      fx = fz = 0;
-    } else {
-      fx = twist(&twister) & (world->xmax-1);
-      fz = twist(&twister) & (world->zmax-1);
-    }
-    tx = twist(&twister) & (world->xmax-1);
-    tz = twist(&twister) & (world->zmax-1);
-
-    create_path_to_from(world, &twister,
-                        fx, fz, tx, tz);
+  xs[0] = zs[0] = 0;
+  for (i = 1; i < lenof(xs); ++i) {
+    xs[i] = (twist(&twister) >> 16) & (world->xmax-1);
+    zs[i] = (twist(&twister) >> 16) & (world->zmax-1);
   }
+
+  for (i = 0; i < lenof(xs)-1; ++i)
+    for (j = i+1; j < lenof(xs); ++j)
+      if (twist(&twister) & 1)
+        create_path_to_from(world, &twister, xs[i], zs[i], xs[j], zs[j]);
+      else
+        create_path_to_from(world, &twister, xs[j], zs[j], xs[i], zs[i]);
 
   basic_world_calc_next(world);
 }
