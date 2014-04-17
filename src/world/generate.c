@@ -248,12 +248,16 @@ static void create_path_to_from(basic_world* world, mersenne_twister* twister,
   vo3 distv;
   coord current_distance, this_distance;
   coord_offset ox, oz;
-  unsigned minimum_delta_y, this_delta_y;
+  unsigned i;
+  /* These are absolute values, but -1 is used for road intersection so that
+   * joining another road always beats using new terrain.
+   */
+  signed minimum_delta_y, this_delta_y;
 
   while (here[0] != to[0] || here[2] != to[2]) {
     vc3dist(distv, to, here, world->xmax, world->zmax);
     current_distance = omagnitude(distv);
-    minimum_delta_y = ~0u;
+    minimum_delta_y = 0x7fffffff;
 
     for (oz = -PATH_WIDTH; oz < PATH_WIDTH; ++oz) {
       for (ox = -PATH_WIDTH; ox < PATH_WIDTH; ++ox) {
@@ -273,12 +277,23 @@ static void create_path_to_from(basic_world* world, mersenne_twister* twister,
         this_distance = omagnitude(distv);
 
         if (this_distance < current_distance) {
-          this_delta_y = abs(
-            world->tiles[basic_world_offset(world, curr[0], curr[2])]
-            .elts[0].altitude -
-            world->tiles[basic_world_offset(world, here[0], here[2])]
-            .elts[0].altitude);
-          this_delta_y /= fisqrt(ox*ox + oz*oz);
+          /* If the tile is already has road, treat it as if it has a delta-y
+           * of zero. This means roads prefer to join together, thus preventing
+           * certain weirdness like two nearly parallel roads only a very short
+           * distance apart, or even constantly intersecting each other.
+           */
+          if (terrain_type_road ==
+              world->tiles[basic_world_offset(world, curr[0], curr[2])]
+              .elts[0].type >> TERRAIN_SHADOW_BITS) {
+            this_delta_y = -1;
+          } else {
+            this_delta_y = abs(
+              world->tiles[basic_world_offset(world, curr[0], curr[2])]
+              .elts[0].altitude -
+              world->tiles[basic_world_offset(world, here[0], here[2])]
+              .elts[0].altitude);
+            this_delta_y /= fisqrt(ox*ox + oz*oz);
+          }
 
           if (this_delta_y < minimum_delta_y) {
             minimum_delta_y = this_delta_y;
@@ -299,16 +314,28 @@ static void create_path_to_from(basic_world* world, mersenne_twister* twister,
         case terrain_type_water:
         case terrain_type_gravel:
         case terrain_type_stone:
-          /* Can't put road here */
+        case terrain_type_road:
+          /* Can't put road here; if a road was already here, leave it alone so
+           * that path intersection detection works.
+           */
           break;
 
         default:
+          /* Don't write a road immediately so that we won't detect the path we
+           * are currently creating as if it were one to join with.
+           */
           world->tiles[basic_world_offset(world, curr[0], curr[2])]
-            .elts[0].type = terrain_type_road << TERRAIN_SHADOW_BITS;
+            .elts[0].type = TERRAIN_TYPE_PLACEHOLDER << TERRAIN_SHADOW_BITS;
         }
       }
     }
   }
+
+  /* Convert placeholders to actual roads */
+  for (i = 0; i < world->xmax * world->zmax; ++i)
+    if (TERRAIN_TYPE_PLACEHOLDER ==
+        world->tiles[i].elts[0].type >> TERRAIN_SHADOW_BITS)
+      world->tiles[i].elts[0].type = terrain_type_road << TERRAIN_SHADOW_BITS;
 }
 
 void grass_generate(world_prop* props, unsigned count,

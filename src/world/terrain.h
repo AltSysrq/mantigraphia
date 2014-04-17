@@ -47,6 +47,12 @@ enum terrain_type {
   terrain_type_water,
 };
 
+/**
+ * Pseudo-terrain-type which may be used internally by certain processes to
+ * mark tiles for replacement. It will never be a real terrain type.
+ */
+#define TERRAIN_TYPE_PLACEHOLDER 0x3f
+
 #define TERRAIN_SHADOW_BITS 2
 
 /**
