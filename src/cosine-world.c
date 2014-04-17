@@ -177,12 +177,16 @@ static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
   this->x &= this->world->terrain->xmax*TILE_SZ - 1;
   this->z &= this->world->terrain->zmax*TILE_SZ - 1;
 
-  if (this->advancing_time) {
-    this->month_fraction += fraction_of(8*SECOND) * et;
+  if (this->month_integral < 8 || this->month_fraction < fraction_of(1)) {
+    this->month_fraction +=
+      fraction_of(this->advancing_time? 8*SECOND : 64*SECOND) * et;
     if (this->month_fraction > fraction_of(1)) {
-      this->month_fraction -= fraction_of(1);
-      if (this->month_integral < 8)
+      if (this->month_integral < 8) {
+        this->month_fraction -= fraction_of(1);
         ++this->month_integral;
+      } else {
+        this->month_fraction = fraction_of(1);
+      }
     }
   }
 
