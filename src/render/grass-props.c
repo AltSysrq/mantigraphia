@@ -54,7 +54,7 @@ void grass_props_context_ctor(rendering_context*restrict ctxt) {
 void grass_props_context_set(rendering_context*restrict ctxt) {
   grass_props_context_info* info = grass_props_getm(ctxt);
   glpencil_handle_info hinfo = {
-    CTXTINV(ctxt)->screen_width / 480
+    CTXTINV(ctxt)->screen_width / 640
   };
 
   if (!info->pencil)
