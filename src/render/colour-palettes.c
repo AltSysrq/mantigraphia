@@ -32,6 +32,7 @@
 #include "../defs.h"
 #include "../simd.h"
 #include "../frac.h"
+#include "../rand.h"
 #include "context.h"
 #include "colour-palettes.h"
 
@@ -300,6 +301,50 @@ static const unsigned cherry_trunk_palettes[10][10] = {
   },
 };
 
+static const unsigned grass_basic_colours[10] = {
+  /* M */ 0x18500F,
+  /* A */ 0x18500F,
+  /* M */ 0x207018,
+  /* J */ 0x207018,
+  /* J */ 0x20500F,
+  /* A */ 0x285018,
+  /* S */ 0x345018,
+  /* O */ 0x405018,
+  /* N */ 0x405020,
+  /* D */ 0xdddddd,
+};
+static unsigned grass_palettes[10][NUM_GRASS_COLOUR_VARIANTS]
+                              [1 << TERRAIN_SHADOW_BITS];
+
+static void generate_data(void) {
+  static int has_generated = 0;
+  unsigned month, entry, rand, base, adj, colour;
+
+  if (has_generated) return;
+  has_generated = 1;
+
+  /* Initial random seed.
+   * Chosen by 32 flips of fair coin, guaranteed to be random.
+   * (We just need some arbitrary but consistent number.)
+   */
+  rand = 0x49ad504b;
+
+  for (month = 0; month < 10; ++month) {
+    base = grass_basic_colours[month];
+    for (entry = 0; entry < NUM_GRASS_COLOUR_VARIANTS; ++entry) {
+      adj = lcgrand(&rand) & 0x1F1F1F;
+      colour = base + adj - 0x0F0F0F;
+      grass_palettes[month][entry][0] = colour;
+      grass_palettes[month][entry][1] = ((colour >> 3) & 0x1F1F1F) +
+                                        ((colour >> 2) & 0x3F3F3F) +
+                                        ((colour >> 1) & 0x7F7F7F);
+      grass_palettes[month][entry][2] = ((colour >> 1) & 0x7F7F7F) +
+                                        ((colour >> 2) & 0x3F3F3F);
+      grass_palettes[month][entry][3] = (colour >> 1) & 0x7F7F7F;
+    }
+  }
+}
+
 static void interpolate_simd(simd4* dst,
                              const unsigned* src1, const unsigned* src2,
                              unsigned n, fraction p) {
@@ -331,6 +376,25 @@ static void interpolate_px(canvas_pixel* dst,
       + fraction_umul((src2[i] & 0x0000FF) >>  0, p);
 
     dst[i] = argb(255,r,g,b);
+  }
+}
+
+static void interpolate_gl(float* dst,
+                           const unsigned* src1, const unsigned* src2,
+                           unsigned n, fraction p) {
+  unsigned i, r, g, b;
+
+  for (i = 0; i < n; ++i) {
+    r = fraction_umul((src1[i] & 0xFF0000) >> 16, fraction_of(1) - p)
+      + fraction_umul((src2[i] & 0xFF0000) >> 16, p);
+    g = fraction_umul((src1[i] & 0x00FF00) >>  8, fraction_of(1) - p)
+      + fraction_umul((src2[i] & 0x00FF00) >>  8, p);
+    b = fraction_umul((src1[i] & 0x0000FF) >>  0, fraction_of(1) - p)
+      + fraction_umul((src2[i] & 0x0000FF) >>  0, p);
+
+    dst[i*3 + 0] = r / 255.0f;
+    dst[i*3 + 1] = g / 255.0f;
+    dst[i*3 + 2] = b / 255.0f;
   }
 }
 
@@ -367,6 +431,9 @@ void colour_palettes_context_set(rendering_context*restrict context) {
   const rendering_context_invariant*restrict inv = CTXTINV(context);
   unsigned ma = inv->month_integral+0;
   unsigned mb = inv->month_integral+1;
+
+  generate_data();
+
   interpolate_simd(this->terrain,
                    terrain_palettes[ma], terrain_palettes[mb],
                    lenof(this->terrain), inv->month_fraction);
@@ -382,4 +449,9 @@ void colour_palettes_context_set(rendering_context*restrict context) {
   interpolate_px(this->cherry_trunk,
                  cherry_trunk_palettes[ma], cherry_trunk_palettes[mb],
                  lenof(this->cherry_trunk), inv->month_fraction);
+  interpolate_gl((float*)this->grass,
+                 (const unsigned*)grass_palettes[ma],
+                 (const unsigned*)grass_palettes[mb],
+                 sizeof(this->grass) / sizeof(float) / 3,
+                 inv->month_fraction);
 }

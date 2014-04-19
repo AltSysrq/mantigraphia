@@ -30,7 +30,10 @@
 
 #include "../simd.h"
 #include "../graphics/canvas.h"
+#include "../world/terrain.h"
 #include "context.h"
+
+#define NUM_GRASS_COLOUR_VARIANTS 8
 
 typedef struct {
   simd4 terrain[4*7];
@@ -38,6 +41,7 @@ typedef struct {
   canvas_pixel oak_trunk[10];
   canvas_pixel cherry_leaf[8];
   canvas_pixel cherry_trunk[10];
+  float grass[NUM_GRASS_COLOUR_VARIANTS][1 << TERRAIN_SHADOW_BITS][3];
 } colour_palettes;
 
 const colour_palettes* get_colour_palettes(const rendering_context*restrict);

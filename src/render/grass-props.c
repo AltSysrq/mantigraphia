@@ -30,6 +30,7 @@
 #endif
 
 #include "../frac.h"
+#include "../defs.h"
 #include "../graphics/glpencil.h"
 #include "../graphics/perspective.h"
 #include "../world/basic-world.h"
@@ -37,6 +38,7 @@
 #include "draw-queue.h"
 #include "props.h"
 #include "context.h"
+#include "colour-palettes.h"
 #include "grass-props.h"
 
 typedef struct {
@@ -75,9 +77,6 @@ static const prop_renderer grass_prop_renderers_[] = {
 };
 const prop_renderer*const grass_prop_renderers = grass_prop_renderers_;
 
-static const float grass_colour[3] = { 8.0f / 255.0f, 96.0f / 255.0f,
-                                       12.0f / 255.0f };
-
 static void render_grass_prop_simple(drawing_queue* dst,
                                      const world_prop* this,
                                      const basic_world* world,
@@ -87,9 +86,14 @@ static void render_grass_prop_simple(drawing_queue* dst,
   glpencil_spec pencil;
   vc3 base, tip;
   vo3 pbase, ptip;
+  const colour_palettes* palettes = get_colour_palettes(context);
 
   glpencil_init(&pencil, grass_props_get(context)->pencil);
-  pencil.colour = grass_colour;
+  pencil.colour = palettes->grass[this->variant % NUM_GRASS_COLOUR_VARIANTS][
+    (world->tiles[basic_world_offset(world,
+                                     this->x / TILE_SZ,
+                                     this->z / TILE_SZ)]
+     .elts[0].type) & ((1 << TERRAIN_SHADOW_BITS) - 1)];
 
   base[0] = tip[0] = this->x;
   base[2] = tip[2] = this->z;
