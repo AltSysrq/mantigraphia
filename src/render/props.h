@@ -31,14 +31,13 @@
 #include "../frac.h"
 #include "../world/basic-world.h"
 #include "../world/props.h"
-#include "draw-queue.h"
 #include "context.h"
 
 /**
  * Specifies a method to render a particular type of prop. These are usually
  * stored in tables passed to render_world_props().
  */
-typedef void (*prop_renderer)(drawing_queue*, const world_prop*,
+typedef void (*prop_renderer)(const world_prop*,
                               const basic_world*,
                               unsigned level, fraction level_progression,
                               const rendering_context*restrict);
@@ -53,7 +52,6 @@ typedef void (*prop_renderer)(drawing_queue*, const world_prop*,
  * minimum. This is interpreted to mean that the axis starts at the minimum and
  * increases until it wraps around and eventually reaches the maximum.
  *
- * @param dst The drawing_queue to which operations should be written.
  * @param props An array of props to be drawn.
  * @param num_props The number of props within props.
  * @param world The terrain of the world being rendered.
@@ -68,8 +66,7 @@ typedef void (*prop_renderer)(drawing_queue*, const world_prop*,
  * @param renderers A table of renderers, indexed by world_prop.type, which are
  * appropriate to render this group of props.
  */
-void render_world_props(drawing_queue* dst,
-                        const world_prop* props,
+void render_world_props(const world_prop* props,
                         unsigned num_props,
                         const basic_world* world,
                         coord xmin, coord xmax,

@@ -40,8 +40,4 @@ void render_propped_world(
   canvas*, const propped_world*restrict,
   const rendering_context*restrict);
 
-size_t render_propped_world_put_context_offset(size_t);
-void render_propped_world_context_ctor(rendering_context*restrict);
-void render_propped_world_context_dtor(rendering_context*restrict);
-
 #endif /* RENDER_PROPPED_WORLD_H_ */

@@ -32,10 +32,9 @@
 #include "../coords.h"
 #include "../graphics/perspective.h"
 #include "../graphics/abstract.h"
-#include "draw-queue.h"
 
 /**
- * A turtle allows for rapid drawing of 3D objects into a drawing_queue by
+ * A turtle allows for rapid drawing of 3D objects via a drawing method by
  * means of relative movement. A turtle is initialised to a single point in
  * world space. This point is projected to relative space, and a vector space
  * representing relative space around the point is computed. All further
@@ -158,59 +157,6 @@ void turtle_rotate_axes(simd4*restrict x, simd4*restrict y, angle);
  * space became zero), or 1 otherwise.
  */
 int turtle_scale_down(turtle_state*, unsigned shift);
-
-/**
- * Puts the current point into the given drawing queue as a
- * single-point-shift. No action is taken if the current point cannot be
- * projected into screen space.
- *
- * Returns whether the point was inserted into the drawing queue.
- */
-int turtle_put_point(drawing_queue_burst*, const turtle_state*,
-                     zo_scaling_factor weight);
-/**
- * Puts the current and previous points into the drawing queue as a to-from
- * pair, respectively. No action is taken if either point cannot be projected
- * into screen space.
- *
- * Returns whether anything was inserted into the drawing queue.
- */
-int turtle_put_points(drawing_queue_burst*, const turtle_state*,
-                      zo_scaling_factor from_weight,
-                      zo_scaling_factor to_weight);
-
-/**
- * Puts the current point into the given drawing queue burst, then draws a
- * point there. Weight and size are determined automatically according to
- * logical size and screen width. As with dm_proj_calc_weight(), assumes that
- * the underlying drawing method draws relative to the screen width.
- *
- * @param burst Drawing queue burst into which to draw.
- * @param logical_size Size in world space of the object being drawn.
- * @param screen_width The width, in pixels, of the screen.
- * @return Whether anything was enqueued.
- */
-int turtle_put_draw_point(drawing_queue_burst* burst, const turtle_state*,
-                          coord logical_size, unsigned screen_width);
-/**
- * Puts the current and previous points int othe drawing queue, then draws a
- * line between them. Weight and size are determined automatically according to
- * logical size and screen width. As with dm_proj_calc_weight(), assumes that t
- * he underlying drawing method draws relative to the screen width.
- *
- * @param burst Drawing queue burst into which to draw.
- * @param logical_size_from Size in world space of the object being drawn, at
- * the previous point.
- * @param logical_size_to Size in world space of the object being drawn, at the
- * current point.
- * @param screen_width The width, in pixels, of the screen.
- * @return Whether anything was enqueued.
- */
-int turtle_put_draw_line(drawing_queue_burst* burst,
-                         const turtle_state*,
-                         coord logical_size_from,
-                         coord logical_size_to,
-                         unsigned screen_width);
 
 /**
  * Uses the given drawing method to render a point at the current point.

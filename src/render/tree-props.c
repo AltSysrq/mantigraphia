@@ -39,7 +39,6 @@
 #include "../graphics/glbrush.h"
 #include "../world/basic-world.h"
 #include "../world/terrain.h"
-#include "draw-queue.h"
 #include "turtle.h"
 #include "context.h"
 #include "lsystem.h"
@@ -161,11 +160,11 @@ void tree_props_init(void) {
     NULL);
 }
 
-static void render_tree_prop_oak(drawing_queue*, const world_prop*,
+static void render_tree_prop_oak(const world_prop*,
                                  const basic_world*,
                                  unsigned, fraction,
                                  const rendering_context*restrict);
-static void render_tree_prop_cherry(drawing_queue*, const world_prop*,
+static void render_tree_prop_cherry(const world_prop*,
                                     const basic_world*,
                                     unsigned, fraction,
                                     const rendering_context*restrict);
@@ -370,7 +369,6 @@ static const tree_spec cherry_tree = {
 };
 
 static void render_tree_prop_oak(
-  drawing_queue* queue,
   const world_prop* this, const basic_world* world,
   unsigned base_level, fraction progression,
   const rendering_context*restrict context)
@@ -381,7 +379,6 @@ static void render_tree_prop_oak(
 }
 
 static void render_tree_prop_cherry(
-  drawing_queue* queue,
   const world_prop* this, const basic_world* world,
   unsigned base_level, fraction progression,
   const rendering_context*restrict context)

@@ -32,12 +32,10 @@
 #include "../graphics/perspective.h"
 #include "../world/basic-world.h"
 #include "../world/props.h"
-#include "draw-queue.h"
 #include "context.h"
 #include "props.h"
 
-void render_world_props(drawing_queue* dst,
-                        const world_prop* props,
+void render_world_props(const world_prop* props,
                         unsigned num_props,
                         const basic_world* world,
                         coord xmin, coord xmax,
@@ -122,7 +120,7 @@ void render_world_props(drawing_queue* dst,
     else
       progression = 0;
 
-    (*renderers[props[i].type])(dst, props+i, world,
+    (*renderers[props[i].type])(props+i, world,
                                 64 - dist,
                                 fraction_of(1) - progression, context);
   }

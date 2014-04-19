@@ -37,7 +37,6 @@
 #include "../world/propped-world.h"
 #include "basic-world.h"
 #include "context.h"
-#include "draw-queue.h"
 #include "props.h"
 #include "grass-props.h"
 #include "tree-props.h"
@@ -49,33 +48,6 @@
 #define TREES1_DIST (512*METRE)
 #define TREES_DISTSQ_SHIFT (2*(10+16-6))
 
-/* One drawing_queue per thread */
-RENDERING_CONTEXT_STRUCT(render_propped_world, drawing_queue**)
-
-void render_propped_world_context_ctor(rendering_context*restrict context) {
-  drawing_queue** queues;
-  unsigned i;
-
-  queues = xmalloc(sizeof(drawing_queue*) * (ump_num_workers()+1));
-
-  for (i = 0; i < ump_num_workers()+1; ++i)
-    queues[i] = drawing_queue_new();
-
-  *render_propped_world_getm(context) = queues;
-}
-
-void render_propped_world_context_dtor(rendering_context*restrict context) {
-  drawing_queue** queues;
-  unsigned i;
-
-  queues = *render_propped_world_get(context);
-
-  for (i = 0; i < ump_num_workers()+1; ++i)
-    drawing_queue_delete(queues[i]);
-
-  free(queues);
-}
-
 static const propped_world*restrict render_propped_world_this;
 static const rendering_context*restrict render_propped_world_context;
 static canvas*restrict render_propped_world_dst;
@@ -83,12 +55,6 @@ static canvas*restrict render_propped_world_dst;
 static void render_propped_world_enqueue(unsigned, unsigned);
 static ump_task render_propped_world_enqueue_task = {
   render_propped_world_enqueue,
-  0, /* Determined dynamically (= num processors) */
-  0, /* Unused (synchronous) */
-};
-static void render_propped_world_execute(unsigned, unsigned);
-static ump_task render_propped_world_execute_task = {
-  render_propped_world_execute,
   0, /* Determined dynamically (= num processors) */
   0, /* Unused (synchronous) */
 };
@@ -103,24 +69,20 @@ void render_propped_world(canvas* dst,
   render_basic_world(dst, this->terrain, context);
 
   render_propped_world_enqueue_task.num_divisions = ump_num_workers()+1;
-  render_propped_world_execute_task.num_divisions = ump_num_workers()+1;
   ump_run_sync(&render_propped_world_enqueue_task);
-  ump_run_sync(&render_propped_world_execute_task);
 }
 
 static void render_propped_world_enqueue(unsigned ix, unsigned count) {
   const rendering_context*restrict context = render_propped_world_context;
   const propped_world*restrict this = render_propped_world_this;
 
-  drawing_queue* queue = render_propped_world_get(context)[0][ix];
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;
   coord cx = proj->camera[0], cz = proj->camera[2];
   coord_offset zoff_low  = 2 * GRASS_DIST * ix / count - GRASS_DIST;
   coord_offset zoff_high = 2 * GRASS_DIST * (ix+1) / count - GRASS_DIST;
 
-  drawing_queue_clear(queue);
-  render_world_props(queue, this->grass.props, this->grass.size,
+  render_world_props(this->grass.props, this->grass.size,
                      this->terrain,
                      (cx - GRASS_DIST) & (this->terrain->xmax * TILE_SZ - 1),
                      (cx + GRASS_DIST) & (this->terrain->xmax * TILE_SZ - 1),
@@ -131,7 +93,7 @@ static void render_propped_world_enqueue(unsigned ix, unsigned count) {
                      context);
   zoff_low  = 2 * TREES0_DIST * ix / count - TREES0_DIST;
   zoff_high = 2 * TREES0_DIST * (ix+1) / count - TREES0_DIST;
-  render_world_props(queue, this->trees[0].props, this->trees[0].size,
+  render_world_props(this->trees[0].props, this->trees[0].size,
                      this->terrain,
                      (cx - TREES0_DIST) & (this->terrain->xmax * TILE_SZ - 1),
                      (cx + TREES0_DIST) & (this->terrain->xmax * TILE_SZ - 1),
@@ -142,7 +104,7 @@ static void render_propped_world_enqueue(unsigned ix, unsigned count) {
                      context);
   zoff_low  = 2 * TREES1_DIST * ix / count - TREES1_DIST;
   zoff_high = 2 * TREES1_DIST * (ix+1) / count - TREES1_DIST;
-  render_world_props(queue, this->trees[1].props, this->trees[1].size,
+  render_world_props(this->trees[1].props, this->trees[1].size,
                      this->terrain,
                      (cx - TREES1_DIST) & (this->terrain->xmax * TILE_SZ - 1),
                      (cx + TREES1_DIST) & (this->terrain->xmax * TILE_SZ - 1),
@@ -155,31 +117,4 @@ static void render_propped_world_enqueue(unsigned ix, unsigned count) {
    * flushed.
    */
   glm_finish_thread();
-}
-
-static void render_propped_world_execute(unsigned ix, unsigned count) {
-  canvas*restrict dst = render_propped_world_dst;
-  const rendering_context*restrict context = render_propped_world_context;
-  drawing_queue** queues = *render_propped_world_get(context);
-  unsigned i;
-  canvas slice;
-  unsigned x0, x1;
-
-  /* Rendering vertical slices gives better distribution across threads, even
-   * though it has worse cache performance. This is because the upper parts of
-   * the screen usually have very little to render, but there is no such
-   * consistent discrepency across vertical slices.
-   */
-  x0 = dst->w * ix / count;
-  x1 = dst->w * (ix+1) / count;
-  /* Floor to cache line boundaries */
-  x0 &= ~(UMP_CACHE_LINE_SZ / sizeof(canvas_pixel) - 1);
-  x1 &= ~(UMP_CACHE_LINE_SZ / sizeof(canvas_pixel) - 1);
-  /* Stop now if there's nothing for this thread to do */
-  if (x0 == x1) return;
-
-  canvas_slice(&slice, dst, x0, 0, x1 - x0, dst->h);
-
-  for (i = 0; i < count; ++i)
-    drawing_queue_execute(&slice, queues[i], -(signed)x0, 0);
 }

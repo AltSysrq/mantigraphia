@@ -35,7 +35,6 @@
 #include "../coords.h"
 #include "../graphics/abstract.h"
 #include "../graphics/dm-proj.h"
-#include "draw-queue.h"
 #include "turtle.h"
 
 #define SCALE_SHIFT 8
@@ -118,96 +117,6 @@ int turtle_scale_down(turtle_state* this, unsigned shift) {
     !simd_eq(zero, this->space.x) &&
     !simd_eq(zero, this->space.y) &&
     !simd_eq(zero, this->space.z);
-}
-
-int turtle_put_point(drawing_queue_burst* dst, const turtle_state* this,
-                     zo_scaling_factor weight) {
-  coord_offset rwhere[4];
-  vo3 where;
-
-  simd_to_vo4(rwhere, this->pos.curr);
-  if (!perspective_proj_rel(where, rwhere, this->proj))
-    return 0;
-
-  drawing_queue_put_point(dst, where, weight);
-  return 1;
-}
-
-int turtle_put_draw_point(drawing_queue_burst* dst, const turtle_state* this,
-                          coord logical_size, unsigned screen_width) {
-  coord_offset rwhere[4];
-  vo3 where;
-  zo_scaling_factor weight;
-  unsigned size;
-
-  simd_to_vo4(rwhere, this->pos.curr);
-  if (!perspective_proj_rel(where, rwhere, this->proj))
-    return 0;
-
-  weight = dm_proj_calc_weight(screen_width, this->proj,
-                               where[2], logical_size);
-  size = zo_scale(screen_width, weight);
-
-  /* Don't draw anything too much bigger than the screen. It isn't useful, and
-   * can sometimes be too big for the drawing queue.
-   */
-  if (size > screen_width*2) return 0;
-
-  drawing_queue_put_point(dst, where, weight);
-  drawing_queue_draw_point(dst, size);
-  return 1;
-}
-
-int turtle_put_points(drawing_queue_burst* dst, const turtle_state* this,
-                      zo_scaling_factor from_weight,
-                      zo_scaling_factor to_weight) {
-  coord_offset rfrom[4], rto[4];
-  vo3 from, to;
-
-  simd_to_vo4(rfrom, this->pos.prev);
-  simd_to_vo4(rto, this->pos.curr);
-
-  if (!perspective_proj_rel(from, rfrom, this->proj) ||
-      !perspective_proj_rel(to, rto, this->proj))
-    return 0;
-
-  drawing_queue_put_points(dst, from, from_weight, to, to_weight);
-  return 1;
-}
-
-int turtle_put_draw_line(drawing_queue_burst* dst, const turtle_state* this,
-                         coord logical_size_from,
-                         coord logical_size_to,
-                         unsigned screen_width) {
-  coord_offset rfrom[4], rto[4];
-  vo3 from, to;
-  zo_scaling_factor from_weight, to_weight;
-  unsigned thickness;
-
-  simd_to_vo4(rfrom, this->pos.prev);
-  simd_to_vo4(rto, this->pos.curr);
-
-  if (!perspective_proj_rel(from, rfrom, this->proj) ||
-      !perspective_proj_rel(to, rto, this->proj))
-    return 0;
-
-  from_weight = dm_proj_calc_weight(screen_width, this->proj,
-                                    from[2], logical_size_from);
-  to_weight = dm_proj_calc_weight(screen_width, this->proj,
-                                  to[2], logical_size_to);
-  if (from_weight > to_weight)
-    thickness = zo_scale(screen_width, from_weight);
-  else
-    thickness = zo_scale(screen_width, to_weight);
-
-  /* Don't draw anything bigger than the screen. It isn't useful, and can
-   * sometimes be too big for the drawing queue.
-   */
-  if (thickness > screen_width) return 0;
-
-  drawing_queue_put_points(dst, from, from_weight, to, to_weight);
-  drawing_queue_draw_line(dst, thickness);
-  return 1;
 }
 
 void turtle_draw_point(void* accum, const void* meth,

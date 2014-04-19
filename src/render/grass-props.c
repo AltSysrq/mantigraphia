@@ -35,7 +35,6 @@
 #include "../graphics/perspective.h"
 #include "../world/basic-world.h"
 #include "../world/terrain.h"
-#include "draw-queue.h"
 #include "props.h"
 #include "context.h"
 #include "colour-palettes.h"
@@ -77,7 +76,7 @@ void grass_props_context_dtor(rendering_context*restrict ctxt) {
     glpencil_hdelete(info->pencil);
 }
 
-static void render_grass_prop_simple(drawing_queue*, const world_prop*,
+static void render_grass_prop_simple(const world_prop*,
                                      const basic_world*,
                                      unsigned, fraction,
                                      const rendering_context*restrict);
@@ -88,8 +87,7 @@ static const prop_renderer grass_prop_renderers_[] = {
 };
 const prop_renderer*const grass_prop_renderers = grass_prop_renderers_;
 
-static void render_grass_prop_simple(drawing_queue* dst,
-                                     const world_prop* this,
+static void render_grass_prop_simple(const world_prop* this,
                                      const basic_world* world,
                                      unsigned level, fraction progression,
                                      const rendering_context*restrict context) {
