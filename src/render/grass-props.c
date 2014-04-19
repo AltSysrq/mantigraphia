@@ -30,14 +30,39 @@
 #endif
 
 #include "../frac.h"
-#include "../graphics/pencil.h"
-#include "../graphics/canvas.h"
+#include "../graphics/glpencil.h"
 #include "../graphics/perspective.h"
 #include "../world/basic-world.h"
 #include "../world/terrain.h"
 #include "draw-queue.h"
 #include "props.h"
+#include "context.h"
 #include "grass-props.h"
+
+typedef struct {
+  glpencil_handle* pencil;
+} grass_props_context_info;
+RENDERING_CONTEXT_STRUCT(grass_props, grass_props_context_info)
+
+void grass_props_context_ctor(rendering_context*restrict ctxt) {
+  grass_props_getm(ctxt)->pencil = NULL;
+}
+
+void grass_props_context_set(rendering_context*restrict ctxt) {
+  grass_props_context_info* info = grass_props_getm(ctxt);
+  glpencil_handle_info hinfo = {
+    CTXTINV(ctxt)->screen_width / 480
+  };
+
+  if (!info->pencil)
+    info->pencil = glpencil_hnew(&hinfo);
+}
+
+void grass_props_context_dtor(rendering_context*restrict ctxt) {
+  grass_props_context_info* info = grass_props_getm(ctxt);
+  if (info->pencil)
+    glpencil_hdelete(info->pencil);
+}
 
 static void render_grass_prop_simple(drawing_queue*, const world_prop*,
                                      const basic_world*,
@@ -50,22 +75,21 @@ static const prop_renderer grass_prop_renderers_[] = {
 };
 const prop_renderer*const grass_prop_renderers = grass_prop_renderers_;
 
+static const float grass_colour[3] = { 8.0f / 255.0f, 96.0f / 255.0f,
+                                       12.0f / 255.0f };
+
 static void render_grass_prop_simple(drawing_queue* dst,
                                      const world_prop* this,
                                      const basic_world* world,
                                      unsigned level, fraction progression,
                                      const rendering_context*restrict context) {
-  const perspective*restrict proj =
-    ((const rendering_context_invariant*)context)->proj;
-  unsigned screen_width =
-    ((const rendering_context_invariant*)context)->screen_width;
-  pencil_spec pencil;
+  const perspective*restrict proj = CTXTINV(context)->proj;
+  glpencil_spec pencil;
   vc3 base, tip;
   vo3 pbase, ptip;
-  drawing_queue_burst burst;
 
-  pencil_init(&pencil);
-  pencil.colour = argb(255,8,96,12);
+  glpencil_init(&pencil, grass_props_get(context)->pencil);
+  pencil.colour = grass_colour;
 
   base[0] = tip[0] = this->x;
   base[2] = tip[2] = this->z;
@@ -76,13 +100,6 @@ static void render_grass_prop_simple(drawing_queue* dst,
       !perspective_proj(ptip, tip, proj))
     return;
 
-  drawing_queue_start_burst(&burst, dst);
-  DQMETH(burst, pencil);
-  DQCANV(burst);
-
-  drawing_queue_put_points(&burst, pbase, ZO_SCALING_FACTOR_MAX,
-                           ptip, ZO_SCALING_FACTOR_MAX);
-  drawing_queue_draw_line(&burst, zo_scale(screen_width, pencil.thickness));
-  drawing_queue_flush(&burst);
-  drawing_queue_end_burst(dst, &burst);
+  glpencil_draw_line(NULL, &pencil, pbase, 0, ptip, 0);
+  glpencil_flush(NULL, &pencil);
 }

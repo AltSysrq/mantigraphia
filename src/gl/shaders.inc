@@ -32,10 +32,17 @@ shader_source(fbrush)
 shader_source(vbrush)
 shader_source(fsplotch)
 shader_source(vsplotch)
+shader_source(vgenericctc)
+shader_source(fpointcircle)
 
 shader(fixed_texture) {
   fixed_function
   with_texture_coordinates
+}
+
+shader(solid) {
+  fixed_function
+  with_colour
 }
 
 shader(terrabuff) {
@@ -68,4 +75,10 @@ shader(splotch) {
   uniform(tex2d, tex)
   uniform(tex2d, pallet)
   uniform(float, noise)
+}
+
+shader(pointcircle) {
+  composed_of(fpointcircle, vgenericctc)
+  with_colour
+  no_uniforms
 }

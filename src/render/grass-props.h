@@ -29,7 +29,13 @@
 #define RENDER_GRASS_PROPS_H_
 
 #include "props.h"
+#include "context.h"
 
 extern const prop_renderer*const grass_prop_renderers;
+
+size_t grass_props_put_context_offset(size_t);
+void grass_props_context_ctor(rendering_context*restrict);
+void grass_props_context_dtor(rendering_context*restrict);
+void grass_props_context_set(rendering_context*restrict);
 
 #endif /* RENDER_GRASS_PROPS_H_ */

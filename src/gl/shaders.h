@@ -46,6 +46,7 @@ typedef float shader_type_vec2[2];
  */
 #define fixed_function int dummy;
 #define uniform(type, name) shader_type_##type name;
+#define no_uniforms int dummy;
 #define with_texture_coordinates
 #define with_colour
 #define with_secondary_colour
@@ -57,6 +58,7 @@ extern int dummy_decl
 #undef with_secondary_colour
 #undef with_colour
 #undef with_texture_coordinates
+#undef no_uniforms
 #undef uniform
 #undef fixed_function
 #undef composed_of
@@ -70,6 +72,7 @@ extern int dummy_decl
 #define fixed_function float v[3];
 #define composed_of(x,y) fixed_function
 #define uniform(x,y)
+#define no_uniforms
 #define with_texture_coordinates float tc[2];
 #define with_colour float colour[4];
 #define with_secondary_colour float sec_colour[4];
@@ -81,6 +84,7 @@ extern int dummy_decl
 #undef with_secondary_colour
 #undef with_colour
 #undef with_texture_coordinates
+#undef no_uniforms
 #undef uniform
 #undef fixed_function
 #undef composed_of

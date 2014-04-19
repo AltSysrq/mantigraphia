@@ -29,6 +29,7 @@ graphics/hull.c \
 graphics/dm-proj.c \
 graphics/fast-brush.c \
 graphics/glbrush.c \
+graphics/glpencil.c \
 gl/shader_loader.c \
 gl/shaders.c \
 gl/marshal.c \
