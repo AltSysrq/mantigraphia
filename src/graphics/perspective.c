@@ -47,8 +47,8 @@ void perspective_init(perspective* this,
    * because the one implicit in fcos is cancelled out by fsin, and we need to
    * account for the screen division as well.
    */
-  this->zscale = fcos
-               * ZO_SCALING_FACTOR_MAX / fsin
+  this->zscale = fsin
+               * ZO_SCALING_FACTOR_MAX / fcos
                / screen->w;
   this->fov = fov;
 

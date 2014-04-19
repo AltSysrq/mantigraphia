@@ -52,6 +52,7 @@
 
 #include "cosine-world.h"
 
+#define FOV (110 * 65536 / 360)
 #define SIZE 4096
 #define NUM_GRASS (1024*1024*4)
 #define NUM_TREES 32768*2
@@ -222,7 +223,7 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   proj->rxrot_cos = zo_cos(this->look.rxrot);
   proj->rxrot_sin = zo_sin(this->look.rxrot);
   proj->near_clipping_plane = 1;
-  perspective_init(proj, dst, DEG_90);
+  perspective_init(proj, dst, FOV);
 
   rendering_context_set(this->context, &context_inv);
 }
@@ -290,5 +291,5 @@ static void cosine_world_key(cosine_world_state* this,
 
 static void cosine_world_mmotion(cosine_world_state* this,
                                  SDL_MouseMotionEvent* evt) {
-  mouselook_update(&this->look, this->bg, evt, DEG_90, DEG_90);
+  mouselook_update(&this->look, this->bg, evt, FOV, FOV);
 }
