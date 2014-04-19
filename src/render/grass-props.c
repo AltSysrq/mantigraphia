@@ -43,6 +43,7 @@
 
 typedef struct {
   glpencil_handle* pencil;
+  coord base_height;
 } grass_props_context_info;
 RENDERING_CONTEXT_STRUCT(grass_props, grass_props_context_info)
 
@@ -58,6 +59,16 @@ void grass_props_context_set(rendering_context*restrict ctxt) {
 
   if (!info->pencil)
     info->pencil = glpencil_hnew(&hinfo);
+
+  info->base_height = METRE / 4;
+  if (0 == CTXTINV(ctxt)->month_integral)
+    info->base_height = fraction_umul(info->base_height,
+                                      CTXTINV(ctxt)->month_fraction);
+  else if (8 == CTXTINV(ctxt)->month_integral)
+    info->base_height = fraction_umul(info->base_height,
+                                      fraction_of(1) -
+                                      CTXTINV(ctxt)->month_fraction);
+  info->base_height += METRE / 4;
 }
 
 void grass_props_context_dtor(rendering_context*restrict ctxt) {
@@ -98,7 +109,9 @@ static void render_grass_prop_simple(drawing_queue* dst,
   base[0] = tip[0] = this->x;
   base[2] = tip[2] = this->z;
   base[1] = terrain_base_y(world, this->x, this->z);
-  tip[1] = base[1] + METRE * level / 64;
+  tip[1] = base[1] +
+    (grass_props_get(context)->base_height +
+     METRE/2 * this->variant / 256) * level / 64;
 
   if (!perspective_proj(pbase, base, proj) ||
       !perspective_proj(ptip, tip, proj))
