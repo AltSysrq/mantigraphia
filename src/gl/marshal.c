@@ -42,6 +42,7 @@ struct glm_slab_group_s {
   void* userdata;
   void (*configure)(void);
   unsigned data_size;
+  GLenum primitive;
   SDL_TLSID slab;
   SLIST_ENTRY(glm_slab_group_s) next;
 };
@@ -108,6 +109,7 @@ glm_slab_group* glm_slab_group_new(void (*activate)(void*),
   this->userdata = userdata;
   this->configure = configure;
   this->data_size = 65536 * vertex_size;
+  this->primitive = GL_TRIANGLES;
 
   if (SLIST_EMPTY(&unused_tls_stack)) {
     this->slab = SDL_TLSCreate();
@@ -132,6 +134,10 @@ void glm_slab_group_delete(glm_slab_group* this) {
   tls->tls = this->slab;
   SLIST_INSERT_HEAD(&unused_tls_stack, tls, next);
   free(this);
+}
+
+void glm_slab_group_set_primitive(glm_slab_group* this, int primitive) {
+  this->primitive = primitive;
 }
 
 glm_slab* glm_slab_get(glm_slab_group* group) {
@@ -222,7 +228,7 @@ static void execute_slab(glm_slab* this) {
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->index_off*sizeof(short),
                this->indices, GL_STREAM_DRAW);
   (*this->group->configure)();
-  glDrawElements(GL_TRIANGLES, this->index_off, GL_UNSIGNED_SHORT,
+  glDrawElements(this->group->primitive, this->index_off, GL_UNSIGNED_SHORT,
                  /* With an element array buffer, indicates the *offset* from
                   * the start of that buffer. We want to start at the
                   * beginning, so use zero.

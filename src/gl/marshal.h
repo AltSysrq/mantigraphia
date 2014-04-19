@@ -78,6 +78,14 @@ glm_slab_group* glm_slab_group_new(void (*activate)(void*),
 void glm_slab_group_delete(glm_slab_group*);
 
 /**
+ * Sets the primitive type used for drawing elements in the given slab. The
+ * default is GL_TRIANGLES.
+ *
+ * The effect of calling this when any operations are pending is undefined.
+ */
+void glm_slab_group_set_primitive(glm_slab_group*,int);
+
+/**
  * Returns the slab associated with the current thread and the given slab
  * group. Repeated calls by the same thread with the same input return the same
  * value. The returned pointer is managed by the slab group.
