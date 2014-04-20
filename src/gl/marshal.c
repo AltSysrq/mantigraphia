@@ -43,6 +43,7 @@ struct glm_slab_group_s {
   void (*configure)(void);
   unsigned data_size;
   GLenum primitive;
+  int indices_enabled;
   SDL_TLSID slab;
   SLIST_ENTRY(glm_slab_group_s) next;
 };
@@ -110,6 +111,7 @@ glm_slab_group* glm_slab_group_new(void (*activate)(void*),
   this->configure = configure;
   this->data_size = 65536 * vertex_size;
   this->primitive = GL_TRIANGLES;
+  this->indices_enabled = 1;
 
   if (SLIST_EMPTY(&unused_tls_stack)) {
     this->slab = SDL_TLSCreate();
@@ -138,6 +140,10 @@ void glm_slab_group_delete(glm_slab_group* this) {
 
 void glm_slab_group_set_primitive(glm_slab_group* this, int primitive) {
   this->primitive = primitive;
+}
+
+void glm_slab_group_set_indices_enabled(glm_slab_group* this, int enabled) {
+  this->indices_enabled = enabled;
 }
 
 glm_slab* glm_slab_get(glm_slab_group* group) {
@@ -174,7 +180,8 @@ unsigned short glm_slab_alloc(void** data, unsigned short** indices,
     flush_slab(this, 1);
 
   *data = ((char*)this->data) + this->data_off;
-  *indices = this->indices + this->index_off;
+  if (indices)
+    *indices = this->indices + this->index_off;
   this->data_off += data_size;
   this->vertex_off += num_vertices;
   this->index_off += num_indices;
@@ -200,7 +207,7 @@ static void execute_slab(glm_slab*);
 static void flush_slab(glm_slab* this, int reallocate) {
   glm_slab* clone;
 
-  if (this->index_off) {
+  if (this->index_off || this->vertex_off) {
     clone = xmalloc(sizeof(glm_slab));
     memcpy(clone, this, sizeof(glm_slab));
     glm_do((void(*)(void*))execute_slab, clone);
@@ -228,12 +235,15 @@ static void execute_slab(glm_slab* this) {
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->index_off*sizeof(short),
                this->indices, GL_STREAM_DRAW);
   (*this->group->configure)();
-  glDrawElements(this->group->primitive, this->index_off, GL_UNSIGNED_SHORT,
-                 /* With an element array buffer, indicates the *offset* from
-                  * the start of that buffer. We want to start at the
-                  * beginning, so use zero.
-                  */
-                 (GLvoid*)0);
+  if (this->group->indices_enabled)
+    glDrawElements(this->group->primitive, this->index_off, GL_UNSIGNED_SHORT,
+                   /* With an element array buffer, indicates the *offset* from
+                    * the start of that buffer. We want to start at the
+                    * beginning, so use zero.
+                    */
+                   (GLvoid*)0);
+  else
+    glDrawArrays(this->group->primitive, 0, this->vertex_off);
 
   error = glGetError();
   if (error)

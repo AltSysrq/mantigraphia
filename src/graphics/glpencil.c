@@ -55,12 +55,14 @@ glpencil_handle* glpencil_hnew(const glpencil_handle_info* info) {
     this,
     shader_solid_configure_vbo, sizeof(shader_solid_vertex));
   glm_slab_group_set_primitive(this->line_group, GL_LINES);
+  glm_slab_group_set_indices_enabled(this->line_group, 0);
   this->point_group = glm_slab_group_new(
     (void(*)(void*))glpencil_point_activate,
     (void(*)(void*))glpencil_point_deactivate,
     this,
     shader_pointcircle_configure_vbo, sizeof(shader_pointcircle_vertex));
   glm_slab_group_set_primitive(this->point_group, GL_POINTS);
+  glm_slab_group_set_indices_enabled(this->point_group, 0);
 
   return this;
 }
@@ -110,24 +112,21 @@ static void glpencil_point_deactivate(glpencil_handle* this) {
 void glpencil_draw_point(void* accum_ignore, const glpencil_spec* spec,
                          const vo3 where, zo_scaling_factor weight_ignore) {
   shader_pointcircle_vertex* vertex;
-  unsigned short* index, base;
 
-  base = GLM_ALLOC(&vertex, &index, spec->point_slab, 1, 1);
+  (void)GLM_ALLOC(&vertex, NULL, spec->point_slab, 1, 0);
   vertex->v[0] = where[0];
   vertex->v[1] = where[1];
   vertex->v[2] = where[2];
   memcpy(vertex->colour, spec->colour, sizeof(float)*3);
   vertex->colour[3] = 1.0f;
-  *index = base;
 }
 
 void glpencil_draw_line(void* accum_ignore, const glpencil_spec* spec,
                         const vo3 from, zo_scaling_factor from_weight_ignore,
                         const vo3 to, zo_scaling_factor to_weight_ignore) {
   shader_solid_vertex* vertices;
-  unsigned short* indices, base;
 
-  base = GLM_ALLOC(&vertices, &indices, spec->line_slab, 2, 2);
+  (void)GLM_ALLOC(&vertices, NULL, spec->line_slab, 2, 0);
   vertices[0].v[0] = from[0];
   vertices[0].v[1] = from[1];
   vertices[0].v[2] = from[2];
@@ -138,7 +137,4 @@ void glpencil_draw_line(void* accum_ignore, const glpencil_spec* spec,
   memcpy(vertices[1].colour, spec->colour, sizeof(float)*3);
   vertices[0].colour[3] = 1.0f;
   vertices[1].colour[3] = 1.0f;
-
-  indices[0] = base + 0;
-  indices[1] = base + 1;
 }

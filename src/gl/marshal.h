@@ -86,6 +86,13 @@ void glm_slab_group_delete(glm_slab_group*);
 void glm_slab_group_set_primitive(glm_slab_group*,int);
 
 /**
+ * Sets whether indices are passed to OpenGL. This is true by default. If
+ * disabled, the values written into indices within slabs are ignored, and the
+ * vertices alone are passed to OpenGL.
+ */
+void glm_slab_group_set_indices_enabled(glm_slab_group*,int);
+
+/**
  * Returns the slab associated with the current thread and the given slab
  * group. Repeated calls by the same thread with the same input return the same
  * value. The returned pointer is managed by the slab group.
@@ -103,7 +110,7 @@ glm_slab* glm_slab_get(glm_slab_group*);
  * @param data The pointer this value references is set to base of the first
  * vertex that was allocated.
  * @param indices The pointer this value references is set to the first index
- * that was allocated.
+ * that was allocated. May be NULL if indices are not being used.
  * @param slab The slab from which to allocate memory.
  * @param data_size The amount of data to allocate for the vertices, in bytes.
  * @param num_vertices The number of vertices being allocated.
