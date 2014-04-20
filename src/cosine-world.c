@@ -338,7 +338,8 @@ static void cosine_world_key(cosine_world_state* this,
     break;
 
   case SDLK_RETURN:
-    serialise(this);
+    if (down)
+      serialise(this);
     break;
   }
 }
