@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,25 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef ALLOC_H_
-#define ALLOC_H_
+#ifndef WORLD_GRASS_PROPS_H_
+#define WORLD_GRASS_PROPS_H_
 
-#include <stdlib.h>
-#include <string.h>
-#include "bsd.h"
+#define MAX_GRASS_TYPE 8
+#define NUM_GRASS_WILDFLOWER_TYPES 3
+#define NUM_GRASS_SEASONAL_FLOWER_TYPES 5
 
-static inline void* xmalloc(size_t sz) {
-  void* ret = malloc(sz);
-  if (!ret)
-    err(EX_UNAVAILABLE, "out of memory");
-
-  return ret;
-}
-
-static inline void* zxmalloc(size_t sz) {
-  void* ret = xmalloc(sz);
-  memset(ret, 0, sz);
-  return ret;
-}
-
-#endif /* ALLOC_H_ */
+#endif /* WORLD_GRASS_PROPS_H_ */

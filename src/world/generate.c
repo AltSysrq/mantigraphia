@@ -38,6 +38,7 @@
 #include "../defs.h"
 #include "basic-world.h"
 #include "terrain.h"
+#include "grass-props.h"
 #include "generate.h"
 
 static void initialise(basic_world*);
@@ -341,10 +342,27 @@ static void create_path_to_from(basic_world* world, mersenne_twister* twister,
 void grass_generate(world_prop* props, unsigned count,
                     const basic_world* world, unsigned seed) {
   mersenne_twister twister;
-  unsigned i;
+  unsigned i, j, max;
   coord x, z, wx, wz;
+  unsigned* seasonal_flower_distributions[NUM_GRASS_SEASONAL_FLOWER_TYPES];
 
   twister_seed(&twister, seed);
+
+  seasonal_flower_distributions[0] = zxmalloc(
+    NUM_GRASS_SEASONAL_FLOWER_TYPES * sizeof(unsigned) *
+    world->xmax * world->zmax);
+  for (i = 0; i < NUM_GRASS_SEASONAL_FLOWER_TYPES; ++i) {
+    seasonal_flower_distributions[i] =
+      seasonal_flower_distributions[0] +
+      i * world->xmax * world->zmax;
+
+    perlin_noise(seasonal_flower_distributions[i], world->xmax, world->zmax,
+                 world->xmax / 64, 256, twist(&twister));
+    perlin_noise(seasonal_flower_distributions[i], world->xmax, world->zmax,
+                 world->xmax / 32, 96, twist(&twister));
+    perlin_noise(seasonal_flower_distributions[i], world->xmax, world->zmax,
+                 world->xmax / 24, 16, twist(&twister));
+  }
 
   for (i = 0; i < count; ++i) {
     do {
@@ -360,10 +378,27 @@ void grass_generate(world_prop* props, unsigned count,
 
     props[i].x = x;
     props[i].z = z;
-    props[i].type = 1;
+    /* 20% at random (uniform distribution) are wildflowers */
+    props[i].type = 1 + twist(&twister) % NUM_GRASS_WILDFLOWER_TYPES;
+    if (twist(&twister) % 5) {
+      /* Otherwise, the type is the one with the greatest distribution value in
+       * this tile
+       */
+      max = 0;
+      for (j = 0; j < NUM_GRASS_SEASONAL_FLOWER_TYPES; ++j) {
+        if (seasonal_flower_distributions[j][
+              wx + wz*world->xmax] > max) {
+          props[i].type = 1 + NUM_GRASS_WILDFLOWER_TYPES + j;
+          max = seasonal_flower_distributions[j][wx + wz*world->xmax];
+        }
+      }
+    }
+
     props[i].variant = twist(&twister);
     props[i].yrot = twist(&twister);
   }
+
+  free(seasonal_flower_distributions[0]);
 }
 
 static int may_place_tree_at(const basic_world* world,
