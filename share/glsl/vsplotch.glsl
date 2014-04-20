@@ -1,19 +1,13 @@
-varying vec2 frel;
+attribute vec3 parms;
+varying vec2 texoff;
 varying float colour_var;
-
-float frel_of(float tc) {
-  if (tc < 1.0f)
-    return -1.0f;
-  else
-    return +1.0f;
-}
 
 void main() {
   gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-  gl_TexCoord[0] = gl_MultiTexCoord0;
-  frel = vec2(frel_of(gl_MultiTexCoord0.s), frel_of(gl_MultiTexCoord0.t));
-  if (gl_MultiTexCoord0.s < 1.0)
-    colour_var = gl_MultiTexCoord0.s;
+  texoff = parms.xy;
+  gl_PointSize = parms.z;
+  if (parms.x < 1.0)
+    colour_var = parms.x;
   else
-    colour_var = gl_MultiTexCoord0.s - 1.0f;
+    colour_var = parms.x - 1.0f;
 }

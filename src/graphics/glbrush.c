@@ -53,6 +53,7 @@ struct glbrush_handle_s {
 
 static void glbrush_activate_line(glbrush_handle*);
 static void glbrush_activate_point(glbrush_handle*);
+static void glbrush_deactivate_point(glbrush_handle*);
 
 void glbrush_load(void) {
   canvas* canv, * brush;
@@ -123,9 +124,11 @@ glbrush_handle* glbrush_hnew(const glbrush_handle_info* info) {
                                           sizeof(shader_brush_vertex));
   handle->glmsg_point = glm_slab_group_new(
     (void(*)(void*))glbrush_activate_point,
-    NULL, handle,
+    (void(*)(void*))glbrush_deactivate_point, handle,
     shader_splotch_configure_vbo,
     sizeof(shader_splotch_vertex));
+  glm_slab_group_set_primitive(handle->glmsg_point, GL_POINTS);
+  glm_slab_group_set_indices_enabled(handle->glmsg_point, 0);
 
   glbrush_hconfig(handle, info);
   return handle;
@@ -184,16 +187,31 @@ static void glbrush_activate_point(glbrush_handle* handle) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
   glActiveTexture(GL_TEXTURE0);
 
+  glPushAttrib(GL_ENABLE_BIT | GL_POINT_BIT);
+  glEnable(GL_POINT_SPRITE);
+  glEnable(GL_PROGRAM_POINT_SIZE);
+  /* Point vertices are clipped with respect to the internal point-size setting
+   * and their location alone, regardless of how big the vertex shader says
+   * they are. Since we can't vary this point-size per vertex, set one bigger
+   * than any point we'll ever draw so that only the quad produced by the
+   * point can be clipped away. (It's still faster than drawing quads
+   * manually.)
+   */
+  glPointSize(65536);
+
   uniform.tex = 0;
   uniform.pallet = 1;
   uniform.noise = handle->noise;
   shader_splotch_activate(&uniform);
 }
 
+static void glbrush_deactivate_point(glbrush_handle* handle) {
+  glPopAttrib();
+}
+
 void glbrush_draw_point(glbrush_accum* accum, const glbrush_spec* spec,
                         const vo3 where, zo_scaling_factor weight) {
   shader_splotch_vertex* vertices;
-  unsigned short* indices, base;
   signed size;
   float txxoff, txyoff;
 
@@ -203,34 +221,13 @@ void glbrush_draw_point(glbrush_accum* accum, const glbrush_spec* spec,
   size = zo_scale(spec->screen_width, weight);
   if (!size || size > 65536) return;
 
-  base = GLM_ALLOC(&vertices, &indices, spec->point_slab, 4, 6);
-  vertices[0].v[0] = where[0] - size/2;
-  vertices[0].v[1] = where[1] - size/2;
+  (void)GLM_ALLOC(&vertices, NULL, spec->point_slab, 1, 0);
+  vertices[0].v[0] = where[0];
+  vertices[0].v[1] = where[1];
   vertices[0].v[2] = where[2];
-  vertices[1].v[0] = where[0] + size/2;
-  vertices[1].v[1] = where[1] - size/2;
-  vertices[1].v[2] = where[2];
-  vertices[2].v[0] = where[0] - size/2;
-  vertices[2].v[1] = where[1] + size/2;
-  vertices[2].v[2] = where[2];
-  vertices[3].v[0] = where[0] + size/2;
-  vertices[3].v[1] = where[1] + size/2;
-  vertices[3].v[2] = where[2];
-  vertices[0].tc[0] = 0 + txxoff;
-  vertices[0].tc[1] = 0 + txyoff;
-  vertices[1].tc[0] = 1 + txxoff;
-  vertices[1].tc[1] = 0 + txyoff;
-  vertices[2].tc[0] = 0 + txxoff;
-  vertices[2].tc[1] = 1 + txyoff;
-  vertices[3].tc[0] = 1 + txxoff;
-  vertices[3].tc[1] = 1 + txyoff;
-
-  indices[0] = base + 0;
-  indices[1] = base + 1;
-  indices[2] = base + 2;
-  indices[3] = base + 1;
-  indices[4] = base + 2;
-  indices[5] = base + 3;
+  vertices[0].parms[0] = txxoff;
+  vertices[0].parms[1] = txyoff;
+  vertices[0].parms[2] = size;
 }
 
 static void glbrush_activate_line(glbrush_handle* handle) {

@@ -71,7 +71,7 @@ shader(brush) {
 
 shader(splotch) {
   composed_of(fsplotch, vsplotch)
-  with_texture_coordinates
+  attrib(3, parms)
   uniform(tex2d, tex)
   uniform(tex2d, pallet)
   uniform(float, noise)
