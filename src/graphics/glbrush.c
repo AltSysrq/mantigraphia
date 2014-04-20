@@ -218,6 +218,13 @@ void glbrush_draw_point(glbrush_accum* accum, const glbrush_spec* spec,
   txxoff = lcgrand(&accum->rand) / 65536.0f;
   txyoff = lcgrand(&accum->rand) / 65536.0f;
 
+  /* Size here will actually become negative for large objects when the camera
+   * becomes very close to them. An interesting effect of this is that as the
+   * camera gets closer, the object gets *smaller*. This gives a nice "pushing
+   * out of the way effect" and also means that the object doesn't suddenly
+   * vanish, so handle the case appropriately and adapt to OpenGL by taking the
+   * absolute value before we pass it in.
+   */
   size = zo_scale(spec->screen_width, weight);
   if (!size || size > 65536) return;
 
@@ -227,7 +234,7 @@ void glbrush_draw_point(glbrush_accum* accum, const glbrush_spec* spec,
   vertices[0].v[2] = where[2];
   vertices[0].parms[0] = txxoff;
   vertices[0].parms[1] = txyoff;
-  vertices[0].parms[2] = size;
+  vertices[0].parms[2] = abs(size);
 }
 
 static void glbrush_activate_line(glbrush_handle* handle) {
