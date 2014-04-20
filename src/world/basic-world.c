@@ -181,32 +181,32 @@ void basic_world_bmp_dump(FILE* out, const basic_world* this) {
     (unsigned char)(file_size >>  0),
     (unsigned char)(file_size >>  8),
     (unsigned char)(file_size >> 16),
-    (unsigned char)(file_size >> 24), //File size
-    0, 0, 0, 0, //Zero
-    0x44, 0, 0, 0, //Offset
-    0x28, 0, 0, 0, //Header size / BITMAPINFOHEADER
+    (unsigned char)(file_size >> 24), /* File size */
+    0, 0, 0, 0, /* Zero */
+    0x44, 0, 0, 0, /* Offset */
+    0x28, 0, 0, 0, /* Header size / BITMAPINFOHEADER */
     (unsigned char)(this->xmax >>  0),
     (unsigned char)(this->xmax >>  8),
     (unsigned char)(this->xmax >> 16),
-    (unsigned char)(this->xmax >> 24), //Width
+    (unsigned char)(this->xmax >> 24), /* Width */
     (unsigned char)(this->zmax >>  0),
     (unsigned char)(this->zmax >>  8),
     (unsigned char)(this->zmax >> 16),
-    (unsigned char)(this->zmax >> 24), //height
-    0x01, 0x00, 0x20, 0x00, //Planes, BPP
-    3, 0, 0, 0, //Compression
+    (unsigned char)(this->zmax >> 24), /* height */
+    0x01, 0x00, 0x20, 0x00, /* Planes, BPP */
+    3, 0, 0, 0, /* Compression */
     (unsigned char)(image_size >>  0),
     (unsigned char)(image_size >>  8),
     (unsigned char)(image_size >> 16),
-    (unsigned char)(image_size >> 24), //Image size
-    0x00, 0x10, 0x00, 0x00, //Horiz res
-    0x00, 0x10, 0x00, 0x00, //Vert res
-    0, 0, 0, 0, //Palette size
-    0, 0, 0, 0, //Important colours
-    0xFF, 0x00, 0x00, 0x00, //Red mask
-    0x00, 0xFF, 0x00, 0x00, //Grn mask
-    0x00, 0x00, 0xFF, 0x00, //Blu mask
-    0x00, 0x00, //Gap
+    (unsigned char)(image_size >> 24), /* Image size */
+    0x00, 0x10, 0x00, 0x00, /* Horiz res */
+    0x00, 0x10, 0x00, 0x00, /* Vert res */
+    0, 0, 0, 0, /* Palette size */
+    0, 0, 0, 0, /* Important colours */
+    0xFF, 0x00, 0x00, 0x00, /* Red mask */
+    0x00, 0xFF, 0x00, 0x00, /* Grn mask */
+    0x00, 0x00, 0xFF, 0x00, /* Blu mask */
+    0x00, 0x00, /* Gap */
   };
   unsigned i, alt, r, g, b;
 
