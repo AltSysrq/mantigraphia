@@ -29,7 +29,11 @@
 #include <config.h>
 #endif
 
-#include "alloc.h"
+#include <stdio.h>
+
+#include "../bsd.h"
+
+#include "../alloc.h"
 #include "basic-world.h"
 #include "propped-world.h"
 
@@ -53,4 +57,48 @@ propped_world* propped_world_new(basic_world* terrain,
 void propped_world_delete(propped_world* this) {
   basic_world_delete(this->terrain);
   free(this);
+}
+
+propped_world* propped_world_deserialise(FILE* in) {
+  struct {
+    unsigned num_grass;
+    unsigned num_trees;
+  } size_info;
+  propped_world* this;
+
+  if (1 != fread(&size_info, sizeof(size_info), 1, in))
+    err(EX_OSERR, "Reading propped world");
+
+  this = propped_world_new(basic_world_deserialise(in),
+                           size_info.num_grass, size_info.num_trees);
+  if (1 != fread(this->grass.props, sizeof(world_prop)*this->grass.size, 1, in))
+    err(EX_OSERR, "Reading propped world");
+  if (1 != fread(this->trees[0].props, sizeof(world_prop)*this->trees[0].size, 1, in))
+    err(EX_OSERR, "Reading propped world");
+  if (1 != fread(this->trees[1].props, sizeof(world_prop)*this->trees[1].size, 1, in))
+    err(EX_OSERR, "Reading propped world");
+
+  return this;
+}
+
+void propped_world_serialise(FILE* out, const propped_world* this) {
+  struct {
+    unsigned num_grass;
+    unsigned num_trees;
+  } size_info = { this->grass.size, this->trees[0].size + this->trees[1].size };
+
+  if (1 != fwrite(&size_info, sizeof(size_info), 1, out))
+    goto error;
+  basic_world_serialise(out, this->terrain);
+  if (1 != fwrite(this->grass.props, sizeof(world_prop)*this->grass.size, 1, out))
+    goto error;
+  if (1 != fwrite(this->trees[0].props, sizeof(world_prop)*this->trees[0].size, 1, out))
+    goto error;
+  if (1 != fwrite(this->trees[1].props, sizeof(world_prop)*this->trees[1].size, 1, out))
+    goto error;
+
+  return;
+
+  error:
+  warn("Serialising propped world");
 }

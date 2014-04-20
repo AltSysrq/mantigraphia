@@ -147,10 +147,10 @@ void glbrush_hconfig(glbrush_handle* handle, const glbrush_handle_info* info) {
 void glbrush_hset(glbrush_handle** handle,
                   const glbrush_handle_info* info,
                   int permit_refresh) {
-  if (*handle)
-    glbrush_hconfig(*handle, info);
-  else if (permit_refresh)
+  if (!*handle)
     *handle = glbrush_hnew(info);
+  else if (permit_refresh)
+    glbrush_hconfig(*handle, info);
 }
 
 void glbrush_hdelete(glbrush_handle* handle) {

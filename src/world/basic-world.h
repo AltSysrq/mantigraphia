@@ -166,4 +166,18 @@ void basic_world_patch_next(basic_world*, coord x, coord z);
  */
 void basic_world_bmp_dump(FILE*, const basic_world*);
 
+/**
+ * Deserialises a basic_world from the given input file. The format of this
+ * file is undefined, and is both architecture- and compiler-specific. This
+ * function blindly trusts that everything works perfectly.
+ */
+basic_world* basic_world_deserialise(FILE*);
+/**
+ * Serialises the basic_world into the given output file. The format of this
+ * file is undefined, and is both architecture- and compiler-specific. If
+ * writing to the file fails, a diagnostic is printed. This file can
+ * potentially contain unrelated information about the process.
+ */
+void basic_world_serialise(FILE*, const basic_world*);
+
 #endif /* WORLD_BASIC_WORLD_H_ */

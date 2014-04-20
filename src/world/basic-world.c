@@ -263,3 +263,46 @@ void basic_world_bmp_dump(FILE* out, const basic_world* this) {
   fwrite(buffer, file_size, 1, out);
   free(buffer);
 }
+
+basic_world* basic_world_deserialise(FILE* in) {
+  struct {
+    coord xmax, zmax, xmin, zmin;
+  } size_info;
+  basic_world* this;
+
+  if (1 != fread(&size_info, sizeof(size_info), 1, in))
+    err(EX_OSERR, "Reading basic world");
+
+  this = basic_world_new(size_info.xmax, size_info.zmax,
+                         size_info.xmin, size_info.zmin);
+  if (1 != fread(this->tiles, sizeof(tile_info)*this->xmax*this->zmax, 1, in))
+    err(EX_OSERR, "Reading basic world");
+  basic_world_calc_next(this);
+  return this;
+}
+
+void basic_world_serialise(FILE* out, const basic_world* this) {
+  const basic_world* world;
+  struct {
+    coord xmax, zmax, xmin, zmin;
+  } size_info;
+
+  size_info.xmax = this->xmax;
+  size_info.zmax = this->zmax;
+  for (world = this; world; world = SLIST_NEXT(world, next)) {
+    size_info.xmin = world->xmax;
+    size_info.zmin = world->zmax;
+  }
+
+  if (1 != fwrite(&size_info, sizeof(size_info), 1, out))
+    goto error;
+
+  if (1 != fwrite(this->tiles, sizeof(tile_info)*this->xmax*this->zmax,
+                  1, out))
+    goto error;
+
+  return;
+
+  error:
+  warnx("Serialising basic world");
+}

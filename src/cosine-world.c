@@ -76,6 +76,7 @@ typedef struct {
   perspective proj;
 } cosine_world_state;
 
+static void deserialise(cosine_world_state*, FILE* in);
 static game_state* cosine_world_update(cosine_world_state*, chronon);
 static void cosine_world_predraw(cosine_world_state*, canvas*);
 static void cosine_world_draw(cosine_world_state*, canvas*);
@@ -107,11 +108,17 @@ game_state* cosine_world_new(unsigned seed) {
     0,0,0,0,
     0, 0, 0,
   };
+  FILE* in = fopen("/tmp/mantigraphia.dump", "rb");
 
   cosine_world_state* this = xmalloc(sizeof(cosine_world_state));
   memcpy(this, &template, sizeof(template));
 
-  cosine_world_init_world(this);
+  if (in) {
+    deserialise(this, in);
+    fclose(in);
+  } else {
+    cosine_world_init_world(this);
+  }
 
   mouselook_set(1);
 
@@ -234,6 +241,49 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   ump_join();
 }
 
+static void deserialise(cosine_world_state* this, FILE* in) {
+  cosine_world_state stored;
+
+  printf("Deserialising state from /tmp/mantigraphia.dump\n");
+
+  if (1 != fread(&stored, sizeof(stored), 1, in))
+    err(EX_OSERR, "Error deserialising");
+
+  /* It's more concise to replace non-stored stuff in stored then copy over,
+   * than it is to cherry-pick the stored items over.
+   */
+  stored.world = propped_world_deserialise(in);
+  stored.bg = this->bg;
+  stored.context = this->context;
+  stored.vtab = this->vtab;
+  stored.moving_forward = stored.moving_backward = 0;
+  stored.moving_left = stored.moving_right = 0;
+  stored.advancing_time = 0;
+  propped_world_delete(this->world);
+  memcpy(this, &stored, sizeof(stored));
+
+  printf("Deserialisation complete\n");
+}
+
+static void serialise(cosine_world_state* this) {
+  FILE* out = fopen("/tmp/mantigraphia.dump", "wb");
+  if (!out) {
+    warn("Unable to open dump file");
+    return;
+  }
+
+  if (1 != fwrite(this, sizeof(*this), 1, out)) {
+    warn("Error writing to dump file");
+    goto done;
+  }
+
+  propped_world_serialise(out, this->world);
+  printf("Dump written to /tmp/mantigraphia.dump\n");
+
+  done:
+  fclose(out);
+}
+
 static void cosine_world_key(cosine_world_state* this,
                              SDL_KeyboardEvent* evt) {
   int down = SDL_KEYDOWN == evt->type;
@@ -285,6 +335,10 @@ static void cosine_world_key(cosine_world_state* this,
 
   case SDLK_F12:
     this->advancing_time = down;
+    break;
+
+  case SDLK_RETURN:
+    serialise(this);
     break;
   }
 }

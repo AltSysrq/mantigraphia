@@ -28,6 +28,8 @@
 #ifndef WORLD_PROPPED_WORLD_H_
 #define WORLD_PROPPED_WORLD_H_
 
+#include <stdio.h>
+
 #include "basic-world.h"
 #include "props.h"
 
@@ -86,5 +88,19 @@ propped_world* propped_world_new(basic_world* terrain,
  * basic_world.
  */
 void propped_world_delete(propped_world*);
+
+/**
+ * Deserialises a propped_world from the given input file. The format of this
+ * file is undefined, and is both architecture- and compiler-specific. This
+ * function blindly trusts that everything works perfectly.
+ */
+propped_world* propped_world_deserialise(FILE*);
+/**
+ * Serialises the propped_world into the given output file. The format of this
+ * file is undefined, and is both architecture- and compiler-specific. If
+ * writing to the file fails, a diagnostic is printed. This file can
+ * potentially contain unrelated information about the process.
+ */
+void propped_world_serialise(FILE*, const propped_world*);
 
 #endif /* WORLD_PROPPED_WORLD_H_ */
