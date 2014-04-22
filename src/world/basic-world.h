@@ -120,7 +120,7 @@ typedef struct basic_world_s {
   /**
    * Tiles describing the world. The actual length of this array is xmax*zmax.
    */
-  tile_info tiles[1];
+  tile_info tiles[FLEXIBLE_ARRAY_MEMBER];
 } basic_world;
 
 /**

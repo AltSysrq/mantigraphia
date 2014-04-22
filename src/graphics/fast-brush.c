@@ -106,7 +106,7 @@ typedef struct {
    * The texture, as pallet indices. This is not written to during normal
    * operation, so it needs no particular alignment.
    */
-  unsigned char texture[1];
+  unsigned char texture[FLEXIBLE_ARRAY_MEMBER];
 } fast_brush;
 
 static void fast_brush_draw_line(fast_brush_accum*restrict,
