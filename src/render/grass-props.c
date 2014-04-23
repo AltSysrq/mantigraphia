@@ -113,7 +113,7 @@ void grass_props_context_set(rendering_context*restrict ctxt) {
     }
   }
 
-  info->base_height = METRE / 4;
+  info->base_height = METRE / 8;
   if (0 == CTXTINV(ctxt)->month_integral)
     info->base_height = fraction_umul(info->base_height,
                                       CTXTINV(ctxt)->month_fraction);
@@ -121,7 +121,7 @@ void grass_props_context_set(rendering_context*restrict ctxt) {
     info->base_height = fraction_umul(info->base_height,
                                       fraction_of(1) -
                                       CTXTINV(ctxt)->month_fraction);
-  info->base_height += METRE / 4;
+  info->base_height += METRE / 8;
 }
 
 void grass_props_context_dtor(rendering_context*restrict ctxt) {
@@ -180,7 +180,7 @@ static void render_grass_prop_simple(const world_prop* this,
   base[1] = terrain_base_y(world, this->x, this->z);
   tip[1] = base[1] +
     (grass_props_get(context)->base_height +
-     METRE/2 * this->variant / 256) * level / 64;
+     METRE/4 * this->variant / 256) * level / 64;
 
   if (!perspective_proj(pbase, base, proj) ||
       !perspective_proj(ptip, tip, proj))
