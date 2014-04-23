@@ -38,6 +38,7 @@ world/terrain.c \
 world/props.c \
 world/propped-world.c \
 world/generate.c \
+world/hspace.c \
 render/turtle.c \
 render/context.c \
 render/terrabuff.c \
