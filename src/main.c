@@ -60,6 +60,7 @@
 #include "graphics/brush.h"
 #include "graphics/fast-brush.h"
 #include "graphics/glbrush.h"
+#include "graphics/glpencil.h"
 #include "gl/marshal.h"
 #include "control/mouselook.h"
 #include "render/terrabuff.h"
@@ -266,6 +267,7 @@ int main(int argc, char** argv) {
   brush_load();
   fast_brush_load();
   glbrush_load();
+  glpencil_load();
   mouselook_init(screen);
   terrabuff_init();
   tree_props_init();

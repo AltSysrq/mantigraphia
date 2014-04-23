@@ -73,6 +73,10 @@ typedef struct {
    * need to determine pixel sizes but do not render directly to a canvas.
    */
   unsigned screen_width;
+  /**
+   * The total height of the screen, in pixels.
+   */
+  unsigned screen_height;
 } rendering_context_invariant;
 
 /**

@@ -33,10 +33,17 @@
 #include "canvas.h"
 
 /**
+ * Initialises static OpenGL data used by the glpencil. This must be called
+ * exactly once before any other glpencil function.
+ */
+void glpencil_load(void);
+
+/**
  * The glpencil uses OpenGL to draw simple points and lines.
  *
- * Points are drawn as circles. Lines are not antialiased and will have hard
- * edges and endpoints. Weights passed to drawing functions have no effect.
+ * Points are drawn as circles. Lines are not antialiased, but are drawn to
+ * resemble pencil/pen strokes. Weights passed to drawing functions have no
+ * effect.
  *
  * glpencils do not have accumulators; the drawing method implementations
  * ignore the accum parameter.
@@ -78,6 +85,10 @@ typedef struct {
    * OpenGL.
    */
   float thickness;
+  /**
+   * The height of the OpenGL viewport, in pixels.
+   */
+  unsigned viewport_height;
 } glpencil_handle_info;
 
 /**

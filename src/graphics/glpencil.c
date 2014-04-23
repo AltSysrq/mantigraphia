@@ -32,9 +32,31 @@
 #include <glew.h>
 
 #include "../alloc.h"
+#include "../defs.h"
 #include "../gl/marshal.h"
 #include "../gl/shaders.h"
 #include "glpencil.h"
+
+static const unsigned char thickness_texdata[64] = {
+  000, 160, 220, 255, 220, 217, 216, 215,
+  214, 213, 212, 211, 210, 209, 208, 207,
+  206, 205, 204, 203, 202, 201, 200, 199,
+  198, 197, 196, 195, 194, 193, 190, 187,
+  183, 179, 174, 170, 166, 162, 158, 155,
+  152, 149, 146, 143, 141, 139, 137, 135,
+  133, 132, 131, 130, 129, 128, 128, 128,
+  128, 128, 128, 160, 196, 160, 128,   0,
+};
+
+static GLuint thickness_tex;
+
+void glpencil_load(void) {
+  glGenTextures(1, &thickness_tex);
+  glBindTexture(GL_TEXTURE_2D, thickness_tex);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
+               lenof(thickness_texdata), 1, 0,
+               GL_RED, GL_UNSIGNED_BYTE, thickness_texdata);
+}
 
 struct glpencil_handle_s {
   glpencil_handle_info info;
@@ -53,7 +75,7 @@ glpencil_handle* glpencil_hnew(const glpencil_handle_info* info) {
     (void(*)(void*))glpencil_line_activate,
     (void(*)(void*))glpencil_line_deactivate,
     this,
-    shader_solid_configure_vbo, sizeof(shader_solid_vertex));
+    shader_pencil_configure_vbo, sizeof(shader_pencil_vertex));
   glm_slab_group_set_primitive(this->line_group, GL_LINES);
   glm_slab_group_set_indices_enabled(this->line_group, 0);
   this->point_group = glm_slab_group_new(
@@ -86,10 +108,20 @@ void glpencil_init(glpencil_spec* spec, glpencil_handle* handle) {
 }
 
 static void glpencil_line_activate(glpencil_handle* this) {
+  shader_pencil_uniform uniform;
+
   glPushAttrib(GL_LINE_BIT | GL_TEXTURE_BIT);
-  glDisable(GL_TEXTURE_2D);
   glLineWidth(this->info.thickness);
-  shader_solid_activate(NULL);
+  glBindTexture(GL_TEXTURE_2D, thickness_tex);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+  uniform.thickness_tex = 0;
+  uniform.line_thickness = this->info.thickness;
+  uniform.viewport_height = this->info.viewport_height;
+  shader_pencil_activate(&uniform);
 }
 
 static void glpencil_line_deactivate(glpencil_handle* this) {
@@ -124,7 +156,7 @@ void glpencil_draw_point(void* accum_ignore, const glpencil_spec* spec,
 void glpencil_draw_line(void* accum_ignore, const glpencil_spec* spec,
                         const vo3 from, zo_scaling_factor from_weight_ignore,
                         const vo3 to, zo_scaling_factor to_weight_ignore) {
-  shader_solid_vertex* vertices;
+  shader_pencil_vertex* vertices;
 
   (void)GLM_ALLOC(&vertices, NULL, spec->line_slab, 2, 0);
   vertices[0].v[0] = from[0];
@@ -136,5 +168,7 @@ void glpencil_draw_line(void* accum_ignore, const glpencil_spec* spec,
   memcpy(vertices[0].colour, spec->colour, sizeof(float)*3);
   memcpy(vertices[1].colour, spec->colour, sizeof(float)*3);
   vertices[0].colour[3] = 1.0f;
+  vertices[0].tcoord[0] = 0.0f;
   vertices[1].colour[3] = 1.0f;
+  vertices[1].tcoord[0] = 1.0f;
 }

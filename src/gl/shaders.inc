@@ -34,6 +34,8 @@ shader_source(fsplotch)
 shader_source(vsplotch)
 shader_source(vgenericctc)
 shader_source(fpointcircle)
+shader_source(vpencil)
+shader_source(fpencil)
 
 shader(fixed_texture) {
   fixed_function
@@ -81,4 +83,13 @@ shader(pointcircle) {
   composed_of(fpointcircle, vgenericctc)
   with_colour
   no_uniforms
+}
+
+shader(pencil) {
+  composed_of(fpencil, vpencil)
+  with_colour
+  attrib(1, tcoord)
+  uniform(tex2d, thickness_tex)
+  uniform(float, line_thickness)
+  uniform(float, viewport_height)
 }

@@ -213,6 +213,7 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   context_inv.proj = proj;
   context_inv.long_yrot = this->look.yrot;
   context_inv.screen_width = dst->w;
+  context_inv.screen_height = dst->h;
   context_inv.now = this->now;
   context_inv.month_integral = this->month_integral;
   context_inv.month_fraction = this->month_fraction;

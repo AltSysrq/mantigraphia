@@ -97,7 +97,8 @@ void grass_props_context_set(rendering_context*restrict ctxt) {
   glbrush_handle_info brush;
   grass_props_context_info* info = grass_props_getm(ctxt);
   glpencil_handle_info pencil = {
-    CTXTINV(ctxt)->screen_width / 640
+    CTXTINV(ctxt)->screen_width / 640,
+    CTXTINV(ctxt)->screen_height
   };
 
   info->thickness = pencil.thickness;
