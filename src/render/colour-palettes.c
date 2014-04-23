@@ -302,13 +302,13 @@ static const unsigned cherry_trunk_palettes[10][10] = {
 };
 
 static const unsigned grass_basic_colours[10] = {
-  /* M */ 0x18500F,
-  /* A */ 0x18500F,
-  /* M */ 0x207018,
-  /* J */ 0x207018,
-  /* J */ 0x20500F,
-  /* A */ 0x285018,
-  /* S */ 0x345018,
+  /* M */ 0x18400F,
+  /* A */ 0x18400F,
+  /* M */ 0x205818,
+  /* J */ 0x205818,
+  /* J */ 0x20400F,
+  /* A */ 0x284018,
+  /* S */ 0x344818,
   /* O */ 0x405018,
   /* N */ 0x405020,
   /* D */ 0xdddddd,
@@ -332,7 +332,7 @@ static void generate_data(void) {
   for (month = 0; month < 10; ++month) {
     base = grass_basic_colours[month];
     for (entry = 0; entry < NUM_GRASS_COLOUR_VARIANTS; ++entry) {
-      adj = lcgrand(&rand) & 0x1F1F1F;
+      adj = lcgrand(&rand) & 0x1F1F0F;
       colour = base + adj - 0x0F0F0F;
       grass_palettes[month][entry][0] = colour;
       grass_palettes[month][entry][1] = ((colour >> 3) & 0x1F1F1F) +
