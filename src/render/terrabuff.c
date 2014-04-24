@@ -425,7 +425,7 @@ static void render_rectangle_between(glm_slab* slab,
                                      const screen_yz*restrict lower,
                                      unsigned xmax,
                                      float hmap_y) {
-  unsigned ymin = 65536, ymax = 0;
+  unsigned ymin = 65536, ymax = 0, mixing;
   signed x0, x1, x;
   shader_terrabuff_vertex* vertices;
   unsigned short* indices, base;
@@ -440,18 +440,23 @@ static void render_rectangle_between(glm_slab* slab,
     if (lower[x].y > ymax) ymax = lower[x].y;
   }
 
+  if (ymin < ymax)
+    mixing = ymax - ymin;
+  else
+    mixing = 0;
+
   base = GLM_ALLOC(&vertices, &indices, slab, 4, 6);
   vertices[0].v[0] = l->where[0];
   vertices[0].v[1] = ymin;
   vertices[0].v[2] = l->where[2];
   vertices[1].v[0] = l->where[0];
-  vertices[1].v[1] = ymax + terrabuff_uniform.line_thickness;
+  vertices[1].v[1] = ymax + terrabuff_uniform.line_thickness + mixing;
   vertices[1].v[2] = l->where[2];
   vertices[2].v[0] = r->where[0];
   vertices[2].v[1] = ymin;
   vertices[2].v[2] = r->where[2];
   vertices[3].v[0] = r->where[0];
-  vertices[3].v[1] = ymax + terrabuff_uniform.line_thickness;
+  vertices[3].v[1] = ymax + terrabuff_uniform.line_thickness + mixing;
   vertices[3].v[2] = r->where[2];
   vertices[0].tc[0] = vertices[1].tc[0] = l->where[0] / (float)xmax;
   vertices[2].tc[0] = vertices[3].tc[0] = r->where[0] / (float)xmax;
