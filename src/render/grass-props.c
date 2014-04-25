@@ -31,6 +31,7 @@
 
 #include "../frac.h"
 #include "../defs.h"
+#include "../rand.h"
 #include "../graphics/glpencil.h"
 #include "../graphics/glbrush.h"
 #include "../graphics/perspective.h"
@@ -167,6 +168,9 @@ static void render_grass_prop_simple(const world_prop* this,
   const grass_props_context_info* info = grass_props_get(context);
   coord flower_size;
   fraction size_frac;
+  unsigned month_integral;
+  fraction month_fraction;
+  fraction month_offset;
   zo_scaling_factor flower_scale;
 
   glpencil_init(&pencil, info->pencil);
@@ -190,13 +194,34 @@ static void render_grass_prop_simple(const world_prop* this,
   glpencil_draw_line(NULL, &pencil, pbase, 0, ptip, 0);
   glpencil_flush(NULL, &pencil);
 
-  if (CTXTINV(context)->month_integral == flower_types[this->type-1].month ||
-      CTXTINV(context)->month_integral == flower_types[this->type-1].month+1) {
+  /* Stagger blooming +/- 0.25 month so that resizes don't affect all flowers
+   * simultaneously.
+   */
+  month_integral = CTXTINV(context)->month_integral;
+  month_fraction = CTXTINV(context)->month_fraction;
+  if (month_fraction >= fraction_of(4)) {
+    month_fraction -= fraction_of(4);
+  } else {
+    month_fraction += fraction_of(2) + fraction_of(4);
+    --month_integral;
+  }
+
+  month_offset = (chaos_of(chaos_accum(this->x, this->z))) %
+    fraction_of(2);
+  if (month_offset <= fraction_of(1) - month_fraction) {
+    month_fraction += month_offset;
+  } else {
+    ++month_integral;
+    month_fraction = month_fraction + month_offset - fraction_of(1);
+  }
+
+  if (month_integral == flower_types[this->type-1].month ||
+      month_integral == flower_types[this->type-1].month+1) {
     flower_size = flower_types[this->type-1].size;
-    if (CTXTINV(context)->month_integral == flower_types[this->type-1].month)
-      size_frac = CTXTINV(context)->month_fraction;
+    if (month_integral == flower_types[this->type-1].month)
+      size_frac = month_fraction;
     else
-      size_frac = fraction_of(1) - CTXTINV(context)->month_fraction;
+      size_frac = fraction_of(1) - month_fraction;
 
     flower_size = fraction_umul(flower_size, size_frac);
 
