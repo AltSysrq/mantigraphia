@@ -363,7 +363,7 @@ static const tree_spec cherry_tree = {
   tree_props_cherry_trunk_get,
   tree_props_cherry_leaves_get,
   4*METRE, METRE/64,
-  METRE/2, METRE/256,
+  METRE/2, METRE/1024,
   6*METRE, 32*METRE,
   fraction_of(12), fraction_of(2),
   fraction_of(4), fraction_of(4),
