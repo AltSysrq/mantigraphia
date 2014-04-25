@@ -4,7 +4,7 @@ uniform sampler2D thickness_tex;
 
 void main() {
   float desired_thickness = texture2D(thickness_tex,
-                                      gl_TexCoord[0].st)
+                                      gl_TexCoord[0].st).r
     * line_thickness;
   vec2 offset = gl_FragCoord.xy - line_centre;
   float distsq = offset.x*offset.x + offset.y*offset.y;
