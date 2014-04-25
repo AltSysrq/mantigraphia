@@ -63,6 +63,7 @@ typedef struct {
   int is_running;
   coord x, z;
   chronon now;
+  unsigned frame_no;
   mouselook_state look;
   parchment* bg;
   propped_world* world;
@@ -98,7 +99,7 @@ game_state* cosine_world_new(unsigned seed) {
     },
     seed,
     1,
-    0, 0, 0,
+    0, 0, 0, 0,
     { 0, 0 },
     parchment_new(),
     propped_world_new(
@@ -215,6 +216,7 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   context_inv.screen_width = dst->w;
   context_inv.screen_height = dst->h;
   context_inv.now = this->now;
+  context_inv.frame_no = this->frame_no++;
   context_inv.month_integral = this->month_integral;
   context_inv.month_fraction = this->month_fraction;
 

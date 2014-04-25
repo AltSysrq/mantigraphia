@@ -58,6 +58,11 @@ typedef struct {
    * The current chronon of the game being rendered.
    */
   chronon now;
+  /**
+   * The current frame number. Incremented by 1 every frame which is
+   * rendered. There is no particular correlation to `now`.
+   */
+  unsigned frame_no;
 
   /**
    * The "long" rotation of the camera; in other words, the total Y rotation

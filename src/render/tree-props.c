@@ -77,8 +77,10 @@ void tree_props_context_dtor(rendering_context*restrict context) {
 void tree_props_context_set(rendering_context*restrict context) {
   glbrush_handle_info info;
   const colour_palettes* palettes = get_colour_palettes(context);
-  /* Only refresh the textures 4 times per second */
-  int permit_refresh = !(CTXTINV(context)->now & 0xF);
+  /* Only refresh the textures 4 times per second (or less if at a lower
+   * framerate).
+   */
+  int permit_refresh = !(CTXTINV(context)->frame_no & 0xF);
 
   info.decay = 0.2f;
   info.noise = 0.75f;
