@@ -321,6 +321,14 @@ static void render_tree_prop_common(
       break;
 
     case 'A':
+      /* Because it is possible for additional points to be inserted or removed
+       * before this one when levels of detail change, we can't let each leaf
+       * gets its own random value, since that can cause "jumping" (especially
+       * of colour) when LOD changes. Instead, just force it to always be equal
+       * to the random seed. The trees generally look better when each has a
+       * consistent leaf colour anyway.
+       */
+      accum.rand = leaf_brush.random_seed;
       turtle_draw_point(&accum, &leaf_brush, turtle+depth,
                         spec->normal_leaf_size +
                         (base_level > 48? 0 :
@@ -331,6 +339,7 @@ static void render_tree_prop_common(
       break;
 
     case 'B':
+      accum.rand = leaf_brush.random_seed;
       turtle_draw_point(&accum, &leaf_brush, turtle+depth,
                         fraction_umul(
                           spec->normal_leaf_size +
