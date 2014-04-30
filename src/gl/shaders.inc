@@ -26,16 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-shader_source(fterrabuff)
-shader_source(vterrabuff)
 shader_source(fbrush)
-shader_source(vbrush)
-shader_source(fsplotch)
-shader_source(vsplotch)
-shader_source(vgenericctc)
-shader_source(fpointcircle)
-shader_source(vpencil)
 shader_source(fpencil)
+shader_source(fpointcircle)
+shader_source(fpostprocess)
+shader_source(fsplotch)
+shader_source(fterrabuff)
+shader_source(vbrush)
+shader_source(vgenerictc)
+shader_source(vgenericctc)
+shader_source(vpencil)
+shader_source(vsplotch)
+shader_source(vterrabuff)
 
 shader(fixed_texture) {
   fixed_function
@@ -92,4 +94,13 @@ shader(pencil) {
   uniform(tex2d, thickness_tex)
   uniform(float, line_thickness)
   uniform(float, viewport_height)
+}
+
+shader(postprocess) {
+  composed_of(fpostprocess, vgenerictc)
+  with_texture_coordinates
+  uniform(tex2d, framebuffer)
+  uniform(float, pocket_size_px)
+  uniform(vec2, pocket_size_scr)
+  uniform(vec2, px_offset)
 }

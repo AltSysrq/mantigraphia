@@ -62,6 +62,12 @@ void parchment_delete(parchment*);
 void parchment_draw(canvas*, const parchment*);
 
 /**
+ * Performs postprocessing against the OpenGL framebuffer, whose size is given
+ * by the given canvas.
+ */
+void parchment_postprocess(const canvas*);
+
+/**
  * Updates the transformation of the parchment according to the old and new
  * angle information. yaw is rotation about the Y axis; pitch is rotation about
  * the X axis (relative to the yaw).

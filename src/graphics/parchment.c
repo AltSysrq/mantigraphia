@@ -49,6 +49,7 @@
 #define PARCHMENT_FILE "share/extern/parchment.jpg"
 
 static GLuint texture;
+static GLuint postprocess_tex;
 static glm_slab_group* glmsg;
 static void parchment_activate(void*);
 
@@ -97,6 +98,8 @@ void parchment_init(void) {
   glmsg = glm_slab_group_new(parchment_activate, NULL, NULL,
                              shader_fixed_texture_configure_vbo,
                              sizeof(shader_fixed_texture_vertex));
+
+  glGenTextures(1, &postprocess_tex);
 }
 
 parchment* parchment_new(void) {
@@ -159,6 +162,40 @@ void parchment_draw(canvas* dst, const parchment* this) {
   }
 
   glm_finish_thread();
+}
+
+static void parchment_do_postprocess(const canvas* canv) {
+  shader_postprocess_uniform uniform;
+  uniform.framebuffer = 0;
+  uniform.pocket_size_px = 4;
+  uniform.pocket_size_scr[0] = 4.0f / canv->w;
+  uniform.pocket_size_scr[1] = 4.0f / canv->h;
+  uniform.px_offset[0] = 0.0f;
+  uniform.px_offset[1] = 0.0f;
+
+  glBindTexture(GL_TEXTURE_2D, postprocess_tex);
+  glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, canv->w, canv->h, 0);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  shader_postprocess_activate(&uniform);
+  shader_postprocess_configure_vbo();
+
+  glBegin(GL_QUADS);
+  glVertex2f(0.0f, 0.0f);
+  glTexCoord2f(1.0f, 1.0f);
+  glVertex2f(canv->w, 0.0f);
+  glTexCoord2f(1.0f, 0.0f);
+  glVertex2f(canv->w, canv->h);
+  glTexCoord2f(0.0f, 0.0f);
+  glVertex2f(0.0f, canv->h);
+  glTexCoord2f(0.0f, 1.0f);
+  glEnd();
+}
+
+void parchment_postprocess(const canvas* canv) {
+  glm_do((void(*)(void*))parchment_do_postprocess, (void*)canv);
 }
 
 void parchment_xform(parchment* this,
