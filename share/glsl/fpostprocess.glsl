@@ -27,12 +27,12 @@ void main() {
                          gl_TexCoord[0].st +
                          vec2(float(x),float(y)) * 4.0f
                          * blur_size);
-      if (intensity(colour) > intensity(colour))
+      if (intensity(sample) > intensity(other))
         other = sample;
     }
   }
 
-  colour = (colour + sample) / 2.0f;
+  colour = colour*0.75f + other*0.25f;
 
   gl_FragColor = colour * (0.8f + 0.2f*pocket_factor);
 }
