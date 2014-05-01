@@ -85,8 +85,9 @@ void terrain_basic_normal(vo3 normal, const basic_world*, coord tx, coord tz);
  * each tile's origin.
  *
  * The return value contains four 32-bit integers representing red, green, and
- * blue, respectively, ranging between 0 and 255, inclusive. The fourth integer
- * has no particular value.
+ * blue, and "alpha", respectively, ranging between 0 and 255,
+ * inclusive. "Alpha" is zero for terrain that should be outlined, and varying
+ * values of non-zero for terrain that should not be outlined.
  *
  * The given palette determines the base colours for each tile type, and must
  * be compatible with the `terrain` field of the colour_palettes struct.

@@ -28,6 +28,12 @@ void main() {
   if (high >= low &&
       screen_coords.y >= high &&
       screen_coords.y < high + thickness) {
+    /* Discard the lines if the alpha channel indicates that lines are
+     * undesirable here.
+     */
+    if (rel * gl_Color.a + (1.0f-rel) * gl_SecondaryColor.a > 0.25f)
+      discard;
+
     gl_FragColor = vec4(0.05, 0.05, 0.05, 1.0);
   } else if (screen_coords.y > low &&
              screen_coords.y <= low + mixing) {

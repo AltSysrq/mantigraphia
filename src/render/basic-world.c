@@ -97,7 +97,7 @@ static void put_point(terrabuff* dst, const vc3 centre,
   coord tx, tz;
   coord_offset sox, soz;
   unsigned long long altitude_sum = 0;
-  unsigned red_sum = 0, green_sum = 0, blue_sum = 0;
+  unsigned red_sum = 0, green_sum = 0, blue_sum = 0, alpha_sum = 0;
   unsigned sample_cnt = 0;
   simd4 colour;
   int clamped = 0;
@@ -122,6 +122,7 @@ static void put_point(terrabuff* dst, const vc3 centre,
       red_sum   += simd_vs(colour, 0);
       green_sum += simd_vs(colour, 1);
       blue_sum  += simd_vs(colour, 2);
+      alpha_sum += simd_vs(colour, 3);
       ++sample_cnt;
     }
   }
@@ -145,8 +146,8 @@ static void put_point(terrabuff* dst, const vc3 centre,
     projected[1] = 65536;
 
   terrabuff_put(dst, projected,
-                argb(255, red_sum / sample_cnt, green_sum / sample_cnt,
-                     blue_sum / sample_cnt),
+                argb(alpha_sum / sample_cnt, red_sum / sample_cnt,
+                     green_sum / sample_cnt, blue_sum / sample_cnt),
                 xmax);
 }
 
