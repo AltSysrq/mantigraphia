@@ -72,7 +72,8 @@ typedef struct {
   int moving_forward, moving_backward, moving_left, moving_right;
   unsigned month_integral;
   fraction month_fraction;
-  int advancing_time;
+  int advancing_time, sprinting;
+  coord_offset camera_y_off;
 
   perspective proj;
 } cosine_world_state;
@@ -107,7 +108,8 @@ game_state* cosine_world_new(unsigned seed) {
       NUM_GRASS, NUM_TREES),
     rendering_context_new(),
     0,0,0,0,
-    0, 0, 0,
+    0,0,0,0,
+    2 * METRE
   };
   FILE* in = fopen("/tmp/mantigraphia.dump", "rb");
 
@@ -162,26 +164,27 @@ static void cosine_world_init_world(cosine_world_state* this) {
 
 #define SPEED (4*METRES_PER_SECOND)
 static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
+  velocity speed = SPEED * (this->sprinting? 8 : 1);
   this->now += et;
 
   if (this->moving_forward) {
-    this->x -= zo_sinms(this->look.yrot, et * SPEED);
-    this->z -= zo_cosms(this->look.yrot, et * SPEED);
+    this->x -= zo_sinms(this->look.yrot, et * speed);
+    this->z -= zo_cosms(this->look.yrot, et * speed);
   }
 
   if (this->moving_backward) {
-    this->x += zo_sinms(this->look.yrot, et * SPEED);
-    this->z += zo_cosms(this->look.yrot, et * SPEED);
+    this->x += zo_sinms(this->look.yrot, et * speed);
+    this->z += zo_cosms(this->look.yrot, et * speed);
   }
 
   if (this->moving_left) {
-    this->x -= zo_cosms(this->look.yrot, et * SPEED);
-    this->z += zo_sinms(this->look.yrot, et * SPEED);
+    this->x -= zo_cosms(this->look.yrot, et * speed);
+    this->z += zo_sinms(this->look.yrot, et * speed);
   }
 
   if (this->moving_right) {
-    this->x += zo_cosms(this->look.yrot, et * SPEED);
-    this->z -= zo_sinms(this->look.yrot, et * SPEED);
+    this->x += zo_cosms(this->look.yrot, et * speed);
+    this->z -= zo_sinms(this->look.yrot, et * speed);
   }
   this->x &= this->world->terrain->xmax*TILE_SZ - 1;
   this->z &= this->world->terrain->zmax*TILE_SZ - 1;
@@ -222,7 +225,7 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
 
   proj->camera[0] = this->x;
   proj->camera[1] = terrain_base_y(this->world->terrain, this->x, this->z) +
-                    2*METRE;
+                    this->camera_y_off;
   proj->camera[2] = this->z;
   proj->torus_w = this->world->terrain->xmax * TILE_SZ;
   proj->torus_h = this->world->terrain->zmax * TILE_SZ;
@@ -341,9 +344,24 @@ static void cosine_world_key(cosine_world_state* this,
     this->advancing_time = down;
     break;
 
+  case SDLK_LSHIFT:
+  case SDLK_RSHIFT:
+    this->sprinting = down;
+    break;
+
   case SDLK_RETURN:
     if (down)
       serialise(this);
+    break;
+
+  case SDLK_PAGEUP:
+    if (down)
+      this->camera_y_off += METRE/2;
+    break;
+
+  case SDLK_PAGEDOWN:
+    if (down)
+      this->camera_y_off -= METRE/2;
     break;
   }
 }
