@@ -65,7 +65,7 @@ void parchment_draw(canvas*, const parchment*);
  * Performs postprocessing against the OpenGL framebuffer, whose size is given
  * by the given canvas.
  */
-void parchment_postprocess(const canvas*);
+void parchment_postprocess(const parchment*, const canvas*);
 
 /**
  * Updates the transformation of the parchment according to the old and new

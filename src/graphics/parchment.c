@@ -164,17 +164,25 @@ void parchment_draw(canvas* dst, const parchment* this) {
   glm_finish_thread();
 }
 
-static void parchment_do_postprocess(const canvas* canv) {
+struct parchment_postprocess {
+  const parchment* this;
+  const canvas* canv;
+};
+
+static void parchment_do_postprocess(struct parchment_postprocess* d) {
   shader_postprocess_uniform uniform;
   uniform.framebuffer = 0;
-  uniform.pocket_size_px = 4;
-  uniform.pocket_size_scr[0] = 4.0f / canv->w;
-  uniform.pocket_size_scr[1] = 4.0f / canv->h;
-  uniform.px_offset[0] = 0.0f;
-  uniform.px_offset[1] = 0.0f;
+  /* We want these to be integer divisons so that the result is an integer, and
+   * the effect remains sharp (ie, to the pixel).
+   */
+  uniform.pocket_size_px = d->canv->w / 320;
+  uniform.px_offset[0] = ((signed)d->this->tx) / 1024;
+  uniform.px_offset[1] = - ((signed)d->this->ty) / 1024;
+  uniform.pocket_size_scr[0] = uniform.pocket_size_px / (float)d->canv->w;
+  uniform.pocket_size_scr[1] = uniform.pocket_size_px / (float)d->canv->h;
 
   glBindTexture(GL_TEXTURE_2D, postprocess_tex);
-  glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, canv->w, canv->h, 0);
+  glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, d->canv->w, d->canv->h, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -185,17 +193,24 @@ static void parchment_do_postprocess(const canvas* canv) {
   glBegin(GL_QUADS);
   glVertex2f(0.0f, 0.0f);
   glTexCoord2f(1.0f, 1.0f);
-  glVertex2f(canv->w, 0.0f);
+  glVertex2f(d->canv->w, 0.0f);
   glTexCoord2f(1.0f, 0.0f);
-  glVertex2f(canv->w, canv->h);
+  glVertex2f(d->canv->w, d->canv->h);
   glTexCoord2f(0.0f, 0.0f);
-  glVertex2f(0.0f, canv->h);
+  glVertex2f(0.0f, d->canv->h);
   glTexCoord2f(0.0f, 1.0f);
   glEnd();
+
+  free(d);
 }
 
-void parchment_postprocess(const canvas* canv) {
-  glm_do((void(*)(void*))parchment_do_postprocess, (void*)canv);
+void parchment_postprocess(const parchment* this, const canvas* canv) {
+  struct parchment_postprocess* d =
+    xmalloc(sizeof(struct parchment_postprocess));
+  d->this = this;
+  d->canv = canv;
+
+  glm_do((void(*)(void*))parchment_do_postprocess, d);
 }
 
 void parchment_xform(parchment* this,

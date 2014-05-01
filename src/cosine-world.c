@@ -242,7 +242,7 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   parchment_draw(dst, this->bg);
   render_propped_world(dst, this->world, this->context);
   ump_join();
-  parchment_postprocess(dst);
+  parchment_postprocess(this->bg, dst);
 }
 
 static void deserialise(cosine_world_state* this, FILE* in) {
