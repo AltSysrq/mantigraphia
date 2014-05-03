@@ -30,6 +30,7 @@ graphics/dm-proj.c \
 graphics/fast-brush.c \
 graphics/glbrush.c \
 graphics/glpencil.c \
+gl/glinfo.c \
 gl/shader_loader.c \
 gl/shaders.c \
 gl/marshal.c \

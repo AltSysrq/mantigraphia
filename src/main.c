@@ -61,6 +61,7 @@
 #include "graphics/fast-brush.h"
 #include "graphics/glbrush.h"
 #include "graphics/glpencil.h"
+#include "gl/glinfo.h"
 #include "gl/marshal.h"
 #include "control/mouselook.h"
 #include "render/terrabuff.h"
@@ -262,6 +263,7 @@ int main(int argc, char** argv) {
   glLoadIdentity();
 
   ump_init(SDL_GetCPUCount()-1);
+  glinfo_detect(wh);
   glm_init();
   parchment_init();
   brush_load();
