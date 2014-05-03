@@ -175,7 +175,7 @@ static void parchment_do_postprocess(struct parchment_postprocess* d) {
   /* We want these to be integer divisons so that the result is an integer, and
    * the effect remains sharp (ie, to the pixel).
    */
-  uniform.pocket_size_px = d->canv->w / 320;
+  uniform.pocket_size_px = d->canv->w / 426;
   uniform.px_offset[0] = ((signed)d->this->tx) / 1024;
   uniform.px_offset[1] = - ((signed)d->this->ty) / 1024;
   uniform.pocket_size_scr[0] = uniform.pocket_size_px / (float)d->canv->w;
