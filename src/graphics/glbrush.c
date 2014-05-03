@@ -37,6 +37,7 @@
 #include "../rand.h"
 #include "../gl/marshal.h"
 #include "../gl/shaders.h"
+#include "../gl/glinfo.h"
 #include "canvas.h"
 #include "linear-paint-tile.h"
 #include "glbrush.h"
@@ -46,7 +47,7 @@ static GLuint perlin_texture;
 #define TEXSZ 256
 
 struct glbrush_handle_s {
-  glm_slab_group* glmsg_line, * glmsg_point;
+  glm_slab_group* glmsg_line, * glmsg_point, * glmsg_poly_point;
   GLuint pallet_texture;
   float decay, noise;
 };
@@ -54,6 +55,7 @@ struct glbrush_handle_s {
 static void glbrush_activate_line(glbrush_handle*);
 static void glbrush_activate_point(glbrush_handle*);
 static void glbrush_deactivate_point(glbrush_handle*);
+static void glbrush_activate_poly_point(glbrush_handle*);
 
 void glbrush_load(void) {
   canvas* canv, * brush;
@@ -130,6 +132,12 @@ glbrush_handle* glbrush_hnew(const glbrush_handle_info* info) {
   glm_slab_group_set_primitive(handle->glmsg_point, GL_POINTS);
   glm_slab_group_set_indices_enabled(handle->glmsg_point, 0);
 
+  handle->glmsg_poly_point = glm_slab_group_new(
+    (void(*)(void*))glbrush_activate_poly_point,
+    NULL, handle,
+    shader_poly_splotch_configure_vbo,
+    sizeof(shader_poly_splotch_vertex));
+
   glbrush_hconfig(handle, info);
   return handle;
 }
@@ -169,11 +177,10 @@ void glbrush_init(glbrush_spec* this, glbrush_handle* handle) {
   this->meth.flush      = (drawing_method_flush_t)     glbrush_flush;
   this->line_slab = glm_slab_get(handle->glmsg_line);
   this->point_slab = glm_slab_get(handle->glmsg_point);
+  this->point_poly_slab = glm_slab_get(handle->glmsg_poly_point);
 }
 
-static void glbrush_activate_point(glbrush_handle* handle) {
-  shader_splotch_uniform uniform;
-
+static void glbrush_activate_point_common(glbrush_handle* handle) {
   glBindTexture(GL_TEXTURE_2D, perlin_texture);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -186,6 +193,12 @@ static void glbrush_activate_point(glbrush_handle* handle) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
   glActiveTexture(GL_TEXTURE0);
+}
+
+static void glbrush_activate_point(glbrush_handle* handle) {
+  shader_splotch_uniform uniform;
+
+  glbrush_activate_point_common(handle);
 
   glPushAttrib(GL_ENABLE_BIT | GL_POINT_BIT);
   glEnable(GL_POINT_SPRITE);
@@ -205,6 +218,17 @@ static void glbrush_activate_point(glbrush_handle* handle) {
   shader_splotch_activate(&uniform);
 }
 
+static void glbrush_activate_poly_point(glbrush_handle* handle) {
+  shader_poly_splotch_uniform uniform;
+
+  glbrush_activate_point_common(handle);
+
+  uniform.tex = 0;
+  uniform.pallet = 1;
+  uniform.noise = handle->noise;
+  shader_poly_splotch_activate(&uniform);
+}
+
 static void glbrush_deactivate_point(glbrush_handle* handle) {
   glPopAttrib();
 }
@@ -212,6 +236,8 @@ static void glbrush_deactivate_point(glbrush_handle* handle) {
 void glbrush_draw_point(glbrush_accum* accum, const glbrush_spec* spec,
                         const vo3 where, zo_scaling_factor weight) {
   shader_splotch_vertex* vertices;
+  shader_poly_splotch_vertex* pvertices;
+  unsigned short base, * indices;
   signed size;
   float txxoff, txyoff;
 
@@ -228,13 +254,62 @@ void glbrush_draw_point(glbrush_accum* accum, const glbrush_spec* spec,
   size = zo_scale(spec->screen_width, weight);
   if (!size || size > 65536) return;
 
-  (void)GLM_ALLOC(&vertices, NULL, spec->point_slab, 1, 0);
-  vertices[0].v[0] = where[0];
-  vertices[0].v[1] = where[1];
-  vertices[0].v[2] = where[2];
-  vertices[0].parms[0] = txxoff;
-  vertices[0].parms[1] = txyoff;
-  vertices[0].parms[2] = abs(size);
+  /* Draw point sprites if possible, as that's much faster, but we must
+   * sometimes fall back on polygons.
+   */
+  if ((unsigned)abs(size) < max_point_size &&
+      (can_draw_offscreen_points ||
+       (where[0] >= 0 && where[0] < (signed)spec->screen_width &&
+        where[1] >= 0 && where[1] < (signed)spec->screen_height))) {
+    (void)GLM_ALLOC(&vertices, NULL, spec->point_slab, 1, 0);
+    vertices[0].v[0] = where[0];
+    vertices[0].v[1] = where[1];
+    vertices[0].v[2] = where[2];
+    vertices[0].parms[0] = txxoff;
+    vertices[0].parms[1] = txyoff;
+    vertices[0].parms[2] = abs(size);
+  } else {
+    /* We need to fall back on polygons */
+    base = GLM_ALLOC(&pvertices, &indices, spec->point_poly_slab, 4, 6);
+    pvertices[0].v[0] = where[0] - size/2;
+    pvertices[0].v[1] = where[1] - size/2;
+    pvertices[0].v[2] = where[2];
+    pvertices[0].tc[0] = 0.0f;
+    pvertices[0].tc[1] = 0.0f;
+    pvertices[0].parms[0] = txxoff;
+    pvertices[0].parms[1] = txyoff;
+    pvertices[0].parms[2] = abs(size);
+    pvertices[1].v[0] = where[0] + size/2;
+    pvertices[1].v[1] = where[1] - size/2;
+    pvertices[1].v[2] = where[2];
+    pvertices[1].tc[0] = 1.0f;
+    pvertices[1].tc[1] = 0.0f;
+    pvertices[1].parms[0] = txxoff;
+    pvertices[1].parms[1] = txyoff;
+    pvertices[1].parms[2] = abs(size);
+    pvertices[2].v[0] = where[0] - size/2;
+    pvertices[2].v[1] = where[1] + size/2;
+    pvertices[2].v[2] = where[2];
+    pvertices[2].tc[0] = 0.0f;
+    pvertices[2].tc[1] = 1.0f;
+    pvertices[2].parms[0] = txxoff;
+    pvertices[2].parms[1] = txyoff;
+    pvertices[2].parms[2] = abs(size);
+    pvertices[3].v[0] = where[0] + size/2;
+    pvertices[3].v[1] = where[1] + size/2;
+    pvertices[3].v[2] = where[2];
+    pvertices[3].tc[0] = 1.0f;
+    pvertices[3].tc[1] = 1.0f;
+    pvertices[3].parms[0] = txxoff;
+    pvertices[3].parms[1] = txyoff;
+    pvertices[3].parms[2] = abs(size);
+    indices[0] = base + 0;
+    indices[1] = base + 1;
+    indices[2] = base + 2;
+    indices[3] = base + 1;
+    indices[4] = base + 2;
+    indices[5] = base + 3;
+  }
 }
 
 static void glbrush_activate_line(glbrush_handle* handle) {

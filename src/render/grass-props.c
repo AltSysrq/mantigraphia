@@ -231,6 +231,7 @@ static void render_grass_prop_simple(const world_prop* this,
     brush.texoff = brush.base_distance = 0;
     baccum.rand = brush.random_seed = this->variant;
     brush.screen_width = CTXTINV(context)->screen_width;
+    brush.screen_height = CTXTINV(context)->screen_height;
     baccum.distance = 0;
     flower_scale = dm_proj_calc_weight(brush.screen_width, proj,
                                        ptip[2], flower_size);

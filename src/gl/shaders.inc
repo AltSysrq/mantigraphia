@@ -31,12 +31,14 @@ shader_source(fpencil)
 shader_source(fpointcircle)
 shader_source(fpostprocess)
 shader_source(fsplotch)
+shader_source(fsplotch_poly)
 shader_source(fterrabuff)
 shader_source(vbrush)
 shader_source(vgenerictc)
 shader_source(vgenericctc)
 shader_source(vpencil)
 shader_source(vsplotch)
+shader_source(vsplotch_poly)
 shader_source(vterrabuff)
 
 shader(fixed_texture) {
@@ -75,6 +77,15 @@ shader(brush) {
 
 shader(splotch) {
   composed_of(fsplotch, vsplotch)
+  attrib(3, parms)
+  uniform(tex2d, tex)
+  uniform(tex2d, pallet)
+  uniform(float, noise)
+}
+
+shader(poly_splotch) {
+  composed_of(fsplotch_poly, vsplotch_poly)
+  with_texture_coordinates
   attrib(3, parms)
   uniform(tex2d, tex)
   uniform(tex2d, pallet)

@@ -73,11 +73,15 @@ typedef struct {
    */
   unsigned screen_width;
   /**
+   * The logical height, in pixels, of the screen.
+   */
+  unsigned screen_height;
+  /**
    * The slabs to which drawing operations will occur.
    *
    * Initialised by glbrush_init().
    */
-  glm_slab* line_slab, * point_slab;
+  glm_slab* line_slab, * point_slab, * point_poly_slab;
 } glbrush_spec;
 
 /**

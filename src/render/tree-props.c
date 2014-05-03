@@ -211,12 +211,14 @@ static void render_tree_prop_common(
   trunk_brush.xscale = spec->trunk_xscale;
   trunk_brush.yscale = spec->trunk_yscale;
   trunk_brush.screen_width = screen_width;
+  trunk_brush.screen_height = CTXTINV(context)->screen_height;
   trunk_brush.base_distance = accum.distance;
   trunk_brush.random_seed = accum.rand;
   glbrush_init(&leaf_brush, *(*spec->leaves_get)(context));
   leaf_brush.xscale = spec->leaf_xscale;
   leaf_brush.yscale = spec->leaf_yscale;
   leaf_brush.screen_width = screen_width;
+  leaf_brush.screen_height = CTXTINV(context)->screen_height;
   leaf_brush.base_distance = 0;
   leaf_brush.random_seed = accum.rand;
 
