@@ -33,6 +33,7 @@
 
 #include <glew.h>
 
+#include "../bsd.h"
 #include "glinfo.h"
 
 unsigned max_point_size;
@@ -41,6 +42,7 @@ int can_draw_offscreen_points;
 void glinfo_detect(unsigned wh) {
   float point_size[2];
   unsigned pixel;
+  int max_vertex_texture_image_units;
 
   glGetFloatv(GL_POINT_SIZE_RANGE, point_size);
   max_point_size = point_size[1 /* maximum */];
@@ -63,6 +65,14 @@ void glinfo_detect(unsigned wh) {
 
   glPopAttrib();
 
+  max_vertex_texture_image_units = -1;
+  glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &max_vertex_texture_image_units);
+
   printf("GL info: max point size = %d; off screen point support = %s\n",
          max_point_size, can_draw_offscreen_points? "yes" : "no");
+  printf("Max vertex texture image units: %d\n", max_vertex_texture_image_units);
+  if (max_vertex_texture_image_units < 1)
+    errx(EX_OSERR,
+         "Your graphics card's OpenGL implementation does not support "
+         "use of textures in vertex shaders.");
 }
