@@ -36,6 +36,7 @@
 #include "../coords.h"
 #include "../rand.h"
 #include "../defs.h"
+#include "../micromp.h"
 #include "basic-world.h"
 #include "terrain.h"
 #include "grass-props.h"
@@ -339,14 +340,22 @@ static void create_path_to_from(basic_world* world, mersenne_twister* twister,
       world->tiles[i].elts[0].type = terrain_type_road << TERRAIN_SHADOW_BITS;
 }
 
+static unsigned* seasonal_flower_distributions[NUM_GRASS_SEASONAL_FLOWER_TYPES];
+static mersenne_twister prop_generation_twisters[64];
+static world_prop* props_task_dst;
+static const basic_world* props_task_world;
+static unsigned props_task_count;
+static void grass_generate_segment(unsigned,unsigned);
+static ump_task grass_generate_task = {
+  grass_generate_segment, 64, 0
+};
+
 void grass_generate(world_prop* props, unsigned count,
                     const basic_world* world, unsigned seed) {
-  mersenne_twister twister;
-  unsigned i, j, max;
-  coord x, z, wx, wz;
-  unsigned* seasonal_flower_distributions[NUM_GRASS_SEASONAL_FLOWER_TYPES];
+  unsigned i;
 
-  twister_seed(&twister, seed);
+  for (i = 0; i < 64; ++i)
+    twister_seed(prop_generation_twisters+i, lcgrand(&seed));
 
   seasonal_flower_distributions[0] = zxmalloc(
     NUM_GRASS_SEASONAL_FLOWER_TYPES * sizeof(unsigned) *
@@ -357,17 +366,33 @@ void grass_generate(world_prop* props, unsigned count,
       i * world->xmax * world->zmax;
 
     perlin_noise(seasonal_flower_distributions[i], world->xmax, world->zmax,
-                 world->xmax / 64, 256, twist(&twister));
+                 world->xmax / 64, 256, twist(prop_generation_twisters));
     perlin_noise(seasonal_flower_distributions[i], world->xmax, world->zmax,
-                 world->xmax / 32, 96, twist(&twister));
+                 world->xmax / 32, 96, twist(prop_generation_twisters));
     perlin_noise(seasonal_flower_distributions[i], world->xmax, world->zmax,
-                 world->xmax / 24, 16, twist(&twister));
+                 world->xmax / 24, 16, twist(prop_generation_twisters));
   }
 
-  for (i = 0; i < count; ++i) {
+  props_task_dst = props;
+  props_task_world = world;
+  props_task_count = count;
+  ump_run_sync(&grass_generate_task);
+
+  free(seasonal_flower_distributions[0]);
+}
+
+static void grass_generate_segment(unsigned ix, unsigned num_segments) {
+  unsigned i, j, max;
+  coord x, z, wx, wz;
+  mersenne_twister* twister = prop_generation_twisters + ix;
+  world_prop* props = props_task_dst;
+  const basic_world* world = props_task_world;
+  const unsigned count = props_task_count;
+
+  for (i = ix * count / num_segments; i < (ix+1) * count / num_segments; ++i) {
     do {
-      x = twist(&twister) & (world->xmax*TILE_SZ - 1);
-      z = twist(&twister) & (world->zmax*TILE_SZ - 1);
+      x = twist(twister) & (world->xmax*TILE_SZ - 1);
+      z = twist(twister) & (world->zmax*TILE_SZ - 1);
       wx = x / TILE_SZ;
       wz = z / TILE_SZ;
 
@@ -379,8 +404,8 @@ void grass_generate(world_prop* props, unsigned count,
     props[i].x = x;
     props[i].z = z;
     /* 20% at random (uniform distribution) are wildflowers */
-    props[i].type = 1 + twist(&twister) % NUM_GRASS_WILDFLOWER_TYPES;
-    if (twist(&twister) % 5) {
+    props[i].type = 1 + twist(twister) % NUM_GRASS_WILDFLOWER_TYPES;
+    if (twist(twister) % 5) {
       /* Otherwise, the type is the one with the greatest distribution value in
        * this tile
        */
@@ -394,11 +419,9 @@ void grass_generate(world_prop* props, unsigned count,
       }
     }
 
-    props[i].variant = twist(&twister);
-    props[i].yrot = twist(&twister);
+    props[i].variant = twist(twister);
+    props[i].yrot = twist(twister);
   }
-
-  free(seasonal_flower_distributions[0]);
 }
 
 static int may_place_tree_at(const basic_world* world,
