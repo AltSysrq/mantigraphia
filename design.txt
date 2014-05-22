@@ -1,0 +1,446 @@
+CHARACTER ATTRIBUTES
+====================
+
+Character attributes for a player all begin at 1 when the player enters a
+game. At fixed intervals, the attribute whose associated spell effects the
+player has used the most and which is not already at 5 is incremented; a player
+who plays the full duration of a game will receive 5 such increments. These
+increments persist across deaths.
+
+Air/Wind (White):
+- Movement speed: (3.5 + AIR/2) m/s
+- Resistence to falling damage (base-damage / AIR)
+- Infliction of lightning damage (* sqrt(AIR))
+- Strength of propulsion effect (* AIR)
+- Efficiency reduction of containment circle (10% / AIR)
+
+Water (Blue):
+- Resistence to melee damage (base-damage / sqrt(WATER))
+- Infliction of frost damage (* sqrt(WATER))
+- Strength of invisibility effect (* WATER)
+- Energy requirement of binding circle (base / WATER)
+
+Fire (Red):
+- Maximum mana (10000 + 2000*FIRE)
+- Infliction of fire damage (* FIRE)
+- Strength of expansion effect (* FIRE)
+- Energy requirement of reference circle (base / FIRE)
+
+Earth (Green):
+- Maximum health (10000 + 2000*EARTH)
+- Resistence to elemental damage (base / sqrt(EARTH))
+- Strength of healing effect (* EARTH)
+- Strength of shield effect (* sqrt(EARTH))
+- Energy consumption of enchantment circle (base / EARTH)
+
+Void (Black):
+- Strength of anti-magic effect (* VOID)
+- Efficiency of draining circle (1 in, 2*VOID out)
+- Energy requirement of draining circle (base / VOID)
+
+MAGIC SYSTEM
+============
+
+Units and Definitions
+---------------------
+
+The base unit of magical energy is the Manum (fictious "singular" of "mana"),
+abbreviated Ma. One Ma/chronon is called a Fluxus Manorum, abbreviated
+Fm. Magical potential is expressed in terms of Mana Potentialia, or Mp. Magical
+resistance is in terms of Fm/Mp, or Antistasia Manorum (Am). All non-fractional
+metric prefices may be prepended to these terms.
+
+A spell is defined by a series of Conducti and and Circi drawn upon a finite,
+two-dimensional plane whose coordinates are said to range between (0,0) (the
+top-left) and (1,1) (the bottom-right). The "effect-distance" between any two
+points in this plane is defined as
+
+  effdist(a,b) = sqrt(effdist1(a.x,b.x)^2 + effdist1(a.y,b.y))
+  effdist1(a,b) = 1 / (1 - abs(a-b))
+
+(This means that a point has effect-distance 1 from itself, and effect-distance
+becomes infinity for points on opposite sides of the plane.)
+
+A Conductus is a finite directed curve upon the plane. It has a resistance
+calculated by multiplying its physical length by some scaling factor.
+
+A Circus is a self-intersecting finite curve on the plane, which encloses an
+area which exceeds its length by a certain factor. The type of a Circus is
+determined by the number of areas it encloses; the largest enclosed area is
+considered the Circus's area of effect; other areas are otherwise irrelevant.
+
+The endpoints of a Conductus determine the Mp across that Conductus, calculated
+by (Mp_start - Mp_end). If the Mp across a Conductus is positive upon a given
+chronon, (Mp/Am) Ma will flow across the Conductus, reducing the Mp of the
+source and increasing the Mp of the destination by 90% of the transferred
+amount (rounded down; this reduction eliminates the possibility of infinite
+Mana loops). If multiple Conducti would transfer more Ma away from the
+containing reservoir than it contains, the Ma it does contain are distributed
+proportionally. Effects are produced based upon the Fm in the Conductus and the
+direction of the flow, as well as the Fm vectors of other Conducti and their
+proximities.
+
+Circi & Top-Level
+-----------------
+
+The area of the spell outside of any Circus is a simple enery reservoir and
+sink. The Mp of any start point in the top-level is equal to the amount of
+energy at top-level; the Mp of any endpoint in the top-level is zero. Energy
+released into the top-level by a Conductus is immediately converted to light
+and lost. If in any chronon, it is impossible to transfer any Ma out of the
+top-level, all energy at the top-level is immediately converted to light and
+lost.
+
+A Circus fails to exist if it shares area with any other Circus, but its area
+does not strictly contain nor is strictly by that Circus's area. A Circus is
+contained to strictly contain all other Circi whose area are subsets of its
+own, and all Conducti whose both endpoints are within the Circus's area
+(regardless of the actual paths of the Conducti).
+
+A Circus of Containment is a Circus containing only one area, which was drawn
+counter-clockwise. It acts as a perfect energy reservoir --- for any Conductus
+endpoint it contains, the Mp on that endpoint is exactly the Mp of the area
+within the Circus. Releasing Ma into a Circus of Containment by any means
+increases its Ma by that amount. A Circus of Containment at the top-level
+behaves like a separate particle, singular per casting of the spell or other
+event that caused it to exist at top-level. A Circus of Containment ceases to
+exist when the Ma of the area surrounding it becomes zero, or if it makes
+physical contact with an object in its particle form; this acts as if the
+Circus had never existed. In the latter case, the object contacted becomes
+considered the "object to which the spell applies" for all Circi contained by
+the Circus of Containment, and the remaining Ma is released into the
+surrounding reservoir. Prior to such an event, Circi contained by the
+Circus of Containment are not considered to have any object of affection.
+
+A Circus of Affection is a Circus containing only one area, which was drawn
+clockwise. It is a perfect energy sink; the Mp of any endpoint it contains is
+generally zero. Enery released into it is converted to light and lost. Effects
+produced by Conducti which terminate inside the Circus are applied directly to
+the object of affection, instead of becomming momentary particles. If there is
+no object of affection, the Mp of terminating endpoints within the Circus are
+considered to have an infinitie Mp.
+
+A Circus of Reference is a Circus containing two areas. A Circus of Reference
+binds to an existing Circus of Binding at the moment it comes into existence as
+per the following rules, in order of precedence:
+
+- If the spell also contains at least Circus of Binding, it binds to the
+  nearest one as determined by effect-distance.
+
+- All other active spells with Circi of Binding are considered. One of those
+  Circi of Binding is chosen randomly, by calculating a weight for each Circus
+  based on the physical separation of the caster and that spell, and the
+  effect-distance of the two Circi as if they were in the same spell.
+
+The location of a Circus of Reference or a Circus of Binding is determined by
+taking the centroid of its primary area. The Ma of a Circus of Reference or a
+Circus of Binding is the sum of the Ma of all Circi of Reference and the Circus
+of Binding which are bound. Mp for both start and terminating endpoints are
+equal to this Ma. Effects produced by Conducti which terminate within a Circus
+of Reference emit their effects from the Circus of Binding, or upon its object
+of affection. Circi within a Circus of Reference act if they were within the
+Circus of Binding. A Circus of Reference within a Circus of Affection will
+teleport the object of affection to the Circus of Binding, if sufficient energy
+is available; energy requirement is based upon the physical separation
+involved. When this occurs, the Circus of Reference ceases to exist, and the
+energy is consumed from the pool. A Circus of Reference ceases to exist if its
+bound Circus of Binding ceases to exist; it fails to exist if it cannot bind to
+any Circus of Binding. When a Circus of Binding becomes attached to an object,
+and that object is not already attached to another Circus of Binding in the
+same graph of bindings and references, all Circi and Conducti contained within
+the bound Circus of Reference are replicated inside the Circus of Reference and
+attached to the affected object. An object affected by multiple Circi of
+Binding and/or Reference creates an edge between the the graphs represented by
+each, even if they involve distinct Circi of Binding.
+
+A Circus of Enchament is a Circus containing three areas. It attaches to the
+object of affection as soon as there is one. Ordinarily, the Mp of any start
+endpoint within the Circus is zero. For terminating endpoints, the Cirus acts
+as a perfect reservoir. Once attached to an object, the Circus periodically
+consumes a small amount of Ma to emit a detection particle. If the particle
+encounters anything other than the object of affection, the object of affection
+for all Circi contained by the enchantment is set to the detected object, and
+the Mp of all start endpoints becomes equal to Ma (ie, like a normal
+reservoir). Once the next detection particle is emitted, the object of
+affection is detached and the Mp of contained start endpoints returns to
+zero. A Circus of Enchantment ceases to exist if the object it is attached to
+ceases to exist, or if its Ma becomes zero.
+
+A Circus of Draining is a Circus containing four or six areas (the latter
+typically taking a pentagramme shape). Like the Circus of Enchantment, it
+attaches to the first object of affection it is given. Its Ma is equal to the
+combined life- and death-force plus Ma of the object to which it is
+attached. The Mp of terminal endpoints within the Circus is always zero; energy
+dispensed into the Circus is lost; however, this converts some Ma into Mp for
+start endpoints within the Circus. This amount is derived by multiplying the
+input Ma by the caster's Draining efficiency factor; a side-effect is that the
+Ma is reduced by the output Mp multiplied by the caster's Draining cost
+factor. A Circus of Draining ceases to exist if the object to which it is
+attached ceases to exist (which can be a consequence of the circle's effective
+Ma becomming zero), or if another Circus of Draining is attached to the
+object. If the same spell would bind multiple Circi of Draining to an object,
+which one survives is determined randomly.
+
+A Circus of Binding is a Circus containing five areas. It is primarily a target
+of the Circus of Reference; its effects are derived from and symmetric to that
+Circus's, as applicable. (It does not form bindings itself.)
+
+Spell Effects
+-------------
+
+Spell effects are generated whenever one or more Conducti has a non-zero
+Fm. Effects are derived from two factors:
+
+- The net displacement of Ma achieved by travelling from the initial to
+  terminal points of the Conductus, multiplied by the Fm in the Conductus.
+
+- The integral of relationships between all points on every pair of Conducti,
+  derived from the angle between the Fm vectors at those points and the vector
+  between the points. Strength of such effects is proportional to the Fm of
+  each Conductus, and inversely proportional to the effect-distance.
+
+- Intersecting Conducti create the Expansion effect, relative to the product of
+  both Conducti's Fm.
+
+Most effects are either free or bound. A free effect produces particles which
+carry the effect; upon contact with an object, the object is affected as
+described. A bound effect directly affects its object of affection, instead of
+emitting particles. An effect which is always free, but is attached to an
+object of affection, emits its particles from the object.
+
+The Propulsion effect is produced by Conducti with a net negative Y
+displacement. Free effects at the same level as or below the Propulsion effect,
+as well as any object of affection, are accelerated in the direction the caster
+was facing when the spell was cast, or the direction the object of affection is
+facing if there is such an object. This is neither a free nor bound effect. The
+strength of the effect determines the magnitude of acceleration.
+
+The Healing effect is produced by Conducti with a net positive Y
+displacement. This is either a free or bound effect. Affected objects regain
+health. The strength of the effect determines the magnitude of healing.
+
+The Shield effect is produced by Conducti with a net negative X
+displacement. This is always a free effect. Particles have a weak physical
+manefestation, capable of blocking attacks, but which count as real objects for
+the purposes of affection. The strength of the effect determines the physical
+size of the particles.
+
+The Anti-Magic effect is produced by Conducti with a net positive X
+displacement. This can be either a free or bound effect. As a free effect,
+emits particles which instantly neutralise effect particles from other
+spells. The strength of a free Anti-Magic effect determines the effective size
+of these particles. As a bound effect, reduces the Ma of the object of
+affection, as well as any effects from any other spell, proportionally to its
+own strength.
+
+The Fire effect is produced by Conducti with perpendicular Fm vectors and
+perpendicular offset. It is either a free or bound effect. It deals fire damage
+proportional to its strength.
+
+The Frost effect is produced by Conducti with antiparallel Fm vectors and
+perpendicular offset. It is either a free or bound effect. It deals frost
+damage proportional to its strength.
+
+The Lightning effect is produced by Conducti with parallel Fm vectors and
+perpendicular offset. It is either a free or bound effect. It deals shock
+damage proportional to its strength.
+
+The Expansion effect is produced by intersecting Conducti. The velocity of
+emitted effect particles at the same or lower levels is increased
+proportionally to its strength. This is neither a bound nor free effect.
+
+The Invisibility effect is produced by Conducti with antiparallel Fm vectors
+and antiparallel offsets. It is either a free or bound effect. The visible
+range of affected objects is substantially reduced, proportionally to its
+strength.
+
+The Pull effect is produced by Conducti with antiparallel Fm vectors and
+parallel offsets. It behaves exactly as the Propulsion effect, except that it
+acts in the reverse direction.
+
+Spellcasting
+------------
+
+Every player has four primary spell slots, one of which is active, and a
+secondary spell slot. Each slot holds exactly one spell, which can be replaced
+by another at any time. Secondary spells are generally used for defensive or
+emergency spells, since they can be cast much more quickly but consume much
+more mana.
+
+When a spell is cast, the player must first wait through the spell's casting
+delay. For primary spells, this is a quarter second plus time proportional to
+the length of the line segments comprising the spell's Circi and Cunducti. For
+secondary spells, the casting delay is zero.
+
+After the casting delay, the spell enters the "casting" state. Ma from the
+caster's own mana reservoir are channeled directly into the start points of the
+Conducti at top-level, with an Mp equal to the caster's Ma. For secondary
+spells, two Ma are removed from the caster's reservoir for every Ma input to a
+Conductus; for primary spells, this ratio is 1:1. While in the "casting" state,
+the top-level is considered to have at least an infinitesimal Ma if it would
+otherwise have zero. This has no effect on Conducti, but may affect some
+Circi.
+
+A spell remains in the "casting" state until the player either releases it or
+runs out of mana. At this point, the spell is "cast". The top-level loses its
+"at-least-infinitesimal" property, and no external Mp is applied to top-level
+start-points. The spell continues to function until it reaches a static state.
+
+Dark Magic
+----------
+
+The Circus of Draining is considered a form of "dark" magic, and has an
+addictive effect. Every Ma that flows into a Circus of Draining in a spell cast
+by a player is tallied in a "darkness addiction" counter, which persists across
+lives. As this counter rises, the effectiveness of all spell effects reduces,
+but the player's draining circle efficiency factor increases proportionally,
+albeit at a lesser rate.
+
+A Healing effect will have no effect on an object to which a Circus of Draining
+is attached.
+
+This means that a player which uses the Circus of Draining a lot will
+eventually *need* it for effective spells, needing to resort to his own health
+as an indirect mana source. A black mage will therefore be able to cast
+impressively powerful spells, but will have a hard time healing himself or
+others outside of more intricate, offensive spells.
+
+ENVIRONMENT
+===========
+
+Natural Entities
+----------------
+
+Trees passively exude Mana at a rate of 50 Fm at zero distance, falling off
+linearly over 5 metres. This Mana is automatically absorbed by players and
+top-level Circi of Enchantment and Binding. This Fm does not need to be shared;
+multiple entities will all receive the same amount, regardless of how many
+there are.
+
+Each type of tree has an "effective health". Due to architectural constraints,
+trees do not actually track health; rather, damage dealt to a tree will
+randomly cause its destruction with a probability equal to the ratio between
+the damage and the effective health.
+
+- Oak tree: 50000 EHP
+- Ceader tree: 30000 EHP
+- Cherry tree: 20000 EHP
+- Cyprus tree: 15000 EHP
+
+Destroying a tree with a melee weapon provides the destroyer 1/10th its
+effective health as Ma and one Wood resource. Destroying a tree with a spell
+adds some Ma to the spell that destroyed it, if the spell still exists,
+depending upon the type of elemental damage that caused the tree's destruction:
+
+- Fire: 1/20 * EHP
+- Shock: 1/100 * EHP
+- Ice: 1/500 * EHP
+- (Damage by Circle of Draining: 0 Ma)
+
+Trees are vulnerable different elements depending on the season. When
+vulnerable to an element, a tree takes 3x damage from that element.
+
+- March:        Ice
+- April:        Shock
+- May:          Shock
+- June:         Shock
+- July:         Fire
+- August:       Fire
+- October:      Fire
+- November:     Ice
+
+Various small animals that populate the world are inconsequential. There is no
+award or penalty for destroying them.
+
+Supernatural Entities
+---------------------
+
+Tengu
+
+Tengu spawn in their initial form as large crows. In this form, they have 500
+HP. They initially fly about the world randomly, until they find a player. They
+will then stay within 50 metres of that player as much as possible, resting on
+the ground or in trees when they do not need to move. If another player enters
+this range, they will follow the one with the fewer hit points. Crow-form Tengu
+will flee when approached within 10 metres, or if affected by any spell.
+
+If the player a Tengu is following is below 10% health, and there is no other
+player within 100 metres of the player, the Tengu will transform into humanoid
+form and attack the player until either is dead, another player comes within
+100 metres of the victim, or the Tengu loses track of the victim. If the Tengu
+survives, it returns to Crow form (regaining all HP) and begins seeking out
+another victim.
+
+Humanoid Tengu have 2000 HP, run at 6 m/s, and attack with one of the following
+weapons:
+
+- Bokken; 1 metre range; 1.25 strikes/sec; 250 HP/strike
+- Katana: 1.5 metre range; 1.0 strikes/sec; 400 HP/strike
+- Bō: 2 metre range; 2.0 strikes/sec; 100 HP/strike
+- Shuriken: 7 metre range (ranged); 0.8 strikes/sec; 100 HP/strike
+
+Destroying a Crow-form Tengu has no benefit, except for removing the Tengu.
+
+Destroying a Humanoid-form Tengu with magic has no effect, except for removing
+the Tengu. Destroying a Humanoid-form Tengu with a melee weapon provides 1
+Tengu Blood resource.
+
+Kitsune
+
+A Kitsune enters the world in Fox form, with 1 tail, and free. In Fox-form,
+they have 500*tails HP and move at 10+tails m/s.
+
+A free Kitsune wanders the world randomly. Upon encountering a player, it may
+choose to assume humanoid form (4000*tails HP; 3.5+tails/2 m/s; 5000*tails
+Ma). Free humanoid-form Kitsune always appear as the opposite gender of the
+viewer, and thus may look different to different players. Free humanoid-form
+Kitsune is neither highlighted as friendly or hostile. It will cast harmless
+but irritating spells on the player it encountered, before returning to Fox
+form and running away.
+
+If a free Humanoid-form Kitsune receives damage (either melee or magical) from
+a player, it becomes hostile to the source of the damage, and will attempt to
+destroy it, casting basic elemental spells (which element is specific to each
+Kitsune) until one of the two is dead, or the separation exceeds 100 metres. In
+either case, the Kitsune returns to free Fox form.
+
+If another player caused the death of the hostile player, the Kitsune becomes
+bound to the that player. A bound Kitsune always maintains humanoid form,
+appears as the opposite gender as the player to which it is bound, and is
+highlighted as if it were a member of that team. A bound Kitsune follows that
+player around and attacks nearby enemies until one of them dies, or the Kitsune
+becomes hostile to the player to which it is bound. Kills by the bound Kitsune
+are attributed to the player unless they are suicides or teamkills, which are
+unnoted.
+
+Each time the Kitsune kills a player, it gains one tail if it does not already
+have nine.
+
+In most circumstances, killing a Kitsune gives no effect other than removing
+the Kitsune. If a player uses a melee weapon to kill a Kitsune to which he was
+formerly bound in the same life, he recives a number of Kitsune Tail resources
+equal to the number of tails on the Kitsune.
+
+Oni
+
+At any given time, there are exactly 2 Oni on the map; one red, one blue. Each
+wanders randomly, though the two maintain at least a 1km distance from each
+other.
+
+Oni are 8 metres tall, move at 4.75 m/s, and wield a kanabō with a range of 6
+metres, which does 7000 damage per strike, at 0.3 strikes/sec. Oni will
+mercilessly and indescriminately attack any player within 100 metres.
+
+Killing an Oni with magic provides 1 Oni Horn resource; killing an Oni with a
+melee attack provides 2.
+
+Dragon
+
+Each map has a fixed, very small number of Dragons (up to 3), each doing a
+different form of elemental damage. Dragons dwell in water, and rarely stray
+far from their home point. Dragons are immune to magic and have 20000 HP. A
+Dragon will attack any player which approaches within 50 metres of its home
+point with its elemental breath, emitting 5000 damage worth of energy per
+second.
+
+Killing a Dragon awards the player one Dragon Scale resource.
