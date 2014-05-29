@@ -23,3 +23,8 @@ share/extern
 *.gmon
 profile
 *.core
+test-driver
+test/tests
+*.log
+*.trs
+world.bmp
