@@ -27,7 +27,7 @@ PKG_CHECK_MODULES([GLEW], [glew])
 AC_CHECK_HEADERS([arpa/inet.h inttypes.h malloc.h netinet/in.h stdint.h dnl
                   stdlib.h string.h sys/socket.h sys/time.h unistd.h dlfcn.h])
 AC_CHECK_HEADERS([sys/queue.h bsd/sys/queue.h sys/tree.h bsd/sys/tree.h dnl
-                  err.h bsd/err.h sysexits.h bsd/sysexits.h])
+                  err.h bsd/err.h sysexits.h bsd/sysexits.h bsd/string.h])
 AC_CHECK_HEADERS([sys/param.h])
 AC_CHECK_HEADERS([sys/cpuset.h], [], [], [
 #ifdef HAVE_SYS_PARAM_H
