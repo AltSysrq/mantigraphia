@@ -95,7 +95,7 @@ void mouselook_update(mouselook_state* state,
    */
   static int ignore_next_event = 4;
   angle old_yrot = state->yrot, old_rxrot = state->rxrot;
-  signed rxrot = (signed short)state->rxrot;
+  signed rxrot = state->rxrot;
   int w, h;
   SDL_GetWindowSize(window, &w, &h);
 
@@ -112,10 +112,10 @@ void mouselook_update(mouselook_state* state,
   if (!is_enabled) return;
 
   /* TODO: Adjustable sensitivity */
-  state->yrot -= evt->xrel * (signed)DEG_180 / 1024;
-  rxrot += evt->yrel * (signed)DEG_180 / 1024;
-  if (rxrot < -(signed)DEG_90) rxrot = -(signed)DEG_90;
-  if (rxrot > +(signed)DEG_90) rxrot = +(signed)DEG_90;
+  state->yrot += evt->xrel * DEG_180 / 1024;
+  rxrot -= evt->yrel * DEG_180 / 1024;
+  if (rxrot < -DEG_90) rxrot = -DEG_90;
+  if (rxrot > +DEG_90) rxrot = +DEG_90;
   state->rxrot = rxrot;
 
   if (bg)

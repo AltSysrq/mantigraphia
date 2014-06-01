@@ -138,7 +138,7 @@ typedef coord_offset acceleration;
  * only about the upper 12 bits (1/4096th of a circle), however. The lower bits
  * only exist to support intermediate values.
  */
-typedef unsigned short angle;
+typedef signed short angle;
 #define DEG_90  ((angle)0x4000)
 #define DEG_180 ((angle)0x8000)
 #define DEG_270 ((angle)0xC000)
