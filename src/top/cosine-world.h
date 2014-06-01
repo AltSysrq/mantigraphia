@@ -25,8 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef COSINE_WORLD_H_
-#define COSINE_WORLD_H_
+#ifndef TOP_COSINE_WORLD_H_
+#define TOP_COSINE_WORLD_H_
 
 #include "game-state.h"
 
@@ -36,4 +36,4 @@
  */
 game_state* cosine_world_new(unsigned seed);
 
-#endif /* COSINE_WORLD_H_ */
+#endif /* TOP_COSINE_WORLD_H_ */

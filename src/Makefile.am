@@ -12,7 +12,7 @@ bin_PROGRAMS = mantigraphia
 gentrigtab_SOURCES = gen_trigtab.c
 gentrigtab_LDFLAGS = -lm
 mantigraphia_SOURCES = \
-main.c \
+top/main.c \
 coords.c \
 trigtab.c \
 rand.c \
@@ -51,7 +51,7 @@ render/tree-props.c \
 render/propped-world.c \
 render/colour-palettes.c \
 control/mouselook.c \
-cosine-world.c
+top/cosine-world.c
 
 trigtab.c: gentrigtab
 	./gentrigtab >trigtab.c

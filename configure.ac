@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.6])
 AC_INIT([mantigraphia], [0.0.0], [jason@lin.gl])
-AC_CONFIG_SRCDIR([src/main.c])
+AC_CONFIG_SRCDIR([src/coords.c])
 AM_INIT_AUTOMAKE([1.11])
 AM_SILENT_RULES(yes)
 AM_CONFIG_HEADER([config.h])
