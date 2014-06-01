@@ -113,7 +113,6 @@ void parchment_delete(parchment* this) {
 }
 
 static void parchment_activate(void* ignore) {
-  glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, texture);
   shader_fixed_texture_activate(NULL);
 }
