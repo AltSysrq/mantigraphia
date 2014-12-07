@@ -28,3 +28,6 @@ test/tests
 *.log
 *.trs
 world.bmp
+libtool
+m4
+ltmain.sh
