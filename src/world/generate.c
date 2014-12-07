@@ -102,7 +102,7 @@ static void initialise(terrain_tilemap* world) {
 
   max = world->xmax * world->zmax;
   for (i = 0; i < max; ++i) {
-    world->tiles[i].type = terrain_type_grass << TERRAIN_SHADOW_BITS;
+    world->type[i] = terrain_type_grass << TERRAIN_SHADOW_BITS;
   }
 }
 
@@ -129,17 +129,16 @@ static void randomise(terrain_tilemap* world,
   initialise(world);
   for (i = 0; i < world->xmax * world->zmax; ++i)
     if (hmap[i] < altitude_reduction)
-      world->tiles[i].altitude = 0;
+      world->alt[i] = 0;
     else
-      world->tiles[i].altitude = hmap[i] - altitude_reduction;
+      world->alt[i] = hmap[i] - altitude_reduction;
 
   free(hmap);
 }
 
 static inline signed altitude(const terrain_tilemap* world,
                               coord x, coord z) {
-  signed s = world->tiles[terrain_tilemap_offset(world, x, z)]
-    .altitude;
+  signed s = world->alt[terrain_tilemap_offset(world, x, z)];
 
   return s & 0xFFFF;
 }
@@ -177,16 +176,16 @@ static void rmp_up(terrain_tilemap* large,
       sa11 = altitude(small, sx1, sz1);
 
       /* Exactly-matching points never change */
-      large->tiles[terrain_tilemap_offset(large, lx0, lz0)]
-        .altitude = perturb(sa00, level, twister);
+      large->alt[terrain_tilemap_offset(large, lx0, lz0)] =
+        perturb(sa00, level, twister);
 
       /* Other points get perturbed averages of what they are in-between. */
-      large->tiles[terrain_tilemap_offset(large, lx0, lz1)]
-        .altitude = perturb((sa00+sa01)/2, level, twister);
-      large->tiles[terrain_tilemap_offset(large, lx1, lz0)]
-        .altitude = perturb((sa00+sa10)/2, level, twister);
-      large->tiles[terrain_tilemap_offset(large, lx1, lz1)]
-        .altitude = perturb((sa00+sa01+sa10+sa11)/4, level, twister);
+      large->alt[terrain_tilemap_offset(large, lx0, lz1)] =
+        perturb((sa00+sa01)/2, level, twister);
+      large->alt[terrain_tilemap_offset(large, lx1, lz0)] =
+        perturb((sa00+sa10)/2, level, twister);
+      large->alt[terrain_tilemap_offset(large, lx1, lz1)] =
+        perturb((sa00+sa01+sa10+sa11)/4, level, twister);
     }
   }
 }
@@ -199,26 +198,25 @@ static void select_terrain(terrain_tilemap* world, mersenne_twister* twister) {
     for (x = 0; x < world->xmax; ++x) {
       i = terrain_tilemap_offset(world, x, z);
 
-      if (world->tiles[i].altitude <= 2*METRE / TILE_YMUL) {
-        world->tiles[i].type =
+      if (world->alt[i] <= 2*METRE / TILE_YMUL) {
+        world->type[i] =
           terrain_type_water << TERRAIN_SHADOW_BITS;
-      } else if (world->tiles[i].altitude <= 4*METRE / TILE_YMUL) {
-        world->tiles[i].type =
+      } else if (world->alt[i] <= 4*METRE / TILE_YMUL) {
+        world->type[i] =
           terrain_type_gravel << TERRAIN_SHADOW_BITS;
       /* Sometimes patches of snow, depending on altitude */
       } else if (((signed)(twist(twister)/2)) <
-          world->tiles[i].altitude * TILE_YMUL) {
-        world->tiles[i].type = terrain_type_snow << TERRAIN_SHADOW_BITS;
+          world->alt[i] * TILE_YMUL) {
+        world->type[i] = terrain_type_snow << TERRAIN_SHADOW_BITS;
       } else {
         /* Stone if max dy*2 > dx, grass otherwise */
         miny = 32767 * TILE_YMUL;
         maxy = 0;
         for (dz = 0; dz < 2; ++dz) {
           for (dx = 0; dx < 2; ++dx) {
-            y = world->tiles[terrain_tilemap_offset(world,
-                                                (x+dx) & (world->xmax-1),
-                                                (z+dz) & (world->zmax-1))]
-              .altitude * TILE_YMUL;
+            y = world->alt[terrain_tilemap_offset(
+                world, (x+dx) & (world->xmax-1), (z+dz) & (world->zmax-1))]
+              * TILE_YMUL;
             if (y > maxy)
               maxy = y;
             if (y < miny)
@@ -227,13 +225,13 @@ static void select_terrain(terrain_tilemap* world, mersenne_twister* twister) {
         }
 
         if (maxy - miny > TILE_SZ/2)
-          world->tiles[i].type =
+          world->type[i] =
             terrain_type_stone << TERRAIN_SHADOW_BITS;
         else if (twist(twister) & 7)
-          world->tiles[i].type =
+          world->type[i] =
             terrain_type_bare_grass << TERRAIN_SHADOW_BITS;
         else
-          world->tiles[i].type =
+          world->type[i] =
             terrain_type_grass << TERRAIN_SHADOW_BITS;
       }
     }
@@ -284,15 +282,13 @@ static void create_path_to_from(terrain_tilemap* world, mersenne_twister* twiste
            * distance apart, or even constantly intersecting each other.
            */
           if (terrain_type_road ==
-              world->tiles[terrain_tilemap_offset(world, curr[0], curr[2])]
-              .type >> TERRAIN_SHADOW_BITS) {
+              world->type[terrain_tilemap_offset(world, curr[0], curr[2])]
+                  >> TERRAIN_SHADOW_BITS) {
             this_delta_y = -1;
           } else {
             this_delta_y = abs(
-              world->tiles[terrain_tilemap_offset(world, curr[0], curr[2])]
-              .altitude -
-              world->tiles[terrain_tilemap_offset(world, here[0], here[2])]
-              .altitude);
+              world->alt[terrain_tilemap_offset(world, curr[0], curr[2])] -
+              world->alt[terrain_tilemap_offset(world, here[0], here[2])]);
             this_delta_y /= fisqrt(ox*ox + oz*oz);
           }
 
@@ -310,8 +306,8 @@ static void create_path_to_from(terrain_tilemap* world, mersenne_twister* twiste
       for (ox = -PATH_WIDTH; ox < PATH_WIDTH; ++ox) {
         curr[0] = (here[0] + ox) & (world->xmax-1);
         curr[2] = (here[2] + oz) & (world->zmax-1);
-        switch (world->tiles[terrain_tilemap_offset(world, curr[0], curr[2])]
-                .type >> TERRAIN_SHADOW_BITS) {
+        switch (world->type[terrain_tilemap_offset(world, curr[0], curr[2])]
+                    >> TERRAIN_SHADOW_BITS) {
         case terrain_type_water:
         case terrain_type_gravel:
         case terrain_type_stone:
@@ -325,8 +321,8 @@ static void create_path_to_from(terrain_tilemap* world, mersenne_twister* twiste
           /* Don't write a road immediately so that we won't detect the path we
            * are currently creating as if it were one to join with.
            */
-          world->tiles[terrain_tilemap_offset(world, curr[0], curr[2])]
-            .type = TERRAIN_TYPE_PLACEHOLDER << TERRAIN_SHADOW_BITS;
+          world->type[terrain_tilemap_offset(world, curr[0], curr[2])] =
+            TERRAIN_TYPE_PLACEHOLDER << TERRAIN_SHADOW_BITS;
         }
       }
     }
@@ -335,8 +331,8 @@ static void create_path_to_from(terrain_tilemap* world, mersenne_twister* twiste
   /* Convert placeholders to actual roads */
   for (i = 0; i < world->xmax * world->zmax; ++i)
     if (TERRAIN_TYPE_PLACEHOLDER ==
-        world->tiles[i].type >> TERRAIN_SHADOW_BITS)
-      world->tiles[i].type = terrain_type_road << TERRAIN_SHADOW_BITS;
+        world->type[i] >> TERRAIN_SHADOW_BITS)
+      world->type[i] = terrain_type_road << TERRAIN_SHADOW_BITS;
 }
 
 static unsigned* seasonal_flower_distributions[NUM_GRASS_SEASONAL_FLOWER_TYPES];
@@ -397,8 +393,8 @@ static void grass_generate_segment(unsigned ix, unsigned num_segments) {
 
       /* Can only place grass in non-bare grass tiles */
     } while (terrain_type_grass !=
-             world->tiles[terrain_tilemap_offset(world, wx, wz)].type
-             >> TERRAIN_SHADOW_BITS);
+             world->type[terrain_tilemap_offset(world, wx, wz)]
+                 >> TERRAIN_SHADOW_BITS);
 
     props[i].x = x;
     props[i].z = z;
@@ -426,7 +422,7 @@ static void grass_generate_segment(unsigned ix, unsigned num_segments) {
 static int may_place_tree_at(const terrain_tilemap* world,
                              unsigned offset,
                              mersenne_twister* twister) {
-  switch (world->tiles[offset].type >> TERRAIN_SHADOW_BITS) {
+  switch (world->type[offset] >> TERRAIN_SHADOW_BITS) {
   case terrain_type_road:
   case terrain_type_water:
   case terrain_type_gravel:
@@ -501,8 +497,8 @@ static void update_shadows(terrain_tilemap* world,
           x &= (world->xmax - 1);
           z &= (world->zmax - 1);
           off = terrain_tilemap_offset(world, x, z);
-          if (3 != (world->tiles[off].type & 3))
-            ++world->tiles[off].type;
+          if (3 != (world->type[off] & 3))
+            ++world->type[off];
         }
       }
     }

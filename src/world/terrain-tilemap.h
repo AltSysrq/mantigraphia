@@ -67,15 +67,6 @@ typedef unsigned char terrain_tile_type;
 typedef unsigned short terrain_tile_altitude;
 
 /**
- * Each element in a tile defines its own, independent type, thickness, and
- * base altitude.
- */
-typedef struct {
-  terrain_tile_type      type;
-  terrain_tile_altitude  altitude;
-} terrain_tile_element;
-
-/**
  * The basic information for a world is simply a grid of tiles, and maximum
  * values for the X and Z coordinates (beyond which they wrap). Additionally,
  * each world may have a "next" world, which is an identical world with half
@@ -91,10 +82,20 @@ typedef struct terrain_tilemap_s {
    * SLIST_HEAD for this; each world simply refers to the next, if one exists.
    */
   SLIST_ENTRY(terrain_tilemap_s) next;
+
   /**
-   * Tiles describing the world. The actual length of this array is xmax*zmax.
+   * A grid of tile types, addressed via terrain_tilemap_offset().
+   *
+   * The types and altitudes are represented by separate parallel arrays to
+   * conserve space while maintaining correct alignment; a struct of a char and
+   * a short (ie, type and altitude) is either 4 bytes, or 3 bytes with the
+   * short being misaligned on 50% of tiles.
    */
-  terrain_tile_element tiles[FLEXIBLE_ARRAY_MEMBER];
+  terrain_tile_type* type;
+  /**
+   * A grid of tile altitudes, addressed via terrain_tilemap_offset().
+   */
+  terrain_tile_altitude* alt;
 } terrain_tilemap;
 
 /**

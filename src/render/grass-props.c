@@ -175,10 +175,9 @@ static void render_grass_prop_simple(const world_prop* this,
 
   glpencil_init(&pencil, info->pencil);
   pencil.colour = palettes->grass[this->variant % NUM_GRASS_COLOUR_VARIANTS][
-    (world->tiles[terrain_tilemap_offset(world,
-                                     this->x / TILE_SZ,
-                                     this->z / TILE_SZ)]
-     .type) & ((1 << TERRAIN_SHADOW_BITS) - 1)];
+    world->type[terrain_tilemap_offset(
+        world, this->x / TILE_SZ, this->z / TILE_SZ)] &
+    ((1 << TERRAIN_SHADOW_BITS) - 1)];
 
   base[0] = tip[0] = this->x;
   base[2] = tip[2] = this->z;
