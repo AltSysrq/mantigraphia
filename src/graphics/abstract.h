@@ -28,7 +28,7 @@
 #ifndef GRAPHICS_ABSTRACT_H_
 #define GRAPHICS_ABSTRACT_H_
 
-#include "../coords.h"
+#include "../math/coords.h"
 
 /**
  * A drawing_method abstractly defines how a number of linear graphical

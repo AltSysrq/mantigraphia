@@ -33,8 +33,8 @@
 #include <string.h>
 
 #include "../alloc.h"
-#include "../coords.h"
-#include "../rand.h"
+#include "../math/coords.h"
+#include "../math/rand.h"
 #include "../defs.h"
 #include "../micromp.h"
 #include "terrain-tilemap.h"

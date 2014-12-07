@@ -25,8 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FRAC_H_
-#define FRAC_H_
+#ifndef MATH_FRAC_H_
+#define MATH_FRAC_H_
 
 /**
  * A fraction represents essentially a cached division, and thus ranges from
@@ -135,4 +135,4 @@ static inline precise_fraction precise_fraction_fmul(
   return a*b;
 }
 
-#endif /* FRAC_H_ */
+#endif /* MATH_FRAC_H_ */

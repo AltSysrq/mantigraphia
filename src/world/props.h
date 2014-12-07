@@ -28,7 +28,7 @@
 #ifndef WORLD_PROPS_H_
 #define WORLD_PROPS_H_
 
-#include "../coords.h"
+#include "../math/coords.h"
 
 typedef unsigned char prop_type;
 typedef unsigned char prop_variant;

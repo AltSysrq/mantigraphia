@@ -31,9 +31,9 @@
 
 #include <stdlib.h>
 
-#include "../frac.h"
+#include "../math/frac.h"
 #include "../defs.h"
-#include "../simd.h"
+#include "../math/simd.h"
 #include "../graphics/canvas.h"
 #include "../graphics/dm-proj.h"
 #include "../graphics/glbrush.h"

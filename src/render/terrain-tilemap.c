@@ -32,7 +32,7 @@
 #include <stdlib.h>
 
 #include "../alloc.h"
-#include "../coords.h"
+#include "../math/coords.h"
 #include "../micromp.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"

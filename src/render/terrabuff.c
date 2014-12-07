@@ -34,10 +34,10 @@
 
 #include <glew.h>
 
-#include "../coords.h"
+#include "../math/coords.h"
 #include "../alloc.h"
 #include "../defs.h"
-#include "../frac.h"
+#include "../math/frac.h"
 #include "../micromp.h"
 #include "../graphics/canvas.h"
 #include "../graphics/linear-paint-tile.h"

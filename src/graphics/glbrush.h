@@ -28,7 +28,7 @@
 #ifndef GRAPHICS_GLBRUSH_H_
 #define GRAPHICS_GLBRUSH_H_
 
-#include "../frac.h"
+#include "../math/frac.h"
 #include "../gl/marshal.h"
 #include "abstract.h"
 #include "canvas.h"

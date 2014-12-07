@@ -28,7 +28,7 @@
 #ifndef GRAPHICS_HULL_H_
 #define GRAPHICS_HULL_H_
 
-#include "../coords.h"
+#include "../math/coords.h"
 #include "canvas.h"
 #include "tscan.h"
 #include "abstract.h"

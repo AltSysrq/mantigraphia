@@ -28,7 +28,7 @@
 #ifndef RENDER_COLOUR_PALETTES_H_
 #define RENDER_COLOUR_PALETTES_H_
 
-#include "../simd.h"
+#include "../math/simd.h"
 #include "../graphics/canvas.h"
 #include "../world/terrain.h"
 #include "context.h"

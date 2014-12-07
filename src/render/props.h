@@ -28,7 +28,7 @@
 #ifndef RENDER_PROPS_H_
 #define RENDER_PROPS_H_
 
-#include "../frac.h"
+#include "../math/frac.h"
 #include "../world/terrain-tilemap.h"
 #include "../world/props.h"
 #include "context.h"

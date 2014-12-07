@@ -38,7 +38,7 @@
 #include <assert.h>
 
 #include "../bsd.h"
-#include "../rand.h"
+#include "../math/rand.h"
 
 #include "lsystem.h"
 

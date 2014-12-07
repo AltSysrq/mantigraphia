@@ -28,9 +28,9 @@
 #ifndef GRAPHICS_TSCAN_H_
 #define GRAPHICS_TSCAN_H_
 
-#include "../coords.h"
-#include "../frac.h"
-#include "../simd.h"
+#include "../math/coords.h"
+#include "../math/frac.h"
+#include "../math/simd.h"
 #include "../defs.h"
 #include "canvas.h"
 

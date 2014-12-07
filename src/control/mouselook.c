@@ -32,7 +32,7 @@
 #include <SDL.h>
 
 #include "../bsd.h"
-#include "../coords.h"
+#include "../math/coords.h"
 #include "mouselook.h"
 
 static SDL_Window* window;

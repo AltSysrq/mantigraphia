@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "../coords.h"
+#include "../math/coords.h"
 #include "perspective.h"
 #include "abstract.h"
 #include "dm-proj.h"

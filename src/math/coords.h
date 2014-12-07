@@ -25,8 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef COORDS_H_
-#define COORDS_H_
+#ifndef MATH_COORDS_H_
+#define MATH_COORDS_H_
 
 #include <stdlib.h>
 
@@ -214,4 +214,4 @@ static inline unsigned omagnitude(const vo3 coords) {
     ((signed long long)coords[2])*coords[2]);
 }
 
-#endif /* COORDS_H_ */
+#endif /* MATH_COORDS_H_ */

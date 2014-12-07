@@ -29,9 +29,9 @@
 #include <config.h>
 #endif
 
-#include "../frac.h"
+#include "../math/frac.h"
 #include "../defs.h"
-#include "../rand.h"
+#include "../math/rand.h"
 #include "../graphics/glpencil.h"
 #include "../graphics/glbrush.h"
 #include "../graphics/perspective.h"

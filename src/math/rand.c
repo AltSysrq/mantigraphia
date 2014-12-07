@@ -29,10 +29,10 @@
 #include <config.h>
 #endif
 
-#include "defs.h"
-#include "coords.h"
-#include "micromp.h"
-#include "rand.h"
+#include "../defs.h"
+#include "../micromp.h"
+#include "math/coords.h"
+#include "math/rand.h"
 
 /* See
    http://en.wikipedia.org/wiki/Mersenne_twister

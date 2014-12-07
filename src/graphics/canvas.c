@@ -39,7 +39,7 @@
 
 #include "../alloc.h"
 #include "../micromp.h"
-#include "../frac.h"
+#include "../math/frac.h"
 #include "canvas.h"
 
 SDL_PixelFormat* screen_pixel_format;

@@ -31,10 +31,10 @@
 
 #include <glew.h>
 
-#include "../frac.h"
+#include "../math/frac.h"
 #include "../defs.h"
 #include "../alloc.h"
-#include "../rand.h"
+#include "../math/rand.h"
 #include "../gl/marshal.h"
 #include "../gl/shaders.h"
 #include "../gl/glinfo.h"

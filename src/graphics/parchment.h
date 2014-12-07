@@ -29,7 +29,7 @@
 #define GRAPHICS_PARCHMENT_H_
 
 #include "canvas.h"
-#include "../coords.h"
+#include "../math/coords.h"
 
 /**
  * A parchment is a tilable texture usually drawn as the background of the

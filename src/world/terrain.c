@@ -29,8 +29,8 @@
 #include <config.h>
 #endif
 
-#include "../coords.h"
-#include "../simd.h"
+#include "../math/coords.h"
+#include "../math/simd.h"
 #include "terrain-tilemap.h"
 #include "terrain.h"
 

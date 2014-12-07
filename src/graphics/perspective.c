@@ -29,7 +29,7 @@
 #include <config.h>
 #endif
 
-#include "../coords.h"
+#include "../math/coords.h"
 #include "canvas.h"
 #include "perspective.h"
 

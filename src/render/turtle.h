@@ -28,8 +28,8 @@
 #ifndef RENDER_TURTLE_H_
 #define RENDER_TURTLE_H_
 
-#include "../simd.h"
-#include "../coords.h"
+#include "../math/simd.h"
+#include "../math/coords.h"
 #include "../graphics/perspective.h"
 #include "../graphics/abstract.h"
 

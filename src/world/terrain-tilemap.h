@@ -32,7 +32,7 @@
 #include <stdio.h>
 
 #include "../bsd.h"
-#include "../coords.h"
+#include "../math/coords.h"
 
 /**
  * @file

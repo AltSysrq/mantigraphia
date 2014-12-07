@@ -31,8 +31,8 @@
 
 #include <string.h>
 
-#include "../simd.h"
-#include "../coords.h"
+#include "../math/simd.h"
+#include "../math/coords.h"
 #include "../graphics/abstract.h"
 #include "../graphics/dm-proj.h"
 #include "turtle.h"

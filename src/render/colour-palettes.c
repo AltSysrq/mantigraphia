@@ -30,9 +30,9 @@
 #endif
 
 #include "../defs.h"
-#include "../simd.h"
-#include "../frac.h"
-#include "../rand.h"
+#include "../math/simd.h"
+#include "../math/frac.h"
+#include "../math/rand.h"
 #include "context.h"
 #include "colour-palettes.h"
 

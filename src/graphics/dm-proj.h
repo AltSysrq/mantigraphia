@@ -28,7 +28,7 @@
 #ifndef GRAPHICS_DM_PROJ_H_
 #define GRAPHICS_DM_PROJ_H_
 
-#include "../coords.h"
+#include "../math/coords.h"
 #include "abstract.h"
 #include "perspective.h"
 

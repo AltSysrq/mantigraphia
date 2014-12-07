@@ -28,7 +28,7 @@
 #ifndef GRAPHICS_BRUSH_H_
 #define GRAPHICS_BRUSH_H_
 
-#include "../coords.h"
+#include "../math/coords.h"
 #include "canvas.h"
 #include "abstract.h"
 

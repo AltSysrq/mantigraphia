@@ -31,8 +31,8 @@
 
 #include <stdlib.h>
 
-#include "../coords.h"
-#include "../frac.h"
+#include "../math/coords.h"
+#include "../math/frac.h"
 #include "canvas.h"
 #include "abstract.h"
 #include "pencil.h"

@@ -28,7 +28,7 @@
 #ifndef WORLD_HSPACE_H_
 #define WORLD_HSPACE_H_
 
-#include "../coords.h"
+#include "../math/coords.h"
 
 #define MAX_HSPACES 16
 

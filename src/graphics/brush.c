@@ -32,8 +32,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "../coords.h"
-#include "../rand.h"
+#include "../math/coords.h"
+#include "../math/rand.h"
 #include "canvas.h"
 #include "abstract.h"
 #include "brush.h"

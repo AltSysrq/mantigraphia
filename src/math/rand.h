@@ -25,8 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RAND_H_
-#define RAND_H_
+#ifndef MATH_RAND_H_
+#define MATH_RAND_H_
 
 /**
  * @file
@@ -165,4 +165,4 @@ void perlin_noise(unsigned* dst, unsigned w, unsigned h,
                   unsigned freq, unsigned amp,
                   unsigned seed);
 
-#endif /* RAND_H_ */
+#endif /* MATH_RAND_H_ */

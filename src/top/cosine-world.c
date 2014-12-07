@@ -35,7 +35,7 @@
 #include <string.h>
 
 #include "alloc.h"
-#include "coords.h"
+#include "math/coords.h"
 #include "defs.h"
 #include "micromp.h"
 

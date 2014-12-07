@@ -29,8 +29,8 @@
 #define WORLD_TERRAIN_H_
 
 #include "terrain-tilemap.h"
-#include "../coords.h"
-#include "../simd.h"
+#include "../math/coords.h"
+#include "../math/simd.h"
 
 /**
  * The base terrain types, used for bits 7..2 of the tile type byte. The lower

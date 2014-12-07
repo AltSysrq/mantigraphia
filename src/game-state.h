@@ -30,7 +30,7 @@
 
 #include <SDL.h>
 
-#include "coords.h"
+#include "math/coords.h"
 #include "graphics/canvas.h"
 
 /**

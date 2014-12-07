@@ -28,8 +28,8 @@
 #ifndef GRAPHICS_TILED_TEXTURE_H_
 #define GRAPHICS_TILED_TEXTURE_H_
 
-#include "../simd.h"
-#include "../coords.h"
+#include "../math/simd.h"
+#include "../math/coords.h"
 #include "canvas.h"
 
 /**
