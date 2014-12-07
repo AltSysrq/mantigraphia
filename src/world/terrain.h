@@ -28,7 +28,7 @@
 #ifndef WORLD_TERRAIN_H_
 #define WORLD_TERRAIN_H_
 
-#include "basic-world.h"
+#include "terrain-tilemap.h"
 #include "../coords.h"
 #include "../simd.h"
 
@@ -62,14 +62,14 @@ enum terrain_type {
  * across adjacent tiles so that the terrain looks smooth. This function
  * provides the smoothed value.
  */
-coord terrain_base_y(const basic_world*, coord x, coord z);
+coord terrain_base_y(const terrain_tilemap*, coord x, coord z);
 
 /**
  * Returns the base Y coordinate of the terrain at the given world X and Z
  * coordinate, as it is to be rendered. This is often the same as the true base
  * Y, but varies for things such as water.
  */
-coord terrain_graphical_y(const basic_world*, coord x, coord z,
+coord terrain_graphical_y(const terrain_tilemap*, coord x, coord z,
                           chronon t);
 
 /**
@@ -77,7 +77,7 @@ coord terrain_graphical_y(const basic_world*, coord x, coord z,
  * (tile coordinates, not world coordinates). The normal vector will have no
  * particular magnitude.
  */
-void terrain_basic_normal(vo3 normal, const basic_world*, coord tx, coord tz);
+void terrain_basic_normal(vo3 normal, const terrain_tilemap*, coord tx, coord tz);
 
 /**
  * Determines the colour for the terrain at the given world coordinates. This
@@ -92,7 +92,7 @@ void terrain_basic_normal(vo3 normal, const basic_world*, coord tx, coord tz);
  * The given palette determines the base colours for each tile type, and must
  * be compatible with the `terrain` field of the colour_palettes struct.
  */
-simd4 terrain_colour(const basic_world*, coord x, coord z,
+simd4 terrain_colour(const terrain_tilemap*, coord x, coord z,
                      const simd4* palette);
 
 #endif /* WORLD_TERRAIN_H_ */

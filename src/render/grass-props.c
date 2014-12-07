@@ -36,7 +36,7 @@
 #include "../graphics/glbrush.h"
 #include "../graphics/perspective.h"
 #include "../graphics/dm-proj.h"
-#include "../world/basic-world.h"
+#include "../world/terrain-tilemap.h"
 #include "../world/grass-props.h"
 #include "../world/terrain.h"
 #include "props.h"
@@ -137,7 +137,7 @@ void grass_props_context_dtor(rendering_context*restrict ctxt) {
 }
 
 static void render_grass_prop_simple(const world_prop*,
-                                     const basic_world*,
+                                     const terrain_tilemap*,
                                      unsigned, fraction,
                                      const rendering_context*restrict);
 
@@ -155,7 +155,7 @@ static const prop_renderer grass_prop_renderers_[1 + MAX_GRASS_TYPE] = {
 const prop_renderer*const grass_prop_renderers = grass_prop_renderers_;
 
 static void render_grass_prop_simple(const world_prop* this,
-                                     const basic_world* world,
+                                     const terrain_tilemap* world,
                                      unsigned level, fraction progression,
                                      const rendering_context*restrict context) {
   const perspective*restrict proj = CTXTINV(context)->proj;
@@ -175,7 +175,7 @@ static void render_grass_prop_simple(const world_prop* this,
 
   glpencil_init(&pencil, info->pencil);
   pencil.colour = palettes->grass[this->variant % NUM_GRASS_COLOUR_VARIANTS][
-    (world->tiles[basic_world_offset(world,
+    (world->tiles[terrain_tilemap_offset(world,
                                      this->x / TILE_SZ,
                                      this->z / TILE_SZ)]
      .elts[0].type) & ((1 << TERRAIN_SHADOW_BITS) - 1)];

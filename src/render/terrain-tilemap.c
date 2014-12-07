@@ -36,20 +36,20 @@
 #include "../micromp.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
-#include "../world/basic-world.h"
+#include "../world/terrain-tilemap.h"
 #include "../world/terrain.h"
 #include "context.h"
 #include "terrabuff.h"
 #include "colour-palettes.h"
-#include "basic-world.h"
+#include "terrain-tilemap.h"
 
 #define SLICE_CAP 256
 #define SCAN_CAP 128
 
 /* Our rendering context needs one terrabuff per thread. */
-RENDERING_CONTEXT_STRUCT(render_basic_world, terrabuff**)
+RENDERING_CONTEXT_STRUCT(render_terrain_tilemap, terrabuff**)
 
-void render_basic_world_context_ctor(rendering_context*restrict context) {
+void render_terrain_tilemap_context_ctor(rendering_context*restrict context) {
   terrabuff** buffers;
   unsigned i;
 
@@ -58,12 +58,12 @@ void render_basic_world_context_ctor(rendering_context*restrict context) {
   for (i = 0; i < ump_num_workers() + 1; ++i)
     buffers[i] = terrabuff_new(SLICE_CAP, SCAN_CAP);
 
-  *render_basic_world_getm(context) = buffers;
+  *render_terrain_tilemap_getm(context) = buffers;
 }
 
-void render_basic_world_context_dtor(rendering_context*restrict context) {
+void render_terrain_tilemap_context_dtor(rendering_context*restrict context) {
   unsigned i;
-  terrabuff** buffers = *render_basic_world_get(context);
+  terrabuff** buffers = *render_terrain_tilemap_get(context);
 
   for (i = 0; i < ump_num_workers() + 1; ++i)
     terrabuff_delete(buffers[i]);
@@ -88,7 +88,7 @@ static inline angle slice_to_angle(terrabuff_slice slice) {
 static void put_point(terrabuff* dst, const vc3 centre,
                       terrabuff_slice slice,
                       coord_offset distance, coord_offset sample_len,
-                      const basic_world*restrict world, unsigned char level,
+                      const terrain_tilemap*restrict world, unsigned char level,
                       const rendering_context*restrict context,
                       unsigned xmax, chronon t) {
   const perspective*restrict proj = CTXTINV(context)->proj;
@@ -151,29 +151,29 @@ static void put_point(terrabuff* dst, const vc3 centre,
                 xmax);
 }
 
-static canvas* render_basic_world_terrain_dst;
-static const basic_world*restrict render_basic_world_terrain_world;
-static const rendering_context*restrict render_basic_world_terrain_context;
-static void render_basic_world_terrain_subrange(unsigned, unsigned);
-static ump_task render_basic_world_terrain_task = {
-  render_basic_world_terrain_subrange,
+static canvas* render_terrain_tilemap_terrain_dst;
+static const terrain_tilemap*restrict render_terrain_tilemap_terrain_world;
+static const rendering_context*restrict render_terrain_tilemap_terrain_context;
+static void render_terrain_tilemap_terrain_subrange(unsigned, unsigned);
+static ump_task render_terrain_tilemap_terrain_task = {
+  render_terrain_tilemap_terrain_subrange,
   0, /* Dynamic (num workers) */
   0, /* Unused (synchronous) */
 };
 
-static void render_basic_world_terrain(canvas* dst,
-                                       const basic_world*restrict world,
+static void render_terrain_tilemap_terrain(canvas* dst,
+                                       const terrain_tilemap*restrict world,
                                        const rendering_context*restrict context)
 {
-  terrabuff** buffers = *render_basic_world_get(context);
+  terrabuff** buffers = *render_terrain_tilemap_get(context);
   unsigned i;
 
-  render_basic_world_terrain_dst = dst;
-  render_basic_world_terrain_world = world;
-  render_basic_world_terrain_context = context;
-  render_basic_world_terrain_task.num_divisions = 1 + ump_num_workers();
+  render_terrain_tilemap_terrain_dst = dst;
+  render_terrain_tilemap_terrain_world = world;
+  render_terrain_tilemap_terrain_context = context;
+  render_terrain_tilemap_terrain_task.num_divisions = 1 + ump_num_workers();
   ump_join();
-  ump_run_sync(&render_basic_world_terrain_task);
+  ump_run_sync(&render_terrain_tilemap_terrain_task);
 
   for (i = 1; i < 1 + ump_num_workers(); ++i)
     terrabuff_merge(buffers[0], buffers[i]);
@@ -181,14 +181,14 @@ static void render_basic_world_terrain(canvas* dst,
   terrabuff_render(dst, buffers[0], context);
 }
 
-static void render_basic_world_terrain_subrange(unsigned ix, unsigned count) {
-  canvas* dst = render_basic_world_terrain_dst;
-  const basic_world*restrict world = render_basic_world_terrain_world;
-  const rendering_context*restrict context = render_basic_world_terrain_context;
+static void render_terrain_tilemap_terrain_subrange(unsigned ix, unsigned count) {
+  canvas* dst = render_terrain_tilemap_terrain_dst;
+  const terrain_tilemap*restrict world = render_terrain_tilemap_terrain_world;
+  const rendering_context*restrict context = render_terrain_tilemap_terrain_context;
 
   const perspective*restrict proj =
     ((const rendering_context_invariant*)context)->proj;
-  terrabuff* terra = render_basic_world_get(context)[0][ix];
+  terrabuff* terra = render_terrain_tilemap_get(context)[0][ix];
   unsigned scan = 0;
   terrabuff_slice smin, scurr, smax;
   terrabuff_slice absolute_smin, absolute_smax, absolute_range;
@@ -252,8 +252,8 @@ static void render_basic_world_terrain_subrange(unsigned ix, unsigned count) {
   }
 }
 
-void render_basic_world(canvas* dst,
-                        const basic_world*restrict world,
+void render_terrain_tilemap(canvas* dst,
+                        const terrain_tilemap*restrict world,
                         const rendering_context*restrict context) {
-  render_basic_world_terrain(dst, world, context);
+  render_terrain_tilemap_terrain(dst, world, context);
 }

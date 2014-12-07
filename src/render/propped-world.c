@@ -35,7 +35,7 @@
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
 #include "../world/propped-world.h"
-#include "basic-world.h"
+#include "terrain-tilemap.h"
 #include "context.h"
 #include "props.h"
 #include "grass-props.h"
@@ -66,7 +66,7 @@ void render_propped_world(canvas* dst,
   render_propped_world_context = context;
   render_propped_world_dst = dst;
 
-  render_basic_world(dst, this->terrain, context);
+  render_terrain_tilemap(dst, this->terrain, context);
 
   render_propped_world_enqueue_task.num_divisions = ump_num_workers()+1;
   ump_run_sync(&render_propped_world_enqueue_task);

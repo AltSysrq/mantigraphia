@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,33 +35,34 @@
 
 #include "../alloc.h"
 #include "../bsd.h"
-#include "basic-world.h"
+#include "terrain-tilemap.h"
 #include "terrain.h"
 
-basic_world* basic_world_new(coord xmax, coord zmax, coord xmin, coord zmin) {
-  size_t memory_reqd = 0, bw_mem = offsetof(basic_world, tiles);
+terrain_tilemap* terrain_tilemap_new(coord xmax, coord zmax,
+                                     coord xmin, coord zmin) {
+  size_t memory_reqd = 0, bw_mem = offsetof(terrain_tilemap, tiles);
   coord xs, zs;
-  basic_world* world, * prev = NULL;
+  terrain_tilemap* world, * prev = NULL;
   char* base, * curr;
   /* Dummy head so that we can clear the next field correctly */
-  SLIST_HEAD(, basic_world_s) dummy_head;
+  SLIST_HEAD(, terrain_tilemap_s) dummy_head;
 
   /* Below, we allocate all worlds in one allocation. We don't manually handle
    * alignment, as xs*zs is always an even number when there will be a next
-   * world, and even*sizeof(tile_info) is a multiple of eight, so any alignment
-   * requirements will always be met.
+   * world, and even*sizeof(terrain_tile_info) is a multiple of eight, so any
+   * alignment requirements will always be met.
    */
 
   /* Count required memory */
   for (xs = xmax, zs = zmax; xs >= xmin && zs >= zmin; xs /= 2, zs /= 2) {
-    memory_reqd += bw_mem + xs*zs*sizeof(tile_info);
+    memory_reqd += bw_mem + xs*zs*sizeof(terrain_tile_info);
   }
 
   base = curr = xmalloc(memory_reqd);
   /* Initialise values */
   for (xs = xmax, zs = zmax; xs >= xmin && zs >= zmin; xs /= 2, zs /= 2) {
-    world = (basic_world*)curr;
-    curr += bw_mem + xs*zs*sizeof(tile_info);
+    world = (terrain_tilemap*)curr;
+    curr += bw_mem + xs*zs*sizeof(terrain_tile_info);
 
     /* Set bounds */
     world->xmax = xs;
@@ -76,15 +77,15 @@ basic_world* basic_world_new(coord xmax, coord zmax, coord xmin, coord zmin) {
     prev = world;
   }
 
-  return (basic_world*)base;
+  return (terrain_tilemap*)base;
 }
 
-void basic_world_delete(basic_world* this) {
+void terrain_tilemap_delete(terrain_tilemap* this) {
   free(this);
 }
 
-void basic_world_patch_next(basic_world* large, coord x, coord z) {
-  basic_world* small;
+void terrain_tilemap_patch_next(terrain_tilemap* large, coord x, coord z) {
+  terrain_tilemap* small;
   coord sx, sz;
   unsigned ox, oz, elt, alt, strongest, loff, soff;
 
@@ -95,21 +96,21 @@ void basic_world_patch_next(basic_world* large, coord x, coord z) {
   while ((small = SLIST_NEXT(large, next))) {
     sx = x/2;
     sz = z/2;
-    soff = basic_world_offset(small, sx, sz);
+    soff = terrain_tilemap_offset(small, sx, sz);
 
     /* Select strongest element at each index for the combined value */
     for (elt = 0; elt < TILE_NELT; ++elt) {
       strongest = 256;
       for (oz = 0; oz < 2; ++oz) {
         for (ox = 0; ox < 2; ++ox) {
-          loff = basic_world_offset(large,
+          loff = terrain_tilemap_offset(large,
                                     (x+ox) & (large->xmax-1),
                                     (z+oz) & (large->zmax-1));
           if (large->tiles[loff].elts[elt].type < strongest) {
             strongest = large->tiles[loff].elts[elt].type;
             memcpy(&small->tiles[soff].elts[elt],
                    &large->tiles[loff].elts[elt],
-                   sizeof(tile_element));
+                   sizeof(terrain_tile_element));
           }
         }
       }
@@ -122,7 +123,7 @@ void basic_world_patch_next(basic_world* large, coord x, coord z) {
     alt = 0;
     for (oz = 0; oz < 2; ++oz) {
       for (ox = 0; ox < 2; ++ox) {
-        loff = basic_world_offset(large,
+        loff = terrain_tilemap_offset(large,
                                   (x+ox) & (large->xmax-1),
                                   (z+oz) & (large->zmax-1));
         if (large->tiles[loff].elts[0].altitude > alt)
@@ -138,18 +139,18 @@ void basic_world_patch_next(basic_world* large, coord x, coord z) {
   }
 }
 
-void basic_world_calc_next(basic_world* this) {
+void terrain_tilemap_calc_next(terrain_tilemap* this) {
   coord x, z;
 
   for (z = 0; z < this->zmax; z += 2) {
     for (x = 0; x < this->xmax; x += 2) {
-      basic_world_patch_next(this, x, z);
+      terrain_tilemap_patch_next(this, x, z);
     }
   }
 }
 
 #define BMP_HEADER_SIZE 68
-void basic_world_bmp_dump(FILE* out, const basic_world* this) {
+void terrain_tilemap_bmp_dump(FILE* out, const terrain_tilemap* this) {
   /* Save image as BMP
    * 0000+02  Signature = "BM"
    * 0002+04  File size, = 0x44+width*height*4
@@ -264,25 +265,26 @@ void basic_world_bmp_dump(FILE* out, const basic_world* this) {
   free(buffer);
 }
 
-basic_world* basic_world_deserialise(FILE* in) {
+terrain_tilemap* terrain_tilemap_deserialise(FILE* in) {
   struct {
     coord xmax, zmax, xmin, zmin;
   } size_info;
-  basic_world* this;
+  terrain_tilemap* this;
 
   if (1 != fread(&size_info, sizeof(size_info), 1, in))
     err(EX_OSERR, "Reading basic world");
 
-  this = basic_world_new(size_info.xmax, size_info.zmax,
+  this = terrain_tilemap_new(size_info.xmax, size_info.zmax,
                          size_info.xmin, size_info.zmin);
-  if (1 != fread(this->tiles, sizeof(tile_info)*this->xmax*this->zmax, 1, in))
+  if (1 != fread(this->tiles,
+                 sizeof(terrain_tile_info)*this->xmax*this->zmax, 1, in))
     err(EX_OSERR, "Reading basic world");
-  basic_world_calc_next(this);
+  terrain_tilemap_calc_next(this);
   return this;
 }
 
-void basic_world_serialise(FILE* out, const basic_world* this) {
-  const basic_world* world;
+void terrain_tilemap_serialise(FILE* out, const terrain_tilemap* this) {
+  const terrain_tilemap* world;
   struct {
     coord xmax, zmax, xmin, zmin;
   } size_info;
@@ -297,7 +299,8 @@ void basic_world_serialise(FILE* out, const basic_world* this) {
   if (1 != fwrite(&size_info, sizeof(size_info), 1, out))
     goto error;
 
-  if (1 != fwrite(this->tiles, sizeof(tile_info)*this->xmax*this->zmax,
+  if (1 != fwrite(this->tiles,
+                  sizeof(terrain_tile_info)*this->xmax*this->zmax,
                   1, out))
     goto error;
 

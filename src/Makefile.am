@@ -34,7 +34,7 @@ gl/glinfo.c \
 gl/shader_loader.c \
 gl/shaders.c \
 gl/marshal.c \
-world/basic-world.c \
+world/terrain-tilemap.c \
 world/terrain.c \
 world/props.c \
 world/propped-world.c \
@@ -43,7 +43,7 @@ world/hspace.c \
 render/turtle.c \
 render/context.c \
 render/terrabuff.c \
-render/basic-world.c \
+render/terrain-tilemap.c \
 render/props.c \
 render/lsystem.c \
 render/grass-props.c \

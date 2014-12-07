@@ -29,7 +29,7 @@
 #define RENDER_PROPPED_WORLD_H_
 
 #include "../graphics/canvas.h"
-#include "../world/basic-world.h"
+#include "../world/terrain-tilemap.h"
 #include "../world/propped-world.h"
 #include "context.h"
 

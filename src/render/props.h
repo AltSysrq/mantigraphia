@@ -29,7 +29,7 @@
 #define RENDER_PROPS_H_
 
 #include "../frac.h"
-#include "../world/basic-world.h"
+#include "../world/terrain-tilemap.h"
 #include "../world/props.h"
 #include "context.h"
 
@@ -38,7 +38,7 @@
  * stored in tables passed to render_world_props().
  */
 typedef void (*prop_renderer)(const world_prop*,
-                              const basic_world*,
+                              const terrain_tilemap*,
                               unsigned level, fraction level_progression,
                               const rendering_context*restrict);
 
@@ -68,7 +68,7 @@ typedef void (*prop_renderer)(const world_prop*,
  */
 void render_world_props(const world_prop* props,
                         unsigned num_props,
-                        const basic_world* world,
+                        const terrain_tilemap* world,
                         coord xmin, coord xmax,
                         coord zmin, coord zmax,
                         unsigned char distsq_shift,

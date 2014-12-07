@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 
-#include "basic-world.h"
+#include "terrain-tilemap.h"
 #include "props.h"
 
 /**
@@ -48,15 +48,15 @@ typedef struct {
 } prop_array;
 
 /**
- * A propped_world is the cannonical container for a basic_world plus the
+ * A propped_world is the cannonical container for a terrain_tilemap plus the
  * arrays of props which populate it.
  */
 typedef struct {
   /**
-   * The basic_world representing the terrain and terrain types. Owned by this
+   * The terrain_tilemap representing the terrain and terrain types. Owned by this
    * propped_world.
    */
-  basic_world* terrain;
+  terrain_tilemap* terrain;
   /**
    * The grass prop layer. Grass has a short draw distance, and doesn't
    * interact with objects within the environment.
@@ -75,17 +75,17 @@ typedef struct {
  * not initialised.
  *
  * @param terrain The value for the terrain field of the propped_world. The
- * basic_world becomes owned by this propped_world.
+ * terrain_tilemap becomes owned by this propped_world.
  * @param num_grass The size of the grass layer prop_array.
  * @param num_trees The size of the trees layers prop_array. Each tree level
  * gets half of this value.
  */
-propped_world* propped_world_new(basic_world* terrain,
+propped_world* propped_world_new(terrain_tilemap* terrain,
                                  unsigned num_grass,
                                  unsigned num_trees);
 /**
  * Frees the memory held by the given propped_world, including the associated
- * basic_world.
+ * terrain_tilemap.
  */
 void propped_world_delete(propped_world*);
 

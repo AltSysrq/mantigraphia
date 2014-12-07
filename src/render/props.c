@@ -30,14 +30,14 @@
 #endif
 
 #include "../graphics/perspective.h"
-#include "../world/basic-world.h"
+#include "../world/terrain-tilemap.h"
 #include "../world/props.h"
 #include "context.h"
 #include "props.h"
 
 void render_world_props(const world_prop* props,
                         unsigned num_props,
-                        const basic_world* world,
+                        const terrain_tilemap* world,
                         coord xmin, coord xmax,
                         coord zmin, coord zmax,
                         unsigned char distsq_shift,

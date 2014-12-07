@@ -34,10 +34,10 @@
 #include "../bsd.h"
 
 #include "../alloc.h"
-#include "basic-world.h"
+#include "terrain-tilemap.h"
 #include "propped-world.h"
 
-propped_world* propped_world_new(basic_world* terrain,
+propped_world* propped_world_new(terrain_tilemap* terrain,
                                  unsigned num_grass,
                                  unsigned num_trees) {
   propped_world* this = xmalloc(
@@ -55,7 +55,7 @@ propped_world* propped_world_new(basic_world* terrain,
 }
 
 void propped_world_delete(propped_world* this) {
-  basic_world_delete(this->terrain);
+  terrain_tilemap_delete(this->terrain);
   free(this);
 }
 
@@ -69,7 +69,7 @@ propped_world* propped_world_deserialise(FILE* in) {
   if (1 != fread(&size_info, sizeof(size_info), 1, in))
     err(EX_OSERR, "Reading propped world");
 
-  this = propped_world_new(basic_world_deserialise(in),
+  this = propped_world_new(terrain_tilemap_deserialise(in),
                            size_info.num_grass, size_info.num_trees);
   if (1 != fread(this->grass.props, sizeof(world_prop)*this->grass.size, 1, in))
     err(EX_OSERR, "Reading propped world");
@@ -89,7 +89,7 @@ void propped_world_serialise(FILE* out, const propped_world* this) {
 
   if (1 != fwrite(&size_info, sizeof(size_info), 1, out))
     goto error;
-  basic_world_serialise(out, this->terrain);
+  terrain_tilemap_serialise(out, this->terrain);
   if (1 != fwrite(this->grass.props, sizeof(world_prop)*this->grass.size, 1, out))
     goto error;
   if (1 != fwrite(this->trees[0].props, sizeof(world_prop)*this->trees[0].size, 1, out))

@@ -37,7 +37,7 @@
 #include "../graphics/canvas.h"
 #include "../graphics/dm-proj.h"
 #include "../graphics/glbrush.h"
-#include "../world/basic-world.h"
+#include "../world/terrain-tilemap.h"
 #include "../world/terrain.h"
 #include "turtle.h"
 #include "context.h"
@@ -163,11 +163,11 @@ void tree_props_init(void) {
 }
 
 static void render_tree_prop_oak(const world_prop*,
-                                 const basic_world*,
+                                 const terrain_tilemap*,
                                  unsigned, fraction,
                                  const rendering_context*restrict);
 static void render_tree_prop_cherry(const world_prop*,
-                                    const basic_world*,
+                                    const terrain_tilemap*,
                                     unsigned, fraction,
                                     const rendering_context*restrict);
 static const prop_renderer tree_prop_renderers_[] = {
@@ -179,7 +179,7 @@ const prop_renderer*const tree_prop_renderers = tree_prop_renderers_;
 
 static void render_tree_prop_common(
   const tree_spec* spec,
-  const world_prop* this, const basic_world* world,
+  const world_prop* this, const terrain_tilemap* world,
   unsigned base_level, fraction progression,
   const rendering_context*restrict context)
 {
@@ -382,7 +382,7 @@ static const tree_spec cherry_tree = {
 };
 
 static void render_tree_prop_oak(
-  const world_prop* this, const basic_world* world,
+  const world_prop* this, const terrain_tilemap* world,
   unsigned base_level, fraction progression,
   const rendering_context*restrict context)
 {
@@ -392,7 +392,7 @@ static void render_tree_prop_oak(
 }
 
 static void render_tree_prop_cherry(
-  const world_prop* this, const basic_world* world,
+  const world_prop* this, const terrain_tilemap* world,
   unsigned base_level, fraction progression,
   const rendering_context*restrict context)
 {

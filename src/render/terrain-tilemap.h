@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,26 +25,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RENDER_BASIC_WORLD_H_
-#define RENDER_BASIC_WORLD_H_
+#ifndef RENDER_TERRAIN_TILEMAP_H_
+#define RENDER_TERRAIN_TILEMAP_H_
 
 #include <stdlib.h>
 
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
-#include "../world/basic-world.h"
+#include "../world/terrain-tilemap.h"
 #include "context.h"
 
 /**
- * Renders all visible tiles in the given basic_world.
+ * Renders all visible tiles in the given terrain_tilemap.
  */
-void render_basic_world(
+void render_terrain_tilemap(
   canvas* dst,
-  const basic_world*restrict,
+  const terrain_tilemap*restrict,
   const rendering_context*restrict context);
 
-size_t render_basic_world_put_context_offset(size_t);
-void render_basic_world_context_ctor(rendering_context*restrict);
-void render_basic_world_context_dtor(rendering_context*restrict);
+size_t render_terrain_tilemap_put_context_offset(size_t);
+void render_terrain_tilemap_context_ctor(rendering_context*restrict);
+void render_terrain_tilemap_context_dtor(rendering_context*restrict);
 
-#endif /* RENDER_BASIC_WORLD_H_ */
+#endif /* RENDER_TERRAIN_TILEMAP_H_ */

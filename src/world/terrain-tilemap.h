@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2014 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,8 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef WORLD_BASIC_WORLD_H_
-#define WORLD_BASIC_WORLD_H_
+#ifndef WORLD_TERRAIN_TILEMAP_H_
+#define WORLD_TERRAIN_TILEMAP_H_
 
 #include <assert.h>
 #include <stdio.h>
@@ -36,9 +36,9 @@
 
 /**
  * @file
- * Provides types and definitions used to describe the game world. The game
- * world consists of a square grid of tiles. Multiple versions of the world at
- * different granularities may be maintained.
+ * Provides types and definitions used to describe the terrain of the game
+ * world. The terrain map consists of a square grid of tiles. Multiple versions
+ * of the tilemap at different granularities may be maintained.
  */
 
 /**
@@ -68,28 +68,28 @@
  * considered "stronger"; when reducing granularity of the main world, upper
  * worlds prefer stronger tiles.
  */
-typedef unsigned char tile_type;
+typedef unsigned char terrain_tile_type;
 /**
  * The thickness of the tile, in terms of TILE_YMUL. The Y extent of a tile
  * ranges from altitude to altitude+thickness. A thickness of zero indicates
  * the absence of the element, except for element zero. For element zero,
  * thickness is irrelevant.
  */
-typedef unsigned char tile_thickness;
+typedef unsigned char terrain_tile_thickness;
 /**
  * The base altitude of the tile, in terms of TILE_YMUL.
  */
-typedef unsigned short tile_altitude;
+typedef unsigned short terrain_tile_altitude;
 
 /**
  * Each element in a tile defines its own, independent type, thickness, and
  * base altitude.
  */
 typedef struct {
-  tile_type      type;
-  tile_thickness thickness;
-  tile_altitude  altitude;
-} tile_element;
+  terrain_tile_type      type;
+  terrain_tile_thickness thickness;
+  terrain_tile_altitude  altitude;
+} terrain_tile_element;
 
 /**
  * Each tile consists of TILE_NELT elements, which are to be sorted in
@@ -98,8 +98,8 @@ typedef struct {
  * thickness), and existing elements need not be contiguous.
  */
 typedef struct {
-  tile_element elts[TILE_NELT];
-} tile_info;
+  terrain_tile_element elts[TILE_NELT];
+} terrain_tile_info;
 
 /**
  * The basic information for a world is simply a grid of tiles, and maximum
@@ -107,7 +107,7 @@ typedef struct {
  * each world may have a "next" world, which is an identical world with half
  * granularity on both X and Z axes.
  */
-typedef struct basic_world_s {
+typedef struct terrain_tilemap_s {
   /**
    * Maximum dimensions of the world along the X and Z axes.
    */
@@ -116,46 +116,48 @@ typedef struct basic_world_s {
    * Entry for the "next" world of half granularity. Note that there is no
    * SLIST_HEAD for this; each world simply refers to the next, if one exists.
    */
-  SLIST_ENTRY(basic_world_s) next;
+  SLIST_ENTRY(terrain_tilemap_s) next;
   /**
    * Tiles describing the world. The actual length of this array is xmax*zmax.
    */
-  tile_info tiles[FLEXIBLE_ARRAY_MEMBER];
-} basic_world;
+  terrain_tile_info tiles[FLEXIBLE_ARRAY_MEMBER];
+} terrain_tilemap;
 
 /**
  * Calculates the offset within the tiles array of the given coordinates within
  * the given world.
  */
-static inline unsigned basic_world_offset(const basic_world* world,
-                                          coord x, coord z) {
+static inline unsigned terrain_tilemap_offset(
+  const terrain_tilemap* world, coord x, coord z
+) {
   return x + world->xmax * z;
 }
 
 /**
- * Allocates a chain of worlds with granularities ranging from the given max to
- * the given min coordinates. The first world has max coordinates (xmax,zmax),
- * and each subsequent world has each maximum coordinate halved. The tiles for
- * each world are not initialised.
+ * Allocates a chain of tilemaps with granularities ranging from the given max
+ * to the given min coordinates. The first tilemap has max coordinates
+ * (xmax,zmax), and each subsequent tilemap has each maximum coordinate halved.
+ * The tiles for each tilemap are not initialised.
  */
-basic_world* basic_world_new(coord xmax, coord zmax, coord xmin, coord zmin);
+terrain_tilemap* terrain_tilemap_new(coord xmax, coord zmax,
+                                     coord xmin, coord zmin);
 /**
- * Deletes all memory held by the given world chain. The pointer given must be
- * the first world in the chain.
+ * Deletes all memory held by the given tilemap chain. The pointer given must
+ * be the first tilemap in the chain.
  */
-void basic_world_delete(basic_world*);
+void terrain_tilemap_delete(terrain_tilemap*);
 
 /**
- * Recalculates the tiles of all worlds of lower granularity than the one
+ * Recalculates the tiles of all tilemaps of lower granularity than the one
  * given. This is a fairly expensive operation, and should only be called after
- * the initial world generation.
+ * the initial tilemap generation.
  */
-void basic_world_calc_next(basic_world*);
+void terrain_tilemap_calc_next(terrain_tilemap*);
 /**
- * Patches all worlds subsequent to the given world, assuming that only the
+ * Patches all tilemaps subsequent to the given tilemap, assuming that only the
  * tile at (x,z) has changed.
  */
-void basic_world_patch_next(basic_world*, coord x, coord z);
+void terrain_tilemap_patch_next(terrain_tilemap*, coord x, coord z);
 
 /**
  * Dumps a graphical representation of the map to a BMP-format image in the
@@ -164,20 +166,20 @@ void basic_world_patch_next(basic_world*, coord x, coord z);
  * This is only useful for debugging / investigation / demonstrational
  * purposes.
  */
-void basic_world_bmp_dump(FILE*, const basic_world*);
+void terrain_tilemap_bmp_dump(FILE*, const terrain_tilemap*);
 
 /**
- * Deserialises a basic_world from the given input file. The format of this
+ * Deserialises a terrain_tilemap from the given input file. The format of this
  * file is undefined, and is both architecture- and compiler-specific. This
  * function blindly trusts that everything works perfectly.
  */
-basic_world* basic_world_deserialise(FILE*);
+terrain_tilemap* terrain_tilemap_deserialise(FILE*);
 /**
- * Serialises the basic_world into the given output file. The format of this
+ * Serialises the terrain_tilemap into the given output file. The format of this
  * file is undefined, and is both architecture- and compiler-specific. If
  * writing to the file fails, a diagnostic is printed. This file can
  * potentially contain unrelated information about the process.
  */
-void basic_world_serialise(FILE*, const basic_world*);
+void terrain_tilemap_serialise(FILE*, const terrain_tilemap*);
 
-#endif /* WORLD_BASIC_WORLD_H_ */
+#endif /* WORLD_TERRAIN_TILEMAP_H_ */
