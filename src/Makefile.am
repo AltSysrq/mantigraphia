@@ -7,10 +7,7 @@ AM_CFLAGS=-std=c99 -Wall -D_BSD_SOURCE \
           $(GLU_CFLAGS)
 AM_LDFLAGS=$(SDL_LIBS) $(SDLIMG_LIBS) $(GL_LIBS) $(GLEW_LIBS) $(GLU_LIBS)
 
-noinst_PROGRAMS = math/gentrigtab
 bin_PROGRAMS = mantigraphia
-math_gentrigtab_SOURCES = math/gen_trigtab.c
-math_gentrigtab_LDFLAGS = -lm
 mantigraphia_SOURCES = \
 top/main.c \
 micromp.c \
@@ -52,6 +49,3 @@ render/propped-world.c \
 render/colour-palettes.c \
 control/mouselook.c \
 top/cosine-world.c
-
-math/trigtab.c: math/gentrigtab
-	./math/gentrigtab >math/trigtab.c

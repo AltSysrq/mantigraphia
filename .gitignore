@@ -17,7 +17,6 @@ aclocal.m4
 autom4te.cache
 stamp-h1
 gentrigtab
-trigtab.c
 .dirstamp
 share/extern
 *.gmon
