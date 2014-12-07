@@ -62,13 +62,6 @@
  */
 typedef unsigned char terrain_tile_type;
 /**
- * The thickness of the tile, in terms of TILE_YMUL. The Y extent of a tile
- * ranges from altitude to altitude+thickness. A thickness of zero indicates
- * the absence of the element, except for element zero. For element zero,
- * thickness is irrelevant.
- */
-typedef unsigned char terrain_tile_thickness;
-/**
  * The base altitude of the tile, in terms of TILE_YMUL.
  */
 typedef unsigned short terrain_tile_altitude;
@@ -79,7 +72,6 @@ typedef unsigned short terrain_tile_altitude;
  */
 typedef struct {
   terrain_tile_type      type;
-  terrain_tile_thickness thickness;
   terrain_tile_altitude  altitude;
 } terrain_tile_element;
 

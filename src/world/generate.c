@@ -103,7 +103,6 @@ static void initialise(terrain_tilemap* world) {
   max = world->xmax * world->zmax;
   for (i = 0; i < max; ++i) {
     world->tiles[i].type = terrain_type_grass << TERRAIN_SHADOW_BITS;
-    world->tiles[i].thickness = 0;
   }
 }
 
