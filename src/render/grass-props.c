@@ -178,7 +178,7 @@ static void render_grass_prop_simple(const world_prop* this,
     (world->tiles[terrain_tilemap_offset(world,
                                      this->x / TILE_SZ,
                                      this->z / TILE_SZ)]
-     .elts[0].type) & ((1 << TERRAIN_SHADOW_BITS) - 1)];
+     .type) & ((1 << TERRAIN_SHADOW_BITS) - 1)];
 
   base[0] = tip[0] = this->x;
   base[2] = tip[2] = this->z;

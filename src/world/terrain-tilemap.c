@@ -49,20 +49,20 @@ terrain_tilemap* terrain_tilemap_new(coord xmax, coord zmax,
 
   /* Below, we allocate all worlds in one allocation. We don't manually handle
    * alignment, as xs*zs is always an even number when there will be a next
-   * world, and even*sizeof(terrain_tile_info) is a multiple of eight, so any
-   * alignment requirements will always be met.
+   * world, and even*sizeof(terrain_tile_element) is a multiple of eight, so
+   * any alignment requirements will always be met.
    */
 
   /* Count required memory */
   for (xs = xmax, zs = zmax; xs >= xmin && zs >= zmin; xs /= 2, zs /= 2) {
-    memory_reqd += bw_mem + xs*zs*sizeof(terrain_tile_info);
+    memory_reqd += bw_mem + xs*zs*sizeof(terrain_tile_element);
   }
 
   base = curr = xmalloc(memory_reqd);
   /* Initialise values */
   for (xs = xmax, zs = zmax; xs >= xmin && zs >= zmin; xs /= 2, zs /= 2) {
     world = (terrain_tilemap*)curr;
-    curr += bw_mem + xs*zs*sizeof(terrain_tile_info);
+    curr += bw_mem + xs*zs*sizeof(terrain_tile_element);
 
     /* Set bounds */
     world->xmax = xs;
@@ -87,7 +87,7 @@ void terrain_tilemap_delete(terrain_tilemap* this) {
 void terrain_tilemap_patch_next(terrain_tilemap* large, coord x, coord z) {
   terrain_tilemap* small;
   coord sx, sz;
-  unsigned ox, oz, elt, alt, strongest, loff, soff;
+  unsigned ox, oz, alt, strongest, loff, soff;
 
   /* Shift to base offset for reduced tile */
   x &= ~1u;
@@ -99,19 +99,17 @@ void terrain_tilemap_patch_next(terrain_tilemap* large, coord x, coord z) {
     soff = terrain_tilemap_offset(small, sx, sz);
 
     /* Select strongest element at each index for the combined value */
-    for (elt = 0; elt < TILE_NELT; ++elt) {
-      strongest = 256;
-      for (oz = 0; oz < 2; ++oz) {
-        for (ox = 0; ox < 2; ++ox) {
-          loff = terrain_tilemap_offset(large,
-                                    (x+ox) & (large->xmax-1),
-                                    (z+oz) & (large->zmax-1));
-          if (large->tiles[loff].elts[elt].type < strongest) {
-            strongest = large->tiles[loff].elts[elt].type;
-            memcpy(&small->tiles[soff].elts[elt],
-                   &large->tiles[loff].elts[elt],
-                   sizeof(terrain_tile_element));
-          }
+    strongest = 256;
+    for (oz = 0; oz < 2; ++oz) {
+      for (ox = 0; ox < 2; ++ox) {
+        loff = terrain_tilemap_offset(large,
+                                      (x+ox) & (large->xmax-1),
+                                      (z+oz) & (large->zmax-1));
+        if (large->tiles[loff].type < strongest) {
+          strongest = large->tiles[loff].type;
+          memcpy(&small->tiles[soff],
+                 &large->tiles[loff],
+                 sizeof(terrain_tile_element));
         }
       }
     }
@@ -126,11 +124,11 @@ void terrain_tilemap_patch_next(terrain_tilemap* large, coord x, coord z) {
         loff = terrain_tilemap_offset(large,
                                   (x+ox) & (large->xmax-1),
                                   (z+oz) & (large->zmax-1));
-        if (large->tiles[loff].elts[0].altitude > alt)
-          alt = large->tiles[loff].elts[0].altitude;
+        if (large->tiles[loff].altitude > alt)
+          alt = large->tiles[loff].altitude;
       }
     }
-    small->tiles[soff].elts[0].altitude = alt;
+    small->tiles[soff].altitude = alt;
 
     /* Move to next level */
     large = small;
@@ -214,9 +212,9 @@ void terrain_tilemap_bmp_dump(FILE* out, const terrain_tilemap* this) {
   memcpy(buffer, header, sizeof(header));
 
   for (i = 0; i < num_px; ++i) {
-    alt = this->tiles[i].elts[0].altitude & 0x7F;
+    alt = this->tiles[i].altitude & 0x7F;
 
-    switch (this->tiles[i].elts[0].type >> TERRAIN_SHADOW_BITS) {
+    switch (this->tiles[i].type >> TERRAIN_SHADOW_BITS) {
     case terrain_type_snow:
       r = g = b = 0x80 + alt;
       break;
@@ -277,7 +275,7 @@ terrain_tilemap* terrain_tilemap_deserialise(FILE* in) {
   this = terrain_tilemap_new(size_info.xmax, size_info.zmax,
                          size_info.xmin, size_info.zmin);
   if (1 != fread(this->tiles,
-                 sizeof(terrain_tile_info)*this->xmax*this->zmax, 1, in))
+                 sizeof(terrain_tile_element)*this->xmax*this->zmax, 1, in))
     err(EX_OSERR, "Reading basic world");
   terrain_tilemap_calc_next(this);
   return this;
@@ -300,7 +298,7 @@ void terrain_tilemap_serialise(FILE* out, const terrain_tilemap* this) {
     goto error;
 
   if (1 != fwrite(this->tiles,
-                  sizeof(terrain_tile_info)*this->xmax*this->zmax,
+                  sizeof(terrain_tile_element)*this->xmax*this->zmax,
                   1, out))
     goto error;
 

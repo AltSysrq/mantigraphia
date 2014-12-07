@@ -36,7 +36,7 @@
 
 static inline coord_offset altitude(const terrain_tilemap* world,
                                     coord tx, coord tz) {
-  return world->tiles[terrain_tilemap_offset(world, tx, tz)].elts[0].altitude *
+  return world->tiles[terrain_tilemap_offset(world, tx, tz)].altitude *
     TILE_YMUL;
 }
 
@@ -63,7 +63,7 @@ coord terrain_graphical_y(const terrain_tilemap* world, coord wx, coord wz,
   coord z = wz / TILE_SZ;
 
   if (terrain_type_water ==
-      world->tiles[terrain_tilemap_offset(world, x, z)].elts[0].type >>
+      world->tiles[terrain_tilemap_offset(world, x, z)].type >>
       TERRAIN_SHADOW_BITS) {
     return 3 * METRE / 2 + zo_cosms((wx+wz+t*65536/8)/16, METRE/2);
   } else {
@@ -80,7 +80,7 @@ static simd4 colour_of(const terrain_tilemap* world,
   return terrain_colours[
     world->tiles[
       terrain_tilemap_offset(world, x, z)
-    ].elts[0].type];
+    ].type];
 }
 
 simd4 terrain_colour(const terrain_tilemap* world,

@@ -52,14 +52,6 @@
  * by this scaling factor.
  */
 #define TILE_YMUL (METRE/8)
-/**
- * Each tile consists of TILE_NELT independent elements.
- *
- * This is currently 1 since plans are now to have things that would have been
- * other elements instead be static objects, since the "grid of cubes" model
- * this was designed for doesn't really mesh with the artistic style.
- */
-#define TILE_NELT 1
 
 /**
  * The type of a tile is used to determine how it is drawn and how it behaves
@@ -92,16 +84,6 @@ typedef struct {
 } terrain_tile_element;
 
 /**
- * Each tile consists of TILE_NELT elements, which are to be sorted in
- * ascending order by altitude. Element zero always exists, and is the
- * terrain. Other elements may or may not exist (as determined by their
- * thickness), and existing elements need not be contiguous.
- */
-typedef struct {
-  terrain_tile_element elts[TILE_NELT];
-} terrain_tile_info;
-
-/**
  * The basic information for a world is simply a grid of tiles, and maximum
  * values for the X and Z coordinates (beyond which they wrap). Additionally,
  * each world may have a "next" world, which is an identical world with half
@@ -120,7 +102,7 @@ typedef struct terrain_tilemap_s {
   /**
    * Tiles describing the world. The actual length of this array is xmax*zmax.
    */
-  terrain_tile_info tiles[FLEXIBLE_ARRAY_MEMBER];
+  terrain_tile_element tiles[FLEXIBLE_ARRAY_MEMBER];
 } terrain_tilemap;
 
 /**
