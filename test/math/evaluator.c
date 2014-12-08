@@ -245,6 +245,54 @@ deftest(lognot_of_false) {
   UNITEST(1, lognot, 0);
 }
 
+deftest(equ_true) {
+  BINTEST(1, 42, equ, 42);
+}
+
+deftest(equ_false) {
+  BINTEST(0, 42, equ, 41);
+}
+
+deftest(neq_true) {
+  BINTEST(1, 42, neq, 41);
+}
+
+deftest(neq_false) {
+  BINTEST(0, 42, neq, 42);
+}
+
+deftest(lt_true) {
+  BINTEST(1, 41, lt, 42);
+}
+
+deftest(lt_false) {
+  BINTEST(0, 42, lt, 42);
+}
+
+deftest(le_true) {
+  BINTEST(1, 42, le, 42);
+}
+
+deftest(le_false) {
+  BINTEST(0, 43, le, 42);
+}
+
+deftest(gt_true) {
+  BINTEST(1, 43, gt, 42);
+}
+
+deftest(gt_false) {
+  BINTEST(0, 42, gt, 42);
+}
+
+deftest(ge_true) {
+  BINTEST(1, 42, ge, 42);
+}
+
+deftest(ge_false) {
+  BINTEST(0, 41, ge, 42);
+}
+
 deftest(if_true) {
   TRITEST(2, if, 1, 2, 3);
 }

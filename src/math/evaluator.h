@@ -245,6 +245,33 @@ unsigned evaluator_logor(evaluator_builder*, unsigned, unsigned);
  */
 unsigned evaluator_lognot(evaluator_builder*, unsigned);
 /**
+ * Creates a cell which produces 1 iff the two inputs are equal.
+ */
+unsigned evaluator_equ(evaluator_builder*, unsigned, unsigned);
+/**
+ * Creates a cell which produces 1 iff the two inputs are non-equal.
+ */
+unsigned evaluator_neq(evaluator_builder*, unsigned, unsigned);
+/**
+ * Creates a cell which produces 1 iff the first input is less than the second.
+ */
+unsigned evaluator_lt(evaluator_builder*, unsigned, unsigned);
+/**
+ * Creates a cell which produces 1 iff the first input is less than or equal to
+ * the second.
+ */
+unsigned evaluator_le(evaluator_builder*, unsigned, unsigned);
+/**
+ * Creates a cell which produces 1 iff the first input is greater than the
+ * second.
+ */
+unsigned evaluator_gt(evaluator_builder*, unsigned, unsigned);
+/**
+ * Creates a cell which produces 1 iff the first input is greater than or equal
+ * to the second.
+ */
+unsigned evaluator_ge(evaluator_builder*, unsigned, unsigned);
+/**
  * Creates a cell which produces its second input if the first input is
  * non-zero, and the third input otherwise.
  */

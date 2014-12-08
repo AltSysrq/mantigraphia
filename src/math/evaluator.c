@@ -182,6 +182,12 @@ EVF3(magnitude, a, b, c) { return isqrt(a*a + b*b + c*c); }
 EVF2(logand, a, b) { return !a? a : b; }
 EVF2(logor, a, b) { return a? a : b; }
 EVF1(lognot, a) { return !a; }
+EVF2(equ, a, b) { return a == b; }
+EVF2(neq, a, b) { return a != b; }
+EVF2(lt, a, b) { return a < b; }
+EVF2(le, a, b) { return a <= b; }
+EVF2(gt, a, b) { return a > b; }
+EVF2(ge, a, b) { return a >= b; }
 EVF3(if, a, b, c) { return a? b : c; }
 EVF3(clamp, min, max, v) {
   if (v <= min) return min;
