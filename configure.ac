@@ -3,9 +3,12 @@
 
 AC_PREREQ([2.6])
 AC_INIT([mantigraphia], [0.0.0], [jason@lin.gl])
-AC_CONFIG_SRCDIR([src/coords.c])
+AC_CONFIG_SRCDIR([src/micromp.c])
 AM_INIT_AUTOMAKE([1.11])
 AM_SILENT_RULES(yes)
+AC_CONFIG_MACRO_DIR([m4])
+LT_PREREQ([1.5])
+LT_INIT([dlopen])
 AM_CONFIG_HEADER([config.h])
 PKG_PROG_PKG_CONFIG()
 

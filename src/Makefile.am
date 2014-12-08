@@ -8,8 +8,12 @@ AM_CFLAGS=-std=c99 -Wall -D_BSD_SOURCE \
 AM_LDFLAGS=$(SDL_LIBS) $(SDLIMG_LIBS) $(GL_LIBS) $(GLEW_LIBS) $(GLU_LIBS)
 
 bin_PROGRAMS = mantigraphia
+noinst_LTLIBRARIES = libmantigraphia.la
 mantigraphia_SOURCES = \
-top/main.c \
+top/main.c
+mantigraphia_LDADD = libmantigraphia.la
+
+libmantigraphia_la_SOURCES = \
 micromp.c \
 math/coords.c \
 math/trigtab.c \

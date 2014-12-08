@@ -5,4 +5,5 @@
 # CC TARGET in silent mode, the whole cc line otherwise). Suppress this.
 .MAKE.JOB.PREFIX=
 
+ACLOCAL_AMFLAGS=-I m4
 SUBDIRS = src
