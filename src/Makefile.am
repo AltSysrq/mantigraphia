@@ -45,12 +45,12 @@ world/hspace.c \
 render/turtle.c \
 render/context.c \
 render/terrabuff.c \
-render/terrain-tilemap.c \
-render/props.c \
+render/terrain-tilemap-rnd.c \
+render/props-rnd.c \
 render/lsystem.c \
 render/grass-props.c \
 render/tree-props.c \
-render/propped-world.c \
+render/propped-world-rnd.c \
 render/colour-palettes.c \
 control/mouselook.c \
 top/cosine-world.c
