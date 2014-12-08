@@ -14,6 +14,7 @@ micromp.c \
 math/coords.c \
 math/trigtab.c \
 math/rand.c \
+math/evaluator.c \
 graphics/canvas.c \
 graphics/parchment.c \
 graphics/pencil.c \
