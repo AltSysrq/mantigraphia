@@ -188,8 +188,7 @@ unsigned evaluator_div(evaluator_builder*, unsigned, unsigned);
 /**
  * Creates a cell which returns the unsigned modulus of two other cells.
  *
- * Both inputs are treated as unsigned. If the denominator is zero, the result
- * is zero.
+ * If the denominator is non-positive, the result is zero.
  */
 unsigned evaluator_mod(evaluator_builder*, unsigned, unsigned);
 /**

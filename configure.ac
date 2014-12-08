@@ -25,6 +25,7 @@ PKG_CHECK_MODULES([SDLIMG], [SDL2_image])
 PKG_CHECK_MODULES([GL], [gl])
 PKG_CHECK_MODULES([GLU], [glu])
 PKG_CHECK_MODULES([GLEW], [glew])
+PKG_CHECK_MODULES([CHECK], [check], [], [:])
 
 # Headers
 AC_CHECK_HEADERS([arpa/inet.h inttypes.h malloc.h netinet/in.h stdint.h dnl
@@ -55,5 +56,5 @@ AC_TYPE_UINT64_T
 AC_CHECK_FUNCS([memmove memset pow setlocale sqrt dlfunc dlerror dnl
                 cpuset_setaffinity])
 
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile test/Makefile])
 AC_OUTPUT

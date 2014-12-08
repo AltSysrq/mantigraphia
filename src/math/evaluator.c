@@ -155,10 +155,14 @@ EVF2(div, a, b) {
 }
 
 EVF2(mod, a, b) {
-  if (0 == b)
+  evaluator_value m;
+
+  if (b <= 0)
     return 0;
-  else
-    return ((unsigned long long)a) % ((unsigned long long)b);
+
+  m = a % b;
+  if (m < 0) m += b;
+  return m;
 }
 
 EVF1(neg, a) { return -a; }
@@ -168,7 +172,7 @@ EVF1(cos, a) { return zo_cos(a); }
 EVF1(sin, a) { return zo_sin(a); }
 EVF1(sqrt, a) {
   if (a < 0)
-    return -isqrt(-a);
+    return -(evaluator_value)(signed)isqrt(-a);
   else
     return isqrt(a);
 }
@@ -177,6 +181,7 @@ EVF3(magnitude, a, b, c) { return isqrt(a*a + b*b + c*c); }
 
 EVF2(logand, a, b) { return !a? a : b; }
 EVF2(logor, a, b) { return a? a : b; }
+EVF1(lognot, a) { return !a; }
 EVF3(if, a, b, c) { return a? b : c; }
 EVF3(clamp, min, max, v) {
   if (v <= min) return min;
