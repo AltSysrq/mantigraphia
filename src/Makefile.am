@@ -38,19 +38,13 @@ gl/shaders.c \
 gl/marshal.c \
 world/terrain-tilemap.c \
 world/terrain.c \
-world/props.c \
-world/propped-world.c \
 world/generate.c \
 world/hspace.c \
 render/turtle.c \
 render/context.c \
 render/terrabuff.c \
 render/terrain-tilemap-rnd.c \
-render/props-rnd.c \
 render/lsystem.c \
-render/grass-props.c \
-render/tree-props.c \
-render/propped-world-rnd.c \
 render/colour-palettes.c \
 control/mouselook.c \
 top/cosine-world.c

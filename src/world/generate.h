@@ -29,14 +29,7 @@
 #define WORLD_GENERATE_H_
 
 #include "terrain-tilemap.h"
-#include "props.h"
 
 void world_generate(terrain_tilemap*, unsigned seed);
-void grass_generate(world_prop*, unsigned count,
-                    const terrain_tilemap*, unsigned seed);
-void trees_generate(world_prop*, unsigned count,
-                    terrain_tilemap*,
-                    unsigned distribution_seed,
-                    unsigned position_seed);
 
 #endif /* WORLD_GENERATE_H_ */

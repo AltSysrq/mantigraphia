@@ -65,7 +65,6 @@
 #include "gl/marshal.h"
 #include "control/mouselook.h"
 #include "render/terrabuff.h"
-#include "render/tree-props.h"
 #include "game-state.h"
 #include "cosine-world.h"
 #include "micromp.h"
@@ -272,7 +271,6 @@ int main(int argc, char** argv) {
   glpencil_load();
   mouselook_init(screen);
   terrabuff_init();
-  tree_props_init();
 
   canv = canvas_new(ww, wh);
 

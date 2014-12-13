@@ -42,12 +42,10 @@
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
 #include "world/terrain-tilemap.h"
-#include "world/propped-world.h"
 #include "world/terrain.h"
-#include "world/props.h"
 #include "world/generate.h"
-#include "render/propped-world.h"
 #include "render/context.h"
+#include "render/terrain-tilemap.h"
 #include "control/mouselook.h"
 
 #include "cosine-world.h"
@@ -66,7 +64,7 @@ typedef struct {
   unsigned frame_no;
   mouselook_state look;
   parchment* bg;
-  propped_world* world;
+  terrain_tilemap* world;
   rendering_context*restrict context;
 
   int moving_forward, moving_backward, moving_left, moving_right;
@@ -78,7 +76,6 @@ typedef struct {
   perspective proj;
 } cosine_world_state;
 
-static void deserialise(cosine_world_state*, FILE* in);
 static game_state* cosine_world_update(cosine_world_state*, chronon);
 static void cosine_world_predraw(cosine_world_state*, canvas*);
 static void cosine_world_draw(cosine_world_state*, canvas*);
@@ -103,26 +100,17 @@ game_state* cosine_world_new(unsigned seed) {
     0, 0, 0, 0,
     { 0, 0 },
     parchment_new(),
-    propped_world_new(
-      terrain_tilemap_new(SIZE, SIZE, SIZE/256, SIZE/256),
-      NUM_GRASS, NUM_TREES),
+    terrain_tilemap_new(SIZE, SIZE, SIZE/256, SIZE/256),
     rendering_context_new(),
     0,0,0,0,
     0,0,0,0,
     2 * METRE
   };
-  FILE* in = fopen("/tmp/mantigraphia.dump", "rb");
 
   cosine_world_state* this = xmalloc(sizeof(cosine_world_state));
   memcpy(this, &template, sizeof(template));
 
-  if (in) {
-    deserialise(this, in);
-    fclose(in);
-  } else {
-    cosine_world_init_world(this);
-  }
-
+  cosine_world_init_world(this);
   mouselook_set(1);
 
   return (game_state*)this;
@@ -130,7 +118,7 @@ game_state* cosine_world_new(unsigned seed) {
 
 static void cosine_world_delete(cosine_world_state* this) {
   parchment_delete(this->bg);
-  propped_world_delete(this->world);
+  terrain_tilemap_delete(this->world);
   rendering_context_delete(this->context);
   free(this);
 }
@@ -138,26 +126,11 @@ static void cosine_world_delete(cosine_world_state* this) {
 static void cosine_world_init_world(cosine_world_state* this) {
   FILE* out;
   unsigned seed = this->seed;
-  world_generate(this->world->terrain, seed);
-  grass_generate(this->world->grass.props,
-                 this->world->grass.size,
-                 this->world->terrain, seed+1);
-  props_sort_z(this->world->grass.props,
-               this->world->grass.size);
-  trees_generate(this->world->trees[0].props,
-                 this->world->trees[0].size,
-                 this->world->terrain, seed+2, seed+3);
-  props_sort_z(this->world->trees[0].props,
-               this->world->trees[0].size);
-  trees_generate(this->world->trees[1].props,
-                 this->world->trees[1].size,
-                 this->world->terrain, seed+2, seed+4);
-  props_sort_z(this->world->trees[1].props,
-               this->world->trees[1].size);
+  world_generate(this->world, seed);
 
   out = fopen("world.bmp", "wb");
   if (out) {
-    terrain_tilemap_bmp_dump(out, this->world->terrain);
+    terrain_tilemap_bmp_dump(out, this->world);
     fclose(out);
   }
 }
@@ -186,8 +159,8 @@ static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
     this->x += zo_cosms(this->look.yrot, et * speed);
     this->z -= zo_sinms(this->look.yrot, et * speed);
   }
-  this->x &= this->world->terrain->xmax*TILE_SZ - 1;
-  this->z &= this->world->terrain->zmax*TILE_SZ - 1;
+  this->x &= this->world->xmax*TILE_SZ - 1;
+  this->z &= this->world->zmax*TILE_SZ - 1;
 
   if (this->month_integral < 8 || this->month_fraction < fraction_of(1)) {
     this->month_fraction +=
@@ -224,11 +197,11 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   context_inv.month_fraction = this->month_fraction;
 
   proj->camera[0] = this->x;
-  proj->camera[1] = terrain_base_y(this->world->terrain, this->x, this->z) +
+  proj->camera[1] = terrain_base_y(this->world, this->x, this->z) +
                     this->camera_y_off;
   proj->camera[2] = this->z;
-  proj->torus_w = this->world->terrain->xmax * TILE_SZ;
-  proj->torus_h = this->world->terrain->zmax * TILE_SZ;
+  proj->torus_w = this->world->xmax * TILE_SZ;
+  proj->torus_h = this->world->zmax * TILE_SZ;
   proj->yrot = this->look.yrot;
   proj->yrot_cos = zo_cos(this->look.yrot);
   proj->yrot_sin = zo_sin(this->look.yrot);
@@ -243,54 +216,10 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
 
 static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   parchment_draw(dst, this->bg);
-  render_propped_world(dst, this->world, this->context);
+  render_terrain_tilemap(dst, this->world, this->context);
   ump_join();
   parchment_postprocess(this->bg, dst);
 }
-
-static void deserialise(cosine_world_state* this, FILE* in) {
-  cosine_world_state stored;
-
-  printf("Deserialising state from /tmp/mantigraphia.dump\n");
-
-  if (1 != fread(&stored, sizeof(stored), 1, in))
-    err(EX_OSERR, "Error deserialising");
-
-  /* It's more concise to replace non-stored stuff in stored then copy over,
-   * than it is to cherry-pick the stored items over.
-   */
-  stored.world = propped_world_deserialise(in);
-  stored.bg = this->bg;
-  stored.context = this->context;
-  stored.vtab = this->vtab;
-  stored.moving_forward = stored.moving_backward = 0;
-  stored.moving_left = stored.moving_right = 0;
-  stored.advancing_time = 0;
-  propped_world_delete(this->world);
-  memcpy(this, &stored, sizeof(stored));
-
-  printf("Deserialisation complete\n");
-}
-
-static void serialise(cosine_world_state* this) {
-  FILE* out = fopen("/tmp/mantigraphia.dump", "wb");
-  if (!out) {
-    warn("Unable to open dump file");
-    return;
-  }
-
-  if (1 != fwrite(this, sizeof(*this), 1, out)) {
-    warn("Error writing to dump file");
-    goto done;
-  }
-
-  propped_world_serialise(out, this->world);
-  printf("Dump written to /tmp/mantigraphia.dump\n");
-
-  done:
-  fclose(out);
-}
-
 static void cosine_world_key(cosine_world_state* this,
                              SDL_KeyboardEvent* evt) {
   int down = SDL_KEYDOWN == evt->type;
@@ -347,11 +276,6 @@ static void cosine_world_key(cosine_world_state* this,
   case SDLK_LSHIFT:
   case SDLK_RSHIFT:
     this->sprinting = down;
-    break;
-
-  case SDLK_RETURN:
-    if (down)
-      serialise(this);
     break;
 
   case SDLK_PAGEUP:
