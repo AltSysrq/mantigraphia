@@ -8,6 +8,10 @@
 #ifndef lconfig_h
 #define lconfig_h
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <limits.h>
 #include <stddef.h>
 
@@ -383,14 +387,13 @@
 ** ===================================================================
 */
 
-#define LUA_NUMBER_DOUBLE
-#define LUA_NUMBER	double
+#define LUA_NUMBER	long long
 
 /*
 @@ LUAI_UACNUMBER is the result of an 'usual argument conversion'
 @* over a number.
 */
-#define LUAI_UACNUMBER	double
+#define LUAI_UACNUMBER	long long
 
 
 /*
@@ -399,17 +402,10 @@
 @@ lua_number2str converts a number to a string.
 @@ LUAI_MAXNUMBER2STR is maximum size of previous conversion.
 */
-#define LUA_NUMBER_SCAN		"%lf"
-#define LUA_NUMBER_FMT		"%.14g"
+#define LUA_NUMBER_SCAN		"%lld"
+#define LUA_NUMBER_FMT		"%lld"
 #define lua_number2str(s,n)	sprintf((s), LUA_NUMBER_FMT, (n))
 #define LUAI_MAXNUMBER2STR	32 /* 16 digits, sign, point, and \0 */
-
-
-/*
-@@ l_mathop allows the addition of an 'l' or 'f' to all math operations
-*/
-#define l_mathop(x)		(x)
-
 
 /*
 @@ lua_str2number converts a decimal numeric string to a number.
@@ -419,30 +415,48 @@
 ** systems, you can leave 'lua_strx2number' undefined and Lua will
 ** provide its own implementation.
 */
-#define lua_str2number(s,p)	strtod((s), (p))
-
-#if defined(LUA_USE_STRTODHEX)
-#define lua_strx2number(s,p)	strtod((s), (p))
-#endif
-
+#define lua_str2number(s,p)	strtoll((s), (p), 0)
+#define lua_strx2number(s,p)	strtoll((s), (p), 0)
 
 /*
 @@ The luai_num* macros define the primitive operations over numbers.
 */
 
-/* the following operations need the math library */
-#if defined(lobject_c) || defined(lvm_c)
-#include <math.h>
-#define luai_nummod(L,a,b)	((a) - l_mathop(floor)((a)/(b))*(b))
-#define luai_numpow(L,a,b)	(l_mathop(pow)(a,b))
-#endif
-
 /* these are quite standard operations */
 #if defined(LUA_CORE)
+static inline LUA_NUMBER luai_numdiv_impl(LUA_NUMBER a, LUA_NUMBER b) {
+  if (b == 0 || b == -1) return a*b;
+  else return a/b;
+}
+
+static inline LUA_NUMBER luai_nummod_impl(LUA_NUMBER a, LUA_NUMBER b) {
+  if (b <= 0) return 0;
+
+  a %= b;
+  if (a < 0) a += b;
+  return a;
+}
+
+static inline LUA_NUMBER luai_numpow_impl(LUA_NUMBER a, LUA_NUMBER b) {
+  LUA_NUMBER accum = 1;
+
+  if (b < 0) return 0;
+
+  while (b) {
+    if (b & 1) accum *= a;
+    a *= a;
+    b >>= 1;
+  }
+
+  return accum;
+}
+
 #define luai_numadd(L,a,b)	((a)+(b))
 #define luai_numsub(L,a,b)	((a)-(b))
 #define luai_nummul(L,a,b)	((a)*(b))
-#define luai_numdiv(L,a,b)	((a)/(b))
+#define luai_numdiv(L,a,b)	(luai_numdiv_impl((a), (b)))
+#define luai_nummod(L,a,b)	(luai_nummod_impl((a), (b)))
+#define luai_numpow(L,a,b)      (luai_numpow_impl((a), (b)))
 #define luai_numunm(L,a)	(-(a))
 #define luai_numeq(a,b)		((a)==(b))
 #define luai_numlt(L,a,b)	((a)<(b))

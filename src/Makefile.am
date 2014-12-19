@@ -71,7 +71,6 @@ contrib/lua/lgc.c \
 contrib/lua/linit.c \
 contrib/lua/liolib.c \
 contrib/lua/llex.c \
-contrib/lua/lmathlib.c \
 contrib/lua/lmem.c \
 contrib/lua/loadlib.c \
 contrib/lua/lobject.c \
