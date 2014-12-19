@@ -265,15 +265,13 @@ LUA_API int lua_iscfunction (lua_State *L, int idx) {
 
 
 LUA_API int lua_isnumber (lua_State *L, int idx) {
-  TValue n;
-  const TValue *o = index2addr(L, idx);
-  return tonumber(o, &n);
+  return lua_type(L, idx) == LUA_TNUMBER;
 }
 
 
 LUA_API int lua_isstring (lua_State *L, int idx) {
   int t = lua_type(L, idx);
-  return (t == LUA_TSTRING || t == LUA_TNUMBER);
+  return t == LUA_TSTRING;
 }
 
 

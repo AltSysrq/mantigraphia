@@ -295,7 +295,7 @@ void luaV_concat (lua_State *L, int total) {
   do {
     StkId top = L->top;
     int n = 2;  /* number of elements handled in this pass (at least 2) */
-    if (!(ttisstring(top-2) || ttisnumber(top-2)) || !tostring(L, top-1)) {
+    if (!(ttisstring(top-2) || !ttisstring(top-1))) {
       if (!call_binTM(L, top-2, top-1, top-2, TM_CONCAT))
         luaG_concaterror(L, top-2, top-1);
     }
@@ -310,7 +310,7 @@ void luaV_concat (lua_State *L, int total) {
       char *buffer;
       int i;
       /* collect total length */
-      for (i = 1; i < total && tostring(L, top-i-1); i++) {
+      for (i = 1; i < total && ttisstring(top-i-1); i++) {
         size_t l = tsvalue(top-i-1)->len;
         if (l >= (MAX_SIZET/sizeof(char)) - tl)
           luaG_runerror(L, "string length overflow");
@@ -359,11 +359,8 @@ void luaV_objlen (lua_State *L, StkId ra, const TValue *rb) {
 
 void luaV_arith (lua_State *L, StkId ra, const TValue *rb,
                  const TValue *rc, TMS op) {
-  TValue tempb, tempc;
-  const TValue *b, *c;
-  if ((b = luaV_tonumber(rb, &tempb)) != NULL &&
-      (c = luaV_tonumber(rc, &tempc)) != NULL) {
-    lua_Number res = luaO_arith(op - TM_ADD + LUA_OPADD, nvalue(b), nvalue(c));
+  if (ttisnumber(rb) && ttisnumber(rc)) {
+    lua_Number res = luaO_arith(op - TM_ADD + LUA_OPADD, nvalue(rb), nvalue(rc));
     setnvalue(ra, res);
   }
   else if (!call_binTM(L, rb, rc, ra, op))
@@ -779,11 +776,11 @@ void luaV_execute (lua_State *L) {
         const TValue *init = ra;
         const TValue *plimit = ra+1;
         const TValue *pstep = ra+2;
-        if (!tonumber(init, ra))
+        if (!ttisnumber(init))
           luaG_runerror(L, LUA_QL("for") " initial value must be a number");
-        else if (!tonumber(plimit, ra+1))
+        else if (!ttisnumber(plimit))
           luaG_runerror(L, LUA_QL("for") " limit must be a number");
-        else if (!tonumber(pstep, ra+2))
+        else if (!ttisnumber(pstep))
           luaG_runerror(L, LUA_QL("for") " step must be a number");
         setnvalue(ra, luai_numsub(L, nvalue(ra), nvalue(pstep)));
         ci->u.l.savedpc += GETARG_sBx(i);
