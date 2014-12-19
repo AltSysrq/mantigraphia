@@ -69,13 +69,11 @@ contrib/lua/ldump.c \
 contrib/lua/lfunc.c \
 contrib/lua/lgc.c \
 contrib/lua/linit.c \
-contrib/lua/liolib.c \
 contrib/lua/llex.c \
 contrib/lua/lmem.c \
 contrib/lua/loadlib.c \
 contrib/lua/lobject.c \
 contrib/lua/lopcodes.c \
-contrib/lua/loslib.c \
 contrib/lua/lparser.c \
 contrib/lua/lstate.c \
 contrib/lua/lstring.c \
