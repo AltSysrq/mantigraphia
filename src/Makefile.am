@@ -12,6 +12,7 @@ AM_CFLAGS=-std=c99 -Wall -D_BSD_SOURCE -DLUA_ANSI \
 AM_LDFLAGS=$(SDL_LIBS) $(SDLIMG_LIBS) $(GL_LIBS) $(GLEW_LIBS) $(GLU_LIBS)
 
 bin_PROGRAMS = mantigraphia
+noinst_PROGRAMS = llua
 noinst_LTLIBRARIES = libmantigraphia.la libllua.la
 mantigraphia_SOURCES = \
 top/main.c
@@ -87,3 +88,5 @@ contrib/lua/lundump.c \
 contrib/lua/lvm.c \
 contrib/lua/lzio.c
 
+llua_SOURCES = contrib/lua/lua.c
+llua_LDADD = libllua.la

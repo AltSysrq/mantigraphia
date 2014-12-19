@@ -32,3 +32,4 @@ m4
 ltmain.sh
 *.lo
 *.t
+llua
