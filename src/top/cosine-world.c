@@ -225,7 +225,7 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   if (!this->overlay)
     this->overlay = paint_overlay_new(dst);
   paint_overlay_postprocess(this->overlay);
-  parchment_postprocess(this->bg, dst);
+  /*parchment_postprocess(this->bg, dst);*/
 }
 static void cosine_world_key(cosine_world_state* this,
                              SDL_KeyboardEvent* evt) {

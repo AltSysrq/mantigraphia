@@ -48,9 +48,10 @@
 #define DESIRED_POINTS_PER_SCREENW 128
 
 struct paint_overlay_s {
-  GLuint vbo;
+  GLuint vbo, fbtex;
   unsigned num_points;
   unsigned point_size;
+  unsigned screenw, screenh;
 };
 
 paint_overlay* paint_overlay_new(const canvas* canv) {
@@ -79,7 +80,7 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
   signed gox, goy, dx, dy;
   unsigned i, p;
 
-  shader_solid_vertex* vertices;
+  shader_paint_overlay_vertex* vertices;
 
   active_points = xmalloc(gridw*gridh * (2*sizeof(unsigned) +
                                          sizeof(points[0])));
@@ -146,40 +147,54 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
     --num_active_points;
   }
 
-  vertices = xmalloc(num_points * sizeof(shader_solid_vertex));
+  vertices = xmalloc(num_points * sizeof(shader_paint_overlay_vertex));
   for (i = 0; i < num_points; ++i) {
     vertices[i].v[0] = points[i].x;
     vertices[i].v[1] = points[i].y;
     vertices[i].v[2] = 0;
-    canvas_pixel_to_gl4fv(
-      vertices[i].colour,
-      (0xFF << ASHFT) |
-      (lcgrand(&lcg) ^ (lcgrand(&lcg) << 16)));
   }
 
+  glGenTextures(1, &this->fbtex);
   glGenBuffers(1, &this->vbo);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-  glBufferData(GL_ARRAY_BUFFER, num_points * sizeof(shader_solid_vertex),
+  glBufferData(GL_ARRAY_BUFFER,
+               num_points * sizeof(shader_paint_overlay_vertex),
                vertices, GL_STATIC_DRAW);
   free(vertices);
   free(active_points);
 
   this->num_points = num_points;
   this->point_size = point_size;
+  this->screenw = canv->w;
+  this->screenh = canv->h;
   return this;
 }
 
 void paint_overlay_delete(paint_overlay* this) {
   glDeleteBuffers(1, &this->vbo);
+  glDeleteTextures(1, &this->fbtex);
   free(this);
 }
 
 static void paint_overlay_postprocess_impl(paint_overlay* this) {
-  shader_solid_activate(NULL);
+  shader_paint_overlay_uniform uniform;
+
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, this->fbtex);
+  glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0,
+                   this->screenw, this->screenh, 0);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+  uniform.framebuffer = 0;
+  uniform.screen_size[0] = this->screenw;
+  uniform.screen_size[1] = this->screenh;
+  shader_paint_overlay_activate(&uniform);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
   glPointSize(this->point_size);
-  shader_solid_configure_vbo();
-  glDisable(GL_TEXTURE_2D);
+  shader_paint_overlay_configure_vbo();
   glDrawArrays(GL_POINTS, 0, this->num_points);
 }
 

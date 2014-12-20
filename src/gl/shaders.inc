@@ -28,6 +28,7 @@
 
 shader_source(fbrush)
 shader_source(fpencil)
+shader_source(fpaint_overlay)
 shader_source(fpointcircle)
 shader_source(fpostprocess)
 shader_source(fsplotch)
@@ -36,6 +37,7 @@ shader_source(fterrabuff)
 shader_source(vbrush)
 shader_source(vgenerictc)
 shader_source(vgenericctc)
+shader_source(vpaint_overlay)
 shader_source(vpencil)
 shader_source(vsplotch)
 shader_source(vsplotch_poly)
@@ -114,4 +116,10 @@ shader(postprocess) {
   uniform(float, pocket_size_px)
   uniform(vec2, pocket_size_scr)
   uniform(vec2, px_offset)
+}
+
+shader(paint_overlay) {
+  composed_of(fpaint_overlay, vpaint_overlay)
+  uniform(tex2d, framebuffer)
+  uniform(vec2, screen_size)
 }
