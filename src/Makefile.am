@@ -37,6 +37,7 @@ graphics/dm-proj.c \
 graphics/fast-brush.c \
 graphics/glbrush.c \
 graphics/glpencil.c \
+graphics/paint-overlay.c \
 gl/glinfo.c \
 gl/shader_loader.c \
 gl/shaders.c \

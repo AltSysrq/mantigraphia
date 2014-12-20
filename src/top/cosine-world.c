@@ -41,6 +41,7 @@
 
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
+#include "graphics/paint-overlay.h"
 #include "world/terrain-tilemap.h"
 #include "world/terrain.h"
 #include "world/generate.h"
@@ -64,6 +65,7 @@ typedef struct {
   unsigned frame_no;
   mouselook_state look;
   parchment* bg;
+  paint_overlay* overlay;
   terrain_tilemap* world;
   rendering_context*restrict context;
 
@@ -100,6 +102,7 @@ game_state* cosine_world_new(unsigned seed) {
     0, 0, 0, 0,
     { 0, 0 },
     parchment_new(),
+    NULL,
     terrain_tilemap_new(SIZE, SIZE, SIZE/256, SIZE/256),
     rendering_context_new(),
     0,0,0,0,
@@ -117,6 +120,7 @@ game_state* cosine_world_new(unsigned seed) {
 }
 
 static void cosine_world_delete(cosine_world_state* this) {
+  if (this->overlay) paint_overlay_delete(this->overlay);
   parchment_delete(this->bg);
   terrain_tilemap_delete(this->world);
   rendering_context_delete(this->context);
@@ -218,6 +222,9 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   parchment_draw(dst, this->bg);
   render_terrain_tilemap(dst, this->world, this->context);
   ump_join();
+  if (!this->overlay)
+    this->overlay = paint_overlay_new(dst);
+  paint_overlay_postprocess(this->overlay);
   parchment_postprocess(this->bg, dst);
 }
 static void cosine_world_key(cosine_world_state* this,
