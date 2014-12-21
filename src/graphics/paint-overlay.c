@@ -62,8 +62,8 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
    */
   paint_overlay* this = xmalloc(sizeof(paint_overlay));
 
-  unsigned point_size = canv->w / DESIRED_POINTS_PER_SCREENW < max_point_size?
-    canv->w / DESIRED_POINTS_PER_SCREENW : max_point_size;
+  unsigned point_size = canv->w / DESIRED_POINTS_PER_SCREENW < max_point_size/2?
+    canv->w / DESIRED_POINTS_PER_SCREENW : max_point_size/2;
   unsigned radius = point_size/2 + 1;
   unsigned natural_grid_sz =
     fraction_umul(radius, 0x5A827999 /*1/sqrt(2)*/) - 1;
@@ -197,15 +197,22 @@ void paint_overlay_delete(paint_overlay* this) {
   free(this);
 }
 
-static void paint_overlay_postprocess_impl(paint_overlay* this) {
-  shader_paint_overlay_uniform uniform;
-
-  glPushAttrib(GL_ENABLE_BIT | GL_POINT_BIT);
-  glEnable(GL_POINT_SPRITE);
-  glEnable(GL_TEXTURE_2D);
+static void paint_overlay_preprocess_impl(paint_overlay* this) {
   glBindTexture(GL_TEXTURE_2D, this->fbtex);
   glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0,
                    this->screenw, this->screenh, 0);
+}
+
+static void paint_overlay_postprocess_impl(paint_overlay* this) {
+  shader_paint_overlay_uniform uniform;
+
+  glPushAttrib(GL_ENABLE_BIT);
+  glEnable(GL_POINT_SPRITE);
+  glEnable(GL_TEXTURE_2D);
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBindTexture(GL_TEXTURE_2D, this->fbtex);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -224,11 +231,15 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   uniform.screen_size[1] = this->screenh;
   shader_paint_overlay_activate(&uniform);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-  glPointSize(this->point_size);
+  glPointSize(this->point_size * 2);
   shader_paint_overlay_configure_vbo();
   glDrawArrays(GL_POINTS, 0, this->num_points);
 
   glPopAttrib();
+}
+
+void paint_overlay_preprocess(paint_overlay* this) {
+  glm_do((void(*)(void*))paint_overlay_preprocess_impl, this);
 }
 
 void paint_overlay_postprocess(paint_overlay* this) {

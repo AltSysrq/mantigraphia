@@ -52,6 +52,7 @@ static GLuint texture;
 static GLuint postprocess_tex;
 static glm_slab_group* glmsg;
 static void parchment_activate(void*);
+static void parchment_deactivate(void*);
 
 struct parchment_s {
   unsigned tx, ty;
@@ -95,7 +96,7 @@ void parchment_init(void) {
   SDL_FreeSurface(new_surf);
   SDL_FreeSurface(orig_surf);
 
-  glmsg = glm_slab_group_new(parchment_activate, NULL, NULL,
+  glmsg = glm_slab_group_new(parchment_activate, parchment_deactivate, NULL,
                              shader_fixed_texture_configure_vbo,
                              sizeof(shader_fixed_texture_vertex));
 
@@ -113,8 +114,14 @@ void parchment_delete(parchment* this) {
 }
 
 static void parchment_activate(void* ignore) {
+  glPushAttrib(GL_ENABLE_BIT);
+  glDisable(GL_DEPTH_TEST);
   glBindTexture(GL_TEXTURE_2D, texture);
   shader_fixed_texture_activate(NULL);
+}
+
+static void parchment_deactivate(void* ignore) {
+  glPopAttrib();
 }
 
 void parchment_draw(canvas* dst, const parchment* this) {

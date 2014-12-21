@@ -219,11 +219,12 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
 }
 
 static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
-  parchment_draw(dst, this->bg);
   render_terrain_tilemap(dst, this->world, this->context);
   ump_join();
   if (!this->overlay)
     this->overlay = paint_overlay_new(dst);
+  paint_overlay_preprocess(this->overlay);
+  parchment_draw(dst, this->bg);
   paint_overlay_postprocess(this->overlay);
   /*parchment_postprocess(this->bg, dst);*/
 }

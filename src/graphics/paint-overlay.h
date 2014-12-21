@@ -71,10 +71,14 @@ paint_overlay* paint_overlay_new(const canvas*);
 void paint_overlay_delete(paint_overlay*);
 
 /**
- * Post-processes the current state of the OpenGL framebuffer.
- *
- * The stencil buffer is cleared, and pixels which were covered by this pass
- * are set to non-zero values.
+ * Prepares the current state of the OpenGL framebuffer for post-processing.
+ * This should be performed before the background is filled in.
+ */
+void paint_overlay_preprocess(paint_overlay*);
+
+/**
+ * Post-processes the current state of the OpenGL framebuffer using the results
+ * of paint_overlay_preprocess().
  */
 void paint_overlay_postprocess(paint_overlay*);
 

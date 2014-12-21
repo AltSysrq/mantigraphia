@@ -311,10 +311,7 @@ static void draw(canvas* canv, game_state* state,
                  SDL_Window* screen) {
   unsigned draw_start, draw_end;
 
-  /* The parchment replaces the whole screen contents anyway, no need to clear
-   * the colour buffer here.
-   */
-  glClear(GL_DEPTH_BUFFER_BIT);
+  glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
   draw_start = SDL_GetTicks();
   (*state->predraw)(state, canv);
