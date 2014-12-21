@@ -45,8 +45,9 @@
 #include "canvas.h"
 #include "paint-overlay.h"
 
-#define DESIRED_POINTS_PER_SCREENW 128
-#define BRUSHTEX_SZ 16
+#define DESIRED_POINTS_PER_SCREENW 256
+#define BRUSHTEX_SZ 256
+#define POINT_SIZE_MULT 3
 
 struct paint_overlay_s {
   GLuint vbo, fbtex, brushtex;
@@ -55,6 +56,11 @@ struct paint_overlay_s {
   unsigned screenw, screenh;
 };
 
+static inline unsigned max_effective_point_size(void) {
+  return max_point_size / POINT_SIZE_MULT?
+    max_point_size / POINT_SIZE_MULT : 1;
+}
+
 paint_overlay* paint_overlay_new(const canvas* canv) {
   /* Poisson-disc sampling.
    *
@@ -62,8 +68,10 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
    */
   paint_overlay* this = xmalloc(sizeof(paint_overlay));
 
-  unsigned point_size = canv->w / DESIRED_POINTS_PER_SCREENW < max_point_size/2?
-    canv->w / DESIRED_POINTS_PER_SCREENW : max_point_size/2;
+  unsigned point_size = canv->w / DESIRED_POINTS_PER_SCREENW <
+    max_effective_point_size()?
+    canv->w / DESIRED_POINTS_PER_SCREENW :
+    max_effective_point_size();
   unsigned radius = point_size/2 + 1;
   unsigned natural_grid_sz =
     fraction_umul(radius, 0x5A827999 /*1/sqrt(2)*/) - 1;
@@ -79,11 +87,12 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
   angle ang;
   unsigned r, x, y, gx, gy;
   signed gox, goy, dx, dy;
-  unsigned i, p;
+  unsigned i, p, min, max;
 
   shader_paint_overlay_vertex* vertices;
 
-  unsigned char brushtex_data[BRUSHTEX_SZ*BRUSHTEX_SZ];
+  unsigned brushtex_data[BRUSHTEX_SZ*BRUSHTEX_SZ];
+  unsigned char brushtex_data_bytes[BRUSHTEX_SZ*BRUSHTEX_SZ];
 
   active_points = xmalloc(gridw*gridh * (2*sizeof(unsigned) +
                                          sizeof(points[0])));
@@ -166,23 +175,27 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
   free(vertices);
   free(active_points);
 
-  /* TODO: Make this actually look like a brush.
-   * For now, this will make it easy to see what direction it's pointing and
-   * such.
-   */
-  for (y = 0; y < BRUSHTEX_SZ; ++y) {
-    for (x = 0; x < BRUSHTEX_SZ; ++x) {
-      if (x > y)
-        brushtex_data[y*BRUSHTEX_SZ + x] = 0;
-      else
-        brushtex_data[y*BRUSHTEX_SZ + x] = 255 - (y-x)*8;
-    }
+  memset(brushtex_data, 0, sizeof(brushtex_data));
+  perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 8, 128, 5);
+  perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 16, 64, 6);
+  perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 32, 32, 7);
+  perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 64, 16, 8);
+  perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 128, 8, 9);
+  min = ~0u;
+  max = 0;
+  for (i = 0; i < BRUSHTEX_SZ*BRUSHTEX_SZ; ++i) {
+    if (brushtex_data[i] < min) min = brushtex_data[i];
+    if (brushtex_data[i] > max) max = brushtex_data[i];
   }
+
+  for (i = 0; i < BRUSHTEX_SZ*BRUSHTEX_SZ; ++i)
+    brushtex_data_bytes[i] = (brushtex_data[i] - min) * 255 / (max-min);
+
   glGenTextures(1, &this->brushtex);
   glBindTexture(GL_TEXTURE_2D, this->brushtex);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
                BRUSHTEX_SZ, BRUSHTEX_SZ, 0,
-               GL_RED, GL_UNSIGNED_BYTE, brushtex_data);
+               GL_RED, GL_UNSIGNED_BYTE, brushtex_data_bytes);
 
   this->num_points = num_points;
   this->point_size = point_size;
@@ -221,8 +234,8 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   glBindTexture(GL_TEXTURE_2D, this->brushtex);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glActiveTexture(GL_TEXTURE0);
 
   uniform.framebuffer = 0;
@@ -231,7 +244,7 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   uniform.screen_size[1] = this->screenh;
   shader_paint_overlay_activate(&uniform);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-  glPointSize(this->point_size * 2);
+  glPointSize(this->point_size * POINT_SIZE_MULT);
   shader_paint_overlay_configure_vbo();
   glDrawArrays(GL_POINTS, 0, this->num_points);
 
