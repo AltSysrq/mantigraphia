@@ -54,6 +54,7 @@ struct paint_overlay_s {
   unsigned num_points;
   unsigned point_size;
   unsigned screenw, screenh;
+  float xoff, yoff;
 };
 
 static inline unsigned max_effective_point_size(void) {
@@ -242,6 +243,8 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   uniform.brush = 1;
   uniform.screen_size[0] = this->screenw;
   uniform.screen_size[1] = this->screenh;
+  uniform.screen_off[0] = this->xoff;
+  uniform.screen_off[1] = this->yoff;
   shader_paint_overlay_activate(&uniform);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
   glPointSize(this->point_size * POINT_SIZE_MULT);
@@ -251,10 +254,19 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   glPopAttrib();
 }
 
-void paint_overlay_preprocess(paint_overlay* this) {
+void paint_overlay_preprocess(paint_overlay* this,
+                              const rendering_context*restrict ctxt) {
   glm_do((void(*)(void*))paint_overlay_preprocess_impl, this);
 }
 
-void paint_overlay_postprocess(paint_overlay* this) {
+void paint_overlay_postprocess(paint_overlay* this,
+                               const rendering_context*restrict ctxt) {
+  const rendering_context_invariant*restrict context =
+    CTXTINV(ctxt);
+
+  this->xoff = (-(signed)this->screenw) * 314159 / 200000 *
+    context->long_yrot / context->proj->fov;
+  this->yoff = (-(signed)this->screenh) * 314159 / 200000 *
+    ((signed)context->proj->rxrot) / context->proj->fov;
   glm_do((void(*)(void*))paint_overlay_postprocess_impl, this);
 }

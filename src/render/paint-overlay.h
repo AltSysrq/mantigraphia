@@ -29,6 +29,7 @@
 #define RENDER_PAINT_OVERLAY_H_
 
 #include "../graphics/canvas.h"
+#include "context.h"
 
 /**
  * The paint overlay is a post-rendering effect which transforms the OpenGL
@@ -70,12 +71,13 @@ void paint_overlay_delete(paint_overlay*);
  * Prepares the current state of the OpenGL framebuffer for post-processing.
  * This should be performed before the background is filled in.
  */
-void paint_overlay_preprocess(paint_overlay*);
+void paint_overlay_preprocess(paint_overlay*, const rendering_context*restrict);
 
 /**
  * Post-processes the current state of the OpenGL framebuffer using the results
  * of paint_overlay_preprocess().
  */
-void paint_overlay_postprocess(paint_overlay*);
+void paint_overlay_postprocess(paint_overlay*,
+                               const rendering_context*restrict);
 
 #endif /* RENDER_PAINT_OVERLAY_H_ */

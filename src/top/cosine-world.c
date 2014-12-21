@@ -223,9 +223,9 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   ump_join();
   if (!this->overlay)
     this->overlay = paint_overlay_new(dst);
-  paint_overlay_preprocess(this->overlay);
+  paint_overlay_preprocess(this->overlay, this->context);
   parchment_draw(dst, this->bg);
-  paint_overlay_postprocess(this->overlay);
+  paint_overlay_postprocess(this->overlay, this->context);
   parchment_postprocess(this->bg, dst);
 }
 static void cosine_world_key(cosine_world_state* this,
