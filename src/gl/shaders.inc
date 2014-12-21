@@ -121,5 +121,6 @@ shader(postprocess) {
 shader(paint_overlay) {
   composed_of(fpaint_overlay, vpaint_overlay)
   uniform(tex2d, framebuffer)
+  uniform(tex2d, brush)
   uniform(vec2, screen_size)
 }

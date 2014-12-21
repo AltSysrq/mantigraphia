@@ -46,9 +46,10 @@
 #include "paint-overlay.h"
 
 #define DESIRED_POINTS_PER_SCREENW 128
+#define BRUSHTEX_SZ 16
 
 struct paint_overlay_s {
-  GLuint vbo, fbtex;
+  GLuint vbo, fbtex, brushtex;
   unsigned num_points;
   unsigned point_size;
   unsigned screenw, screenh;
@@ -81,6 +82,8 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
   unsigned i, p;
 
   shader_paint_overlay_vertex* vertices;
+
+  unsigned char brushtex_data[BRUSHTEX_SZ*BRUSHTEX_SZ];
 
   active_points = xmalloc(gridw*gridh * (2*sizeof(unsigned) +
                                          sizeof(points[0])));
@@ -163,6 +166,24 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
   free(vertices);
   free(active_points);
 
+  /* TODO: Make this actually look like a brush.
+   * For now, this will make it easy to see what direction it's pointing and
+   * such.
+   */
+  for (y = 0; y < BRUSHTEX_SZ; ++y) {
+    for (x = 0; x < BRUSHTEX_SZ; ++x) {
+      if (x > y)
+        brushtex_data[y*BRUSHTEX_SZ + x] = 0;
+      else
+        brushtex_data[y*BRUSHTEX_SZ + x] = 255 - (y-x)*8;
+    }
+  }
+  glGenTextures(1, &this->brushtex);
+  glBindTexture(GL_TEXTURE_2D, this->brushtex);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
+               BRUSHTEX_SZ, BRUSHTEX_SZ, 0,
+               GL_RED, GL_UNSIGNED_BYTE, brushtex_data);
+
   this->num_points = num_points;
   this->point_size = point_size;
   this->screenw = canv->w;
@@ -179,6 +200,8 @@ void paint_overlay_delete(paint_overlay* this) {
 static void paint_overlay_postprocess_impl(paint_overlay* this) {
   shader_paint_overlay_uniform uniform;
 
+  glPushAttrib(GL_ENABLE_BIT | GL_POINT_BIT);
+  glEnable(GL_POINT_SPRITE);
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, this->fbtex);
   glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0,
@@ -187,8 +210,16 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, this->brushtex);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  glActiveTexture(GL_TEXTURE0);
 
   uniform.framebuffer = 0;
+  uniform.brush = 1;
   uniform.screen_size[0] = this->screenw;
   uniform.screen_size[1] = this->screenh;
   shader_paint_overlay_activate(&uniform);
@@ -196,6 +227,8 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   glPointSize(this->point_size);
   shader_paint_overlay_configure_vbo();
   glDrawArrays(GL_POINTS, 0, this->num_points);
+
+  glPopAttrib();
 }
 
 void paint_overlay_postprocess(paint_overlay* this) {
