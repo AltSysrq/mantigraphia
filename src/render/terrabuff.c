@@ -525,7 +525,7 @@ void terrabuff_render(canvas*restrict dst,
   terrabuff_uniform.hmap = 0;
   terrabuff_uniform.tex = 1;
   terrabuff_uniform.ty_below = 1.0f / this->scan;
-  terrabuff_uniform.line_thickness = dst->w / 512;
+  terrabuff_uniform.line_thickness = dst->w / 386;
   terrabuff_uniform.screen_size[0] = dst->w;
   terrabuff_uniform.screen_size[1] = dst->h;
   terrabuff_uniform.xoff = (-(signed)dst->w) * 314159 / 200000 *

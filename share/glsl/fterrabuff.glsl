@@ -10,6 +10,7 @@ void main() {
   float value;
   float thickness;
   float mixing;
+  float alpha = 1.0f;
 
   if (gl_TexCoord[0].t > 1)
     thickness = line_thickness;
@@ -25,6 +26,9 @@ void main() {
 
   mixing = (low - high) / 2.0f;
 
+  value = texture2D(tex,
+                    vec2(screen_coords.x, screen_coords.y - high) *
+                    4 / screen_size).r;
   if (high >= low &&
       screen_coords.y >= high &&
       screen_coords.y < high + thickness) {
@@ -34,29 +38,19 @@ void main() {
     if (rel * gl_Color.a + (1.0f-rel) * gl_SecondaryColor.a > 0.25f)
       discard;
 
-    gl_FragColor = vec4(0.05, 0.05, 0.05, 1.0);
-  } else if (screen_coords.y > low &&
-             screen_coords.y <= low + mixing) {
-    value = texture2D(tex,
-                      vec2(screen_coords.x, screen_coords.y - high) *
-                      4 / screen_size).r;
+    alpha = 0.25f;
+  } else if (screen_coords.y > low && screen_coords.y <= low + mixing) {
     if ((value-0.5f)*4.0f < (screen_coords.y - low)/mixing)
       discard;
-
-    if (rel + value*5 > 3.5)
-      gl_FragColor = value * gl_SecondaryColor;
-    else
-      gl_FragColor = value * gl_Color;
   } else if (screen_coords.y < high ||
              screen_coords.y >= low + mixing) {
     discard;
-  } else {
-    value = texture2D(tex,
-                      vec2(screen_coords.x, screen_coords.y - high) *
-                      4 / screen_size).r;
-    if (rel + value*5 > 3.5)
-      gl_FragColor = value * gl_SecondaryColor;
-    else
-      gl_FragColor = value * gl_Color;
   }
+
+  if (rel + value*5 > 3.5)
+    gl_FragColor.rgb = value * gl_SecondaryColor.rgb;
+  else
+    gl_FragColor.rgb = value * gl_Color.rgb;
+
+  gl_FragColor.a = alpha;
 }

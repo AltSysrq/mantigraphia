@@ -3,15 +3,24 @@ uniform sampler2D brush;
 uniform vec2 screen_size;
 varying vec2 stroke_centre;
 
+const vec4 GRAPHITE = vec4(0.05f,0.05f,0.05f,0.80f);
+
 void main() {
-  vec4 selected;
+  vec4 selected, direct;
   float angle, r, theta, alpha, lum;
   vec2 angv, tcoff, centre_offset, atc, lumtc;
 
-  selected = texture2D(framebuffer, stroke_centre);
-  if (0.0f == selected.g) discard;
+  direct = texture2D(framebuffer,
+                     gl_FragCoord.xy / screen_size);
+  if (direct.a > 0.0f && direct.a <= 0.50f) {
+    gl_FragColor = GRAPHITE;
+    return;
+  }
 
-  angle = selected.b * 2.0f * 3.14159f;
+  selected = texture2D(framebuffer, stroke_centre);
+  if (0.0f == selected.a) discard;
+
+  angle = selected.a * 8.0f * 3.14159f;
   angv = vec2(cos(angle), sin(angle));
 
   /* Reading from more than 2 textures is surprisingly expensive on nVidia (and
@@ -36,7 +45,7 @@ void main() {
 
   if (alpha <= r*0.5f) discard;
 
-  selected.a *= alpha * 0.25f + 0.75f;
+  selected.a = alpha * 0.25f + 0.75f;
   selected.rgb *= 1.0f - 0.5f*lum;
   gl_FragColor = selected;
 }

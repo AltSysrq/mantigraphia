@@ -212,7 +212,7 @@ void paint_overlay_delete(paint_overlay* this) {
 
 static void paint_overlay_preprocess_impl(paint_overlay* this) {
   glBindTexture(GL_TEXTURE_2D, this->fbtex);
-  glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0,
+  glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0,
                    this->screenw, this->screenh, 0);
 }
 

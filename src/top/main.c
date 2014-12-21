@@ -217,6 +217,9 @@ int main(int argc, char** argv) {
 
   atexit(SDL_Quit);
 
+  if (SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 4))
+    errx(EX_SOFTWARE, "Unable to request alpha channel: %s", SDL_GetError());
+
   select_window_bounds(&window_bounds);
   screen = SDL_CreateWindow("Mantigraphia",
                             window_bounds.x,

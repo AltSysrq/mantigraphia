@@ -38,24 +38,24 @@
  * The paint overlay is a post-rendering effect which transforms the OpenGL
  * framebuffer into a distribution of brush strokes.
  *
- * The input state of the framebuffer does not occur in true colour. Instead of
- * (R,G,B), each pixel is a (offset,plane,direction) triple.
+ * The alpha channel of the colour buffer is overloaded for three purposes.
+ * Firstly, it indicates stroke direction of the stroke centred on the pixel,
+ * where theta=alpha*4*2*pi. Secondly, it indicates whether the stroke is
+ * a single point or a continuous line. Thirdly, it indicates whether that
+ * pixel should be rendered with a graphite colour in the final form (this is a
+ * direct input-to-output mapping, independent of the centre of the brush
+ * stroke.)
  *
- * Direction specifies the desired stroke direction. The direction of the pixel
- * at the centre of a brush stroke determines the whole stroke's orientation.
+ * The following table shows the four distinct alpha ranges and which flags are
+ * activated as a result:
+ * - 0.00 == alpha                      discard
+ * - 0.00 < alpha <= 0.25               graphite passthrough + continuous
+ * - 0.25 < alpha <= 0.50               graphite passthrough + splotch
+ * - 0.50 < alpha <= 0.75               continuous
+ * - 0.75 < alpha <= 1.00               splotch
  *
- * The actual colour to use for a point in space is found by reading from a
- * texture at (offset,plane), usually based on the pixel at the centre of the
- * brush stroke.
- *
- * plane additionally determines how the framebuffer is interpreted. If the
- * pixel at the fragment being replaced is in plane 128 (0.5), it is passed
- * through, only being affected by the colour lookup. If the pixel at the
- * centre of the stroke is in plane 0, the whole fragment is discarded.
- * Otherwise, the pixel at the centre of the stroke determines the brush shape:
- * Planes 1..127 are static strokes (ie, a touch of the brush to the canvas);
- * planes 129..255 are dynamic strokes (ie, supposed to look like a continuous
- * stroke across the canvas when possible).
+ * (Note that while graphite passthrough is a direct mapping, other features
+ * are based on the pixel at the centre of the stroke.)
  */
 typedef struct paint_overlay_s paint_overlay;
 
