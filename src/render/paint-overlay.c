@@ -57,6 +57,8 @@ struct paint_overlay_s {
   float xoff, yoff;
 };
 
+static void paint_overlay_create_texture(paint_overlay*);
+
 static inline unsigned max_effective_point_size(void) {
   return max_point_size / POINT_SIZE_MULT?
     max_point_size / POINT_SIZE_MULT : 1;
@@ -88,12 +90,9 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
   angle ang;
   unsigned r, x, y, gx, gy;
   signed gox, goy, dx, dy;
-  unsigned i, p, min, max;
+  unsigned i, p;
 
   shader_paint_overlay_vertex* vertices;
-
-  unsigned brushtex_data[BRUSHTEX_SZ*BRUSHTEX_SZ];
-  unsigned char brushtex_data_bytes[BRUSHTEX_SZ*BRUSHTEX_SZ];
 
   active_points = xmalloc(gridw*gridh * (2*sizeof(unsigned) +
                                          sizeof(points[0])));
@@ -176,7 +175,25 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
   free(vertices);
   free(active_points);
 
-  memset(brushtex_data, 0, sizeof(brushtex_data));
+  paint_overlay_create_texture(this);
+
+  this->num_points = num_points;
+  this->point_size = point_size;
+  this->screenw = canv->w;
+  this->screenh = canv->h;
+  return this;
+}
+
+static void paint_overlay_create_texture(paint_overlay* this) {
+  unsigned i, min, max;
+  unsigned* brushtex_data;
+  unsigned char* brushtex_data_bytes;
+
+  brushtex_data = xmalloc(sizeof(unsigned)*BRUSHTEX_SZ*BRUSHTEX_SZ +
+                          BRUSHTEX_SZ*BRUSHTEX_SZ);
+  brushtex_data_bytes = (void*)brushtex_data + BRUSHTEX_SZ+BRUSHTEX_SZ;
+
+  memset(brushtex_data, 0, sizeof(unsigned)*BRUSHTEX_SZ*BRUSHTEX_SZ);
   perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 8, 128, 5);
   perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 16, 64, 6);
   perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 32, 32, 7);
@@ -198,16 +215,13 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
                BRUSHTEX_SZ, BRUSHTEX_SZ, 0,
                GL_RED, GL_UNSIGNED_BYTE, brushtex_data_bytes);
 
-  this->num_points = num_points;
-  this->point_size = point_size;
-  this->screenw = canv->w;
-  this->screenh = canv->h;
-  return this;
+  free(brushtex_data);
 }
 
 void paint_overlay_delete(paint_overlay* this) {
   glDeleteBuffers(1, &this->vbo);
   glDeleteTextures(1, &this->fbtex);
+  glDeleteTextures(1, &this->brushtex);
   free(this);
 }
 
