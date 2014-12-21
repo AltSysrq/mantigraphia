@@ -73,7 +73,7 @@ void terrabuff_init(void) {
   tmp = canvas_new(TEXSZ, TEXSZ);
 
   linear_paint_tile_render(tmp->px, TEXSZ, TEXSZ,
-                           TEXSZ/4, 1,
+                           TEXSZ/4, 4,
                            pallet, lenof(pallet));
   texture = canvas_to_texture(tmp, 0);
   glBindTexture(GL_TEXTURE_2D, texture);
