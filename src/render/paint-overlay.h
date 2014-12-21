@@ -25,14 +25,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef GRAPHICS_PAINT_OVERLAY_H_
-#define GRAPHICS_PAINT_OVERLAY_H_
+#ifndef RENDER_PAINT_OVERLAY_H_
+#define RENDER_PAINT_OVERLAY_H_
 
-#include "canvas.h"
-
-/* TODO: The docs in this file describe how it *will* work. It doesn't work
- * this way yet.
- */
+#include "../graphics/canvas.h"
 
 /**
  * The paint overlay is a post-rendering effect which transforms the OpenGL
@@ -82,4 +78,4 @@ void paint_overlay_preprocess(paint_overlay*);
  */
 void paint_overlay_postprocess(paint_overlay*);
 
-#endif /* GRAPHICS_PAINT_OVERLAY_H_ */
+#endif /* RENDER_PAINT_OVERLAY_H_ */

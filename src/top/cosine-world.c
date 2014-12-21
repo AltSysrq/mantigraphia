@@ -41,12 +41,12 @@
 
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
-#include "graphics/paint-overlay.h"
 #include "world/terrain-tilemap.h"
 #include "world/terrain.h"
 #include "world/generate.h"
 #include "render/context.h"
 #include "render/terrain-tilemap.h"
+#include "render/paint-overlay.h"
 #include "control/mouselook.h"
 
 #include "cosine-world.h"

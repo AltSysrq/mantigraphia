@@ -37,7 +37,6 @@ graphics/dm-proj.c \
 graphics/fast-brush.c \
 graphics/glbrush.c \
 graphics/glpencil.c \
-graphics/paint-overlay.c \
 gl/glinfo.c \
 gl/shader_loader.c \
 gl/shaders.c \
@@ -52,6 +51,7 @@ render/terrabuff.c \
 render/terrain-tilemap-rnd.c \
 render/lsystem.c \
 render/colour-palettes.c \
+render/paint-overlay.c \
 control/mouselook.c \
 top/cosine-world.c
 

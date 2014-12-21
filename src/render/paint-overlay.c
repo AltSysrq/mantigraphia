@@ -42,7 +42,7 @@
 #include "../gl/shaders.h"
 #include "../gl/glinfo.h"
 #include "../gl/marshal.h"
-#include "canvas.h"
+#include "../graphics/canvas.h"
 #include "paint-overlay.h"
 
 #define DESIRED_POINTS_PER_SCREENW 256
