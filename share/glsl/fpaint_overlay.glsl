@@ -8,7 +8,7 @@ const vec4 GRAPHITE = vec4(0.05f,0.05f,0.05f,0.80f);
 void main() {
   vec4 selected, direct;
   float angle, r, theta, alpha, lum;
-  vec2 angv, tcoff, centre_offset, atc, lumtc;
+  vec2 angv, tcoff, centre_offset, atc, lumtc_scale, lumtc;
 
   direct = texture2D(framebuffer,
                      gl_FragCoord.xy / screen_size);
@@ -38,8 +38,15 @@ void main() {
    */
   theta = atan(centre_offset.y, centre_offset.x + 0.000001f);
 
+  if ((selected.a > 0.00f && selected.a <= 0.25f) ||
+      (selected.a > 0.50f && selected.a <= 0.75f)) {
+    lumtc_scale = vec2(0.1f,0.25f);
+  } else {
+    lumtc_scale = vec2(0.5f,0.25f);
+  }
+
   atc = tcoff + vec2(r/2.0f, theta/2.0f);
-  lumtc = tcoff + centre_offset*vec2(0.5f,0.25f) + vec2(0.0f,0.5f);
+  lumtc = tcoff + centre_offset*lumtc_scale + vec2(0.0f,0.5f);
   alpha = texture2D(brush, atc).r;
   lum = texture2D(brush, lumtc).r;
 
