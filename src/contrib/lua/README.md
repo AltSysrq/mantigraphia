@@ -5,6 +5,9 @@ It differs from vanilla Lua in the following ways:
 
 - Numbers are 64-bit integers. Hence the "Ll" in "Llua".
 
+- Floating-point syntax can be used to specify coordinates in metres. Eg,
+  `2.5 == 0x28000 == 163840` (2.5 metres in Mantigraphia coordinates).
+
 - Division is necessarily integer division. Division by zero is zero. Dividing
   the most negative number by -1 does nothing.
 

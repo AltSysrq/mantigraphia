@@ -415,8 +415,14 @@
 ** systems, you can leave 'lua_strx2number' undefined and Lua will
 ** provide its own implementation.
 */
-#define lua_str2number(s,p)	strtoll((s), (p), 0)
-#define lua_strx2number(s,p)	strtoll((s), (p), 0)
+/* If the string contains a decimal point, parse it with strtod() and convert
+ * the result to fixed-point (ie, metres). Otherwise, let strtoll handle it.
+ */
+#define lua_str2number(s, p)                                            \
+  (strchr((s), '.')? (LUA_NUMBER)(65536 * strtod((s),(p))) :            \
+   (LUA_NUMBER)strtoll((s),(p), 0))
+
+#define lua_strx2number(s,p)	lua_str2number((s), (p))
 
 /*
 @@ The luai_num* macros define the primitive operations over numbers.
