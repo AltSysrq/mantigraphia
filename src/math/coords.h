@@ -49,7 +49,7 @@
  * is metres and the low word is 65536ths of a metre. A "millimetre" is
  * 1/1024th of a metre.
  *
- * Space is torroidal at some offset for the X and Z axes, so a signed 32-bit
+ * Space is toroidal at some offset for the X and Z axes, so a signed 32-bit
  * integer is sufficient to represent the offset between any two points on
  * those axes. The Y axis is expected to be capped at some reasonable point
  * below 32 km.

@@ -45,6 +45,7 @@ world/terrain-tilemap.c \
 world/terrain.c \
 world/generate.c \
 world/hspace.c \
+world/env-vmap.c \
 render/turtle.c \
 render/context.c \
 render/terrabuff.c \

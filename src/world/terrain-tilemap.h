@@ -75,6 +75,9 @@ typedef unsigned short terrain_tile_altitude;
 typedef struct terrain_tilemap_s {
   /**
    * Maximum dimensions of the world along the X and Z axes.
+   *
+   * Ie, valid coordinates on each axis range from 0 inclusive to max
+   * exclusive. These are always powers of two.
    */
   coord xmax, zmax;
   /**

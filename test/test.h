@@ -36,6 +36,8 @@
 #include <check.h>
 #include <stdlib.h>
 
+#include "defs.h"
+
 extern const char* suite_names[1024];
 extern void (*suite_impls[1024])(Suite*);
 extern unsigned suite_num;
