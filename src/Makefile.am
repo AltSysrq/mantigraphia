@@ -53,6 +53,7 @@ render/terrain-tilemap-rnd.c \
 render/lsystem.c \
 render/colour-palettes.c \
 render/paint-overlay.c \
+render/env-vmap-renderer.c \
 control/mouselook.c \
 top/cosine-world.c
 

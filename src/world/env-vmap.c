@@ -39,7 +39,7 @@
 
 env_vmap* env_vmap_new(coord xmax, coord zmax, int is_toroidal,
                        const env_voxel_context_map* context_map) {
-  size_t voxels_sz = sizeof(env_voxel_type) * xmax * zmax;
+  size_t voxels_sz = sizeof(env_voxel_type) * xmax * zmax * ENV_VMAP_H;
   char* raw;
   env_vmap* this;
 

@@ -36,6 +36,7 @@
 
 #include "alloc.h"
 #include "math/coords.h"
+#include "math/rand.h"
 #include "defs.h"
 #include "micromp.h"
 
@@ -43,10 +44,12 @@
 #include "graphics/parchment.h"
 #include "world/terrain-tilemap.h"
 #include "world/terrain.h"
+#include "world/env-vmap.h"
 #include "world/generate.h"
 #include "render/context.h"
 #include "render/terrain-tilemap.h"
 #include "render/paint-overlay.h"
+#include "render/env-vmap-renderer.h"
 #include "control/mouselook.h"
 
 #include "cosine-world.h"
@@ -67,6 +70,8 @@ typedef struct {
   parchment* bg;
   paint_overlay* overlay;
   terrain_tilemap* world;
+  env_vmap* vmap;
+  env_vmap_renderer* vmap_renderer;
   rendering_context*restrict context;
 
   int moving_forward, moving_backward, moving_left, moving_right;
@@ -104,14 +109,21 @@ game_state* cosine_world_new(unsigned seed) {
     parchment_new(),
     NULL,
     terrain_tilemap_new(SIZE, SIZE, SIZE/256, SIZE/256),
+    env_vmap_new(SIZE, SIZE, 1, /* not needed (yet) */ NULL),
+    NULL,
     rendering_context_new(),
     0,0,0,0,
     0,0,0,0,
     2 * METRE
   };
 
+  const vc3 origin = { 0, 0, 0 };
   cosine_world_state* this = xmalloc(sizeof(cosine_world_state));
   memcpy(this, &template, sizeof(template));
+  this->vmap_renderer = env_vmap_renderer_new(
+    this->vmap, NULL, origin, this->world,
+    (coord(*)(const void*,coord,coord))terrain_base_y,
+    1);
 
   cosine_world_init_world(this);
   mouselook_set(1);
@@ -122,15 +134,36 @@ game_state* cosine_world_new(unsigned seed) {
 static void cosine_world_delete(cosine_world_state* this) {
   if (this->overlay) paint_overlay_delete(this->overlay);
   parchment_delete(this->bg);
+  env_vmap_renderer_delete(this->vmap_renderer);
+  env_vmap_delete(this->vmap);
   terrain_tilemap_delete(this->world);
   rendering_context_delete(this->context);
   free(this);
+}
+
+static void plant_lolipops(env_vmap* vmap, unsigned rnd) {
+  coord x, y, z;
+  coord h;
+
+  for (z = 0; z < vmap->zmax; z += 8) {
+    for (x = 8; x < vmap->xmax - 8; x += 8) {
+      h = lcgrand(&rnd) % (ENV_VMAP_H-2) + 2;
+
+      for (y = 0; y < h; ++y)
+        vmap->voxels[env_vmap_offset(vmap, x, y, z)] = 1;
+
+      vmap->voxels[env_vmap_offset(vmap, x-1, h-2, z)] = 1;
+      vmap->voxels[env_vmap_offset(vmap, x+1, h-2, z)] = 1;
+    }
+  }
 }
 
 static void cosine_world_init_world(cosine_world_state* this) {
   FILE* out;
   unsigned seed = this->seed;
   world_generate(this->world, seed);
+
+  plant_lolipops(this->vmap, seed+1);
 
   out = fopen("world.bmp", "wb");
   if (out) {
@@ -220,6 +253,7 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
 
 static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   render_terrain_tilemap(dst, this->world, this->context);
+  render_env_vmap(dst, this->vmap_renderer, this->context);
   ump_join();
   if (!this->overlay)
     this->overlay = paint_overlay_new(dst);
