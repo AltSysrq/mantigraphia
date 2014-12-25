@@ -33,6 +33,7 @@
 typedef GLuint shader_type_tex2d;
 typedef float shader_type_float;
 typedef float shader_type_vec2[2];
+typedef float shader_type_vec3[3];
 
 #define shader_source(x) ;extern int dummy_decl
 #define shader(name)                                                    \

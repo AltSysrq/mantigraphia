@@ -131,6 +131,13 @@ shader(paint_overlay) {
 shader(voxel) {
   composed_of(fvoxel, vvoxel)
   with_texture_coordinates
+  uniform(vec2, torus_sz)
+  uniform(vec2, yrot)
+  uniform(vec2, rxrot)
+  uniform(float, zscale)
+  uniform(vec2, soff)
+  uniform(vec3, camera_integer)
+  uniform(vec3, camera_fractional)
   uniform(tex2d, tex)
   uniform(tex2d, palette)
   uniform(float, palette_t)

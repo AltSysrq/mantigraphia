@@ -45,11 +45,9 @@
 
 static glm_slab_group* glmsg = NULL;
 static GLuint temp_tex, temp_palette;
-static float temp_palette_t;
+static shader_voxel_uniform temp_uni;
 
 static void env_vmap_activate(void* _) {
-  shader_voxel_uniform uniform;
-
   glBindTexture(GL_TEXTURE_2D, temp_tex);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -63,12 +61,11 @@ static void env_vmap_activate(void* _) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
   glActiveTexture(GL_TEXTURE0);
 
-  uniform.tex = 0;
-  uniform.palette = 1;
-  uniform.palette_t = temp_palette_t;
-  uniform.texture_scale[0] = 1.0f;
-  uniform.texture_scale[1] = 1.0f;
-  shader_voxel_activate(&uniform);
+  temp_uni.tex = 0;
+  temp_uni.palette = 1;
+  temp_uni.texture_scale[0] = 1.0f;
+  temp_uni.texture_scale[1] = 1.0f;
+  shader_voxel_activate(&temp_uni);
 }
 
 static void env_vmap_deactivate(void* _) {
@@ -138,6 +135,10 @@ void env_vmap_renderer_delete(env_vmap_renderer* this) {
   free(this);
 }
 
+static inline float zo_float(zo_scaling_factor f) {
+  return f / (float)ZO_SCALING_FACTOR_MAX;
+}
+
 void render_env_vmap(canvas* dst,
                      env_vmap_renderer*restrict this,
                      const rendering_context*restrict ctxt) {
@@ -149,14 +150,26 @@ void render_env_vmap(canvas* dst,
   glm_slab* slab = glm_slab_get(glmsg);
   unsigned short* indices, base;
   shader_voxel_vertex* vertices;
-  coord x, y, z, base_y;
+  coord x, y, z, base_y, i;
   coord_offset xo, zo;
   vc3 world_coords;
-  vo3 screen_coords;
   shader_voxel_vertex prepared_vertices[12];
 
-  temp_palette_t = context->month_integral / 9.0f +
+  temp_uni.palette_t = context->month_integral / 9.0f +
     context->month_fraction / (float)fraction_of(1) / 9.0f;
+  temp_uni.torus_sz[0] = context->proj->torus_w;
+  temp_uni.torus_sz[1] = context->proj->torus_h;
+  temp_uni.yrot[0] = zo_float(context->proj->yrot_cos);
+  temp_uni.yrot[1] = zo_float(context->proj->yrot_sin);
+  temp_uni.rxrot[0] = zo_float(context->proj->rxrot_cos);
+  temp_uni.rxrot[1] = zo_float(context->proj->rxrot_sin);
+  temp_uni.zscale = zo_float(context->proj->zscale);
+  temp_uni.soff[0] = context->proj->sxo;
+  temp_uni.soff[1] = context->proj->syo;
+  for (i = 0; i < 3; ++i) {
+    temp_uni.camera_integer[i] = context->proj->camera[i] & 0xFFFF0000;
+    temp_uni.camera_fractional[i] = context->proj->camera[i] & 0x0000FFFF;
+  }
 
   for (zo = -32; zo < 32; ++zo) {
     z = zo + context->proj->camera[2] / TILE_SZ;
@@ -176,12 +189,9 @@ void render_env_vmap(canvas* dst,
             world_coords[0] = x * TILE_SZ + xo*TILE_SZ/2;               \
             world_coords[1] = base_y + y * TILE_SZ + yo*TILE_SZ/2;      \
             world_coords[2] = z * TILE_SZ + zo*TILE_SZ/2;               \
-            if (!perspective_proj(screen_coords, world_coords,          \
-                                  context->proj))                       \
-              goto next_voxel;                                          \
-            vertices[0].v[0] = screen_coords[0];                        \
-            vertices[0].v[1] = screen_coords[1];                        \
-            vertices[0].v[2] = screen_coords[2];                        \
+            vertices[0].v[0] = world_coords[0];                         \
+            vertices[0].v[1] = world_coords[1];                         \
+            vertices[0].v[2] = world_coords[2];                         \
             vertices[0].tc[0] = ts;                                     \
             vertices[0].tc[1] = tt;                                     \
             ++vertices;                                                 \
@@ -213,8 +223,6 @@ void render_env_vmap(canvas* dst,
 #undef PUTI
 #undef PUTV
         }
-
-        next_voxel:;
       }
     }
   }

@@ -50,6 +50,10 @@ static inline void put_uniform_vec2(GLint ix, const float* f) {
   glUniform2fv(ix, 1, f);
 }
 
+static inline void put_uniform_vec3(GLint ix, const float* f) {
+  glUniform3fv(ix, 1, f);
+}
+
 #define no_uniforms
 
 #define shader_source(name) ;static GLuint shader_part_##name
