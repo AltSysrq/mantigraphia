@@ -48,7 +48,7 @@ static GLuint perlin_texture;
 
 struct glbrush_handle_s {
   glm_slab_group* glmsg_line, * glmsg_point, * glmsg_poly_point;
-  GLuint pallet_texture;
+  GLuint palette_texture;
   float decay, noise;
 };
 
@@ -60,18 +60,18 @@ static void glbrush_activate_poly_point(glbrush_handle*);
 void glbrush_load(void) {
   canvas* canv, * brush;
   unsigned char monochrome[TEXSZ*TEXSZ];
-  canvas_pixel pallet[2];
+  canvas_pixel palette[2];
   unsigned x, y, p;
   angle theta;
 
   /* Render a bluescale version of the texture */
-  pallet[0] = argb(0,0,0,0);
-  pallet[1] = argb(0,0,0,255);
+  palette[0] = argb(0,0,0,0);
+  palette[1] = argb(0,0,0,255);
 
   canv = canvas_new(TEXSZ, TEXSZ);
   brush = canvas_new(TEXSZ, TEXSZ);
   linear_paint_tile_render(canv->px, canv->w, canv->h, 4, 32,
-                           pallet, lenof(pallet));
+                           palette, lenof(palette));
 
   /* Reduce to 8-bit monochrome texture to send to GL */
   for (p = 0; p < lenof(monochrome); ++p)
@@ -90,9 +90,9 @@ void glbrush_load(void) {
   perlin_noise(canv->px, canv->w, canv->h, 64, 16, 2);
   perlin_noise(canv->px, canv->w, canv->h, 128, 16, 2);
 
-  pallet[1] = argb(0,0,0,128);
+  palette[1] = argb(0,0,0,128);
   linear_paint_tile_render(brush->px, brush->w, brush->h, 16, 1,
-                           pallet, lenof(pallet));
+                           palette, lenof(palette));
   for (y = 0; y < brush->h; ++y) {
     for (x = 0; x < brush->w; ++x) {
       p = x + TEXSZ * y;
@@ -119,7 +119,7 @@ void glbrush_load(void) {
 
 glbrush_handle* glbrush_hnew(const glbrush_handle_info* info) {
   glbrush_handle* handle = xmalloc(sizeof(glbrush_handle));
-  glGenTextures(1, &handle->pallet_texture);
+  glGenTextures(1, &handle->palette_texture);
   handle->glmsg_line = glm_slab_group_new((void(*)(void*))glbrush_activate_line,
                                           NULL, handle,
                                           shader_brush_configure_vbo,
@@ -146,10 +146,10 @@ void glbrush_hconfig(glbrush_handle* handle, const glbrush_handle_info* info) {
   /* Even though this is a one-dimensional texture, we need to make it 2D,
    * since the activation of GL_TEXTURE_2D supercedes the use of 1D textures.
    */
-  glBindTexture(GL_TEXTURE_2D, handle->pallet_texture);
+  glBindTexture(GL_TEXTURE_2D, handle->palette_texture);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-               info->pallet_size, 1, 0,
-               GL_BGRA, GL_UNSIGNED_BYTE, info->pallet);
+               info->palette_size, 1, 0,
+               GL_BGRA, GL_UNSIGNED_BYTE, info->palette);
 
   handle->decay = info->decay;
   handle->noise = info->noise;
@@ -167,7 +167,7 @@ void glbrush_hset(glbrush_handle** handle,
 void glbrush_hdelete(glbrush_handle* handle) {
   glm_slab_group_delete(handle->glmsg_line);
   glm_slab_group_delete(handle->glmsg_point);
-  glDeleteTextures(1, &handle->pallet_texture);
+  glDeleteTextures(1, &handle->palette_texture);
   free(handle);
 }
 
@@ -187,7 +187,7 @@ static void glbrush_activate_point_common(glbrush_handle* handle) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, handle->pallet_texture);
+  glBindTexture(GL_TEXTURE_2D, handle->palette_texture);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -213,7 +213,7 @@ static void glbrush_activate_point(glbrush_handle* handle) {
   glPointSize(65536);
 
   uniform.tex = 0;
-  uniform.pallet = 1;
+  uniform.palette = 1;
   uniform.noise = handle->noise;
   shader_splotch_activate(&uniform);
 }
@@ -224,7 +224,7 @@ static void glbrush_activate_poly_point(glbrush_handle* handle) {
   glbrush_activate_point_common(handle);
 
   uniform.tex = 0;
-  uniform.pallet = 1;
+  uniform.palette = 1;
   uniform.noise = handle->noise;
   shader_poly_splotch_activate(&uniform);
 }
@@ -321,7 +321,7 @@ static void glbrush_activate_line(glbrush_handle* handle) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, handle->pallet_texture);
+  glBindTexture(GL_TEXTURE_2D, handle->palette_texture);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -329,7 +329,7 @@ static void glbrush_activate_line(glbrush_handle* handle) {
   glActiveTexture(GL_TEXTURE0);
 
   uniform.tex = 0;
-  uniform.pallet = 1;
+  uniform.palette = 1;
   uniform.decay = handle->decay;
   uniform.noise = handle->noise;
   shader_brush_activate(&uniform);

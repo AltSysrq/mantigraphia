@@ -105,7 +105,7 @@ typedef struct {
   canvas*restrict dst;
 
   /**
-   * An array of colours to use for the pallet. The first pallet_size values
+   * An array of colours to use for the palette. The first palette_size values
    * are used. This is indexed as with the field of the same name on
    * brush_spec, with out-of-bounds pixels being left untouched.
    */

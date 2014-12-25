@@ -103,7 +103,7 @@ typedef struct {
   unsigned length;
 
   /**
-   * The texture, as pallet indices. This is not written to during normal
+   * The texture, as palette indices. This is not written to during normal
    * operation, so it needs no particular alignment.
    */
   unsigned char texture[FLEXIBLE_ARRAY_MEMBER];
@@ -152,7 +152,7 @@ drawing_method* fast_brush_new(const brush_spec* orig_brush,
   /* Set everything to the maximum index initially */
   memset(tmp->px, ~0, sizeof(canvas_pixel) * tmp->pitch * tmp->h);
 
-  /* Create a local copy of the input brush, with a bluescale pallet that we
+  /* Create a local copy of the input brush, with a bluescale palette that we
    * can trivially convert to the indexed texture.
    */
   memcpy(&brush, orig_brush, sizeof(brush));
@@ -212,7 +212,7 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
   canvas_pixel*restrict px;
   const simd4 v0123 = simd_init4(0,1,2,3);
   simd4 tx4, z4, depth4, num_colours4, colour4;
-  simd4 depth_test4, colour_test4, pallet;
+  simd4 depth_test4, colour_test4, palette;
   simd4 texs;
   unsigned i;
 
@@ -235,7 +235,7 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
   z = where[2];
   z4 = simd_inits(z);
   num_colours4 = simd_inits(accum.num_colours);
-  pallet = simd_initl(accum.num_colours > 0? accum.colours[0] : 0,
+  palette = simd_initl(accum.num_colours > 0? accum.colours[0] : 0,
                       accum.num_colours > 1? accum.colours[1] : 0,
                       accum.num_colours > 2? accum.colours[2] : 0,
                       accum.num_colours > 3? accum.colours[3] : 0);
@@ -282,12 +282,12 @@ void fast_brush_draw_point(fast_brush_accum*restrict accumptr,
 
       if (simd_all_true(depth_test4) && simd_all_true(colour_test4)) {
         simd_store_aligned(depth, z4);
-        simd_store_aligned(px, simd_shuffle(pallet, colour4));
+        simd_store_aligned(px, simd_shuffle(palette, colour4));
       } else {
         for (i = 0; i < 4; ++i) {
           if (simd_vs(depth_test4, i) && simd_vs(colour_test4, i)) {
             depth[i] = z;
-            px[i] = simd_vs(pallet, simd_vs(colour4, i));
+            px[i] = simd_vs(palette, simd_vs(colour4, i));
           }
         }
       }

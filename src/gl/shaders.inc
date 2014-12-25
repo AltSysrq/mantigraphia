@@ -71,7 +71,7 @@ shader(brush) {
   composed_of(fbrush, vbrush)
   with_texture_coordinates
   uniform(tex2d, tex)
-  uniform(tex2d, pallet)
+  uniform(tex2d, palette)
   uniform(float, decay)
   uniform(float, noise)
   attrib(2, info)
@@ -81,7 +81,7 @@ shader(splotch) {
   composed_of(fsplotch, vsplotch)
   attrib(3, parms)
   uniform(tex2d, tex)
-  uniform(tex2d, pallet)
+  uniform(tex2d, palette)
   uniform(float, noise)
 }
 
@@ -90,7 +90,7 @@ shader(poly_splotch) {
   with_texture_coordinates
   attrib(3, parms)
   uniform(tex2d, tex)
-  uniform(tex2d, pallet)
+  uniform(tex2d, palette)
   uniform(float, noise)
 }
 

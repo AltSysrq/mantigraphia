@@ -64,7 +64,7 @@ static void terrabuff_deactivate(void*);
 void terrabuff_init(void) {
   canvas* tmp;
 
-  static const canvas_pixel pallet[] = {
+  static const canvas_pixel palette[] = {
     argb(255,255,255,255),
     argb(255,64,64,64),
   };
@@ -74,7 +74,7 @@ void terrabuff_init(void) {
 
   linear_paint_tile_render(tmp->px, TEXSZ, TEXSZ,
                            TEXSZ/4, 4,
-                           pallet, lenof(pallet));
+                           palette, lenof(palette));
   texture = canvas_to_texture(tmp, 0);
   glBindTexture(GL_TEXTURE_2D, texture);
 

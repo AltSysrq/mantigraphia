@@ -130,12 +130,12 @@ typedef struct {
    */
   float noise;
   /**
-   * The colour pallet for the brush. The brush begins with the zeroth colour,
+   * The colour palette for the brush. The brush begins with the zeroth colour,
    * and progresses through the others, becomming blank after the final is
    * passed. Adjacent colours are blended into one another as necessary.
    */
-  const canvas_pixel* pallet;
-  unsigned pallet_size;
+  const canvas_pixel* palette;
+  unsigned palette_size;
 } glbrush_handle_info;
 
 /**

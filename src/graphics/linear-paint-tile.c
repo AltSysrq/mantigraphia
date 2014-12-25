@@ -37,15 +37,15 @@
 void linear_paint_tile_render(canvas_pixel* dst,
                               unsigned w, unsigned h,
                               unsigned xs, unsigned ys,
-                              const canvas_pixel* pallet,
-                              unsigned pallet_size) {
+                              const canvas_pixel* palette,
+                              unsigned palette_size) {
   canvas_pixel px, noise[w*h];
   unsigned aa, ar, ag, ab;
   unsigned x, y, xa, ya, i;
 
-  /* Generate noise from the pallet */
+  /* Generate noise from the palette */
   for (i = 0; i < w*h; ++i)
-    noise[i] = pallet[rand() % pallet_size];
+    noise[i] = palette[rand() % palette_size];
 
   /* Average pixels according to streak and bleed */
   for (y = 0; y < h; ++y) {
