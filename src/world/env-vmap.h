@@ -122,7 +122,7 @@ typedef unsigned short env_voxel_contextual_type;
 /**
  * The fixed number of vertical elements in a voxel map.
  */
-#define ENV_VMAP_H 16
+#define ENV_VMAP_H 32
 
 /**
  * Represents the static environment as a cubic voxel grid.
