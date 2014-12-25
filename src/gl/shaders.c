@@ -82,6 +82,8 @@ static char link_error_log[65536];
   static void shader_##name##_assemble(struct shader_##name##_info* info)
 #define composed_of(fpart, vpart)                         \
   GLint status;                                           \
+  const char*const composition __unused =                 \
+    #fpart "+" #vpart;                                    \
   if (info->program) return;                              \
   info->program = glCreateProgram();                      \
   if (!info->program)                                     \
@@ -100,13 +102,14 @@ static char link_error_log[65536];
     errx(EX_DATAERR, "Failed to link shaders "            \
          "" #fpart "and" #vpart ":\n%s", link_error_log); \
   }
-#define fixed_function
+#define fixed_function                                          \
+  const char*const composition __unused = "fixed-function";
 
 #define uniform(type,name)                                      \
   info->name##_ix = glGetUniformLocation(info->program, #name); \
   if (-1 == info->name##_ix)                                    \
     errx(EX_SOFTWARE, "Failed to link uniform " #name           \
-         " in shader");
+         " in shader, using %s", composition);
 #define with_texture_coordinates
 #define with_colour
 #define with_secondary_colour
@@ -114,7 +117,7 @@ static char link_error_log[65536];
   status = glGetAttribLocation(info->program, #name);           \
   if (-1 == status)                                             \
     errx(EX_SOFTWARE, "Failed to link vertex attribute " #name  \
-         " in shader");                                         \
+         " in shader, using %s", composition);                  \
   info->name##_va = status;
 #include "shaders.inc"
 #undef attrib

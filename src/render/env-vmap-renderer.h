@@ -40,11 +40,21 @@ typedef struct {
   /**
    * The texture to use for rendering. A value of zero indicates that this
    * plane is not drawn.
+   *
+   * This is an RGB texture. The R component is used to index the S axis of the
+   * palette texture (the T axis representing calendar time, ie, to rotate
+   * through palettes). The G component determines the A component of the
+   * fragment. B is used to control transparency, and is tested against the A
+   * of the palette.
    */
   unsigned texture;
   /**
    * The texture to use as a colour palette when rendering the main texture for
    * this plane. Meaningless if this plane is not drawn.
+   *
+   * This is an RGBA texture. The RGB components are directly copied into
+   * rendered fragments. A values determine fragment visibility; a fragment is
+   * visible if the palette A is greater than or equal to the texture B.
    */
   unsigned palette;
 } env_voxel_graphic_plane;

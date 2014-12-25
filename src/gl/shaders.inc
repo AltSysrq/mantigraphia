@@ -34,6 +34,7 @@ shader_source(fpostprocess)
 shader_source(fsplotch)
 shader_source(fsplotch_poly)
 shader_source(fterrabuff)
+shader_source(fvoxel)
 shader_source(vbrush)
 shader_source(vgenerictc)
 shader_source(vgenericctc)
@@ -42,6 +43,7 @@ shader_source(vpencil)
 shader_source(vsplotch)
 shader_source(vsplotch_poly)
 shader_source(vterrabuff)
+shader_source(vvoxel)
 
 shader(fixed_texture) {
   fixed_function
@@ -124,4 +126,13 @@ shader(paint_overlay) {
   uniform(tex2d, brush)
   uniform(vec2, screen_size)
   uniform(vec2, screen_off)
+}
+
+shader(voxel) {
+  composed_of(fvoxel, vvoxel)
+  with_texture_coordinates
+  uniform(tex2d, tex)
+  uniform(tex2d, palette)
+  uniform(float, palette_t)
+  uniform(vec2, texture_scale)
 }

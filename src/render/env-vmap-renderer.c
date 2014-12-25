@@ -44,15 +44,66 @@
 #include "env-vmap-renderer.h"
 
 static glm_slab_group* glmsg = NULL;
+static GLuint temp_tex, temp_palette;
+static float temp_palette_t;
 
 static void env_vmap_activate(void* _) {
-  glPushAttrib(GL_ENABLE_BIT);
-  glDisable(GL_TEXTURE_2D);
-  shader_solid_activate(NULL);
+  shader_voxel_uniform uniform;
+
+  glBindTexture(GL_TEXTURE_2D, temp_tex);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, temp_palette);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  glActiveTexture(GL_TEXTURE0);
+
+  uniform.tex = 0;
+  uniform.palette = 1;
+  uniform.palette_t = temp_palette_t;
+  uniform.texture_scale[0] = 1.0f;
+  uniform.texture_scale[1] = 1.0f;
+  shader_voxel_activate(&uniform);
 }
 
 static void env_vmap_deactivate(void* _) {
-  glPopAttrib();
+}
+
+static void env_vmap_init_textures() {
+  unsigned char texd[64][64][3], paletted[12][8][4];
+  unsigned x, y, c;
+  signed dx, dy;
+
+  for (y = 0; y < 64; ++y) {
+    for (x = 0; x < 64; ++x) {
+      dx = 32 - x;
+      dy = 32 - y;
+      texd[y][x][0] = isqrt(dx*dx + dy*dy) * 255 / 32;
+      texd[y][x][1] = 255;
+      texd[y][x][2] = rand() & 0xFF;
+    }
+  }
+
+  for (y = 0; y < 12; ++y)
+    for (x = 0; x < 8; ++x)
+      for (c = 0; c < 4; ++c)
+        paletted[y][x][c] = rand() & 0xFF;
+
+  glGenTextures(1, &temp_tex);
+  glBindTexture(GL_TEXTURE_2D, temp_tex);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 64, 64, 0,
+               GL_RGB, GL_UNSIGNED_BYTE, texd);
+
+  glGenTextures(1, &temp_palette);
+  glBindTexture(GL_TEXTURE_2D, temp_palette);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 8, 12, 0,
+               GL_RGBA, GL_UNSIGNED_BYTE, paletted);
 }
 
 env_vmap_renderer* env_vmap_renderer_new(
@@ -75,8 +126,9 @@ env_vmap_renderer* env_vmap_renderer_new(
     glmsg = glm_slab_group_new(env_vmap_activate,
                                env_vmap_deactivate,
                                NULL,
-                               shader_solid_configure_vbo,
-                               sizeof(shader_solid_vertex));
+                               shader_voxel_configure_vbo,
+                               sizeof(shader_voxel_vertex));
+    env_vmap_init_textures();
   }
 
   return this;
@@ -96,12 +148,15 @@ void render_env_vmap(canvas* dst,
     CTXTINV(ctxt);
   glm_slab* slab = glm_slab_get(glmsg);
   unsigned short* indices, base;
-  shader_solid_vertex* vertices;
+  shader_voxel_vertex* vertices;
   coord x, y, z, base_y;
   coord_offset xo, zo;
   vc3 world_coords;
   vo3 screen_coords;
-  shader_solid_vertex prepared_vertices[12];
+  shader_voxel_vertex prepared_vertices[12];
+
+  temp_palette_t = context->month_integral / 9.0f +
+    context->month_fraction / (float)fraction_of(1) / 9.0f;
 
   for (zo = -32; zo < 32; ++zo) {
     z = zo + context->proj->camera[2] / TILE_SZ;
@@ -117,7 +172,7 @@ void render_env_vmap(canvas* dst,
       for (y = 0; y < ENV_VMAP_H; ++y) {
         if (this->vmap->voxels[env_vmap_offset(this->vmap, x, y, z)]) {
           vertices = prepared_vertices;
-#define PUTV(xo,yo,zo) do {                                             \
+#define PUTV(xo,yo,zo,ts,tt) do {                                       \
             world_coords[0] = x * TILE_SZ + xo*TILE_SZ/2;               \
             world_coords[1] = base_y + y * TILE_SZ + yo*TILE_SZ/2;      \
             world_coords[2] = z * TILE_SZ + zo*TILE_SZ/2;               \
@@ -127,10 +182,8 @@ void render_env_vmap(canvas* dst,
             vertices[0].v[0] = screen_coords[0];                        \
             vertices[0].v[1] = screen_coords[1];                        \
             vertices[0].v[2] = screen_coords[2];                        \
-            vertices[0].colour[0] = xo * 0.5f;                          \
-            vertices[0].colour[1] = yo * 0.5f;                          \
-            vertices[0].colour[2] = zo * 0.5f;                          \
-            vertices[0].colour[3] = 1.0f;                               \
+            vertices[0].tc[0] = ts;                                     \
+            vertices[0].tc[1] = tt;                                     \
             ++vertices;                                                 \
           } while (0)
 #define PUTI(ix) (*indices++) = base + (ix)
@@ -139,18 +192,18 @@ void render_env_vmap(canvas* dst,
             PUTI((ix)+2); PUTI((ix)+3); PUTI((ix)+0);   \
           } while (0)
 
-          PUTV(1,0,0);
-          PUTV(1,0,2);
-          PUTV(1,2,2);
-          PUTV(1,2,0);
-          PUTV(0,1,0);
-          PUTV(0,1,2);
-          PUTV(2,1,2);
-          PUTV(2,1,0);
-          PUTV(0,0,1);
-          PUTV(0,2,1);
-          PUTV(2,2,1);
-          PUTV(2,0,1);
+          PUTV(1,0,0,0,0);
+          PUTV(1,0,2,0,1);
+          PUTV(1,2,2,1,1);
+          PUTV(1,2,0,1,0);
+          PUTV(0,1,0,0,0);
+          PUTV(0,1,2,0,1);
+          PUTV(2,1,2,1,1);
+          PUTV(2,1,0,1,0);
+          PUTV(0,0,1,0,0);
+          PUTV(0,2,1,0,1);
+          PUTV(2,2,1,1,1);
+          PUTV(2,0,1,1,0);
           base = GLM_ALLOC(&vertices, &indices, slab, 12, 18);
           memcpy(vertices, prepared_vertices, sizeof(prepared_vertices));
           PUTIR(0);
