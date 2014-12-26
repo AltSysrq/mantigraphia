@@ -139,8 +139,8 @@ static void env_vmap_init_textures() {
   glGenTextures(1, &temp_tex);
   glBindTexture(GL_TEXTURE_2D, temp_tex);
   glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 64, 64, 0,
-               GL_RGB, GL_UNSIGNED_BYTE, texd);
+  gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, 64, 64,
+                    GL_RGB, GL_UNSIGNED_BYTE, texd);
 
   glGenTextures(1, &temp_palette);
   glBindTexture(GL_TEXTURE_2D, temp_palette);
@@ -506,7 +506,7 @@ static void env_vmap_render_cell_render(
   for (i = 0; i < cell->num_operations; ++i) {
     glBindTexture(GL_TEXTURE_2D, cell->operations[i].graphic->texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glActiveTexture(GL_TEXTURE1);
