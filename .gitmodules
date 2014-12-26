@@ -1,0 +1,3 @@
+[submodule "src/contrib/praefectus"]
+	path = src/contrib/praefectus
+	url = git://github.com/AltSysrq/praefectus

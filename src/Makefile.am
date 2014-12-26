@@ -1,4 +1,5 @@
 AUTOMAKE_OPTIONS = subdir-objects
+SUBDIRS = contrib/praefectus .
 
 .MAKE.JOB.PREFIX=
 
@@ -8,7 +9,8 @@ AUTOMAKE_OPTIONS = subdir-objects
 # going to be building this on AIX).
 AM_CFLAGS=-std=c99 -Wall -D_BSD_SOURCE -DLUA_ANSI \
           $(SDL_CFLAGS) $(SDLIMG_CFLAGS) $(GL_CFLAGS) $(GLEW_CFLAGS) \
-          $(GLU_CFLAGS)
+          $(GLU_CFLAGS) -Icontrib/praefectus/src/libpraefectus \
+          -Icontrib/praefectus/src/asn1-support
 AM_LDFLAGS=$(SDL_LIBS) $(SDLIMG_LIBS) $(GL_LIBS) $(GLEW_LIBS) $(GLU_LIBS)
 
 bin_PROGRAMS = mantigraphia
@@ -16,7 +18,9 @@ noinst_PROGRAMS = llua
 noinst_LTLIBRARIES = libmantigraphia.la libllua.la
 mantigraphia_SOURCES = \
 top/main.c
-mantigraphia_LDADD = libmantigraphia.la libllua.la
+mantigraphia_LDADD = libmantigraphia.la libllua.la \
+contrib/praefectus/src/libpraefectus.la \
+contrib/praefectus/src/libpraefectus-umb.la
 
 libmantigraphia_la_SOURCES = \
 micromp.c \
