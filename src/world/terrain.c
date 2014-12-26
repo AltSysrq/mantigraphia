@@ -42,8 +42,8 @@ static inline coord_offset altitude(const terrain_tilemap* world,
 
 coord terrain_base_y(const terrain_tilemap* world, coord wx, coord wz) {
   unsigned long long ox = wx % TILE_SZ, oz = wz % TILE_SZ;
-  coord x = wx / TILE_SZ;
-  coord z = wz / TILE_SZ;
+  coord x = (wx / TILE_SZ) & (world->xmax-1);
+  coord z = (wz / TILE_SZ) & (world->zmax-1);
   coord x2 = (x+1) & (world->xmax-1), z2 = (z+1) & (world->zmax-1);
   coord y00 = altitude(world, x, z),
         y01 = altitude(world, x, z2),

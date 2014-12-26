@@ -34,12 +34,20 @@
 #include "context.h"
 
 /**
+ * The number of tiles in each dimension comprising a single cell in an
+ * env_vmap_renderer.
+ */
+#define ENV_VMAP_RENDERER_CELL_SZ 64
+
+/**
  * Describes the parameters used to draw a graphic plane of a voxel.
+ *
+ * Graphic planes are considered equivalent only if they exist at the same
+ * memory address.
  */
 typedef struct {
   /**
-   * The texture to use for rendering. A value of zero indicates that this
-   * plane is not drawn.
+   * The texture to use for rendering.
    *
    * This is an RGB texture. The R component is used to index the S axis of the
    * palette texture (the T axis representing calendar time, ie, to rotate
@@ -50,13 +58,19 @@ typedef struct {
   unsigned texture;
   /**
    * The texture to use as a colour palette when rendering the main texture for
-   * this plane. Meaningless if this plane is not drawn.
+   * this plane.
    *
    * This is an RGBA texture. The RGB components are directly copied into
    * rendered fragments. A values determine fragment visibility; a fragment is
    * visible if the palette A is greater than or equal to the texture B.
    */
   unsigned palette;
+
+  /**
+   * Factor by which texture coordinates for this plane shall be multiplied.
+   * This is 16.16 fixed-point, so 1.0 == 65536.
+   */
+  signed texture_scale[2];
 } env_voxel_graphic_plane;
 
 /**
@@ -71,8 +85,12 @@ typedef struct {
    * In the general case, voxels are rendered as three axis-aligned planes
    * centred on the centre of the voxel. These indicate the parameters for the
    * X, Y, and Z planes, respectively.
+   *
+   * These are pointers so that plane equivalence can be efficiently detected.
+   *
+   * NULL values indicate planes that should not be drawn.
    */
-  env_voxel_graphic_plane planes[3];
+  const env_voxel_graphic_plane* planes[3];
 } env_voxel_graphic;
 
 /**
@@ -83,6 +101,8 @@ typedef struct env_vmap_render_cell_s env_vmap_render_cell;
 
 /**
  * Renders voxel maps.
+ *
+ * This struct should be considered immutable by external code.
  */
 typedef struct {
   /**
@@ -117,22 +137,21 @@ typedef struct {
   /**
    * Internal state.
    */
-  env_vmap_render_cell* cells;
+  env_vmap_render_cell* cells[FLEXIBLE_ARRAY_MEMBER];
 } env_vmap_renderer;
 
 /**
  * Allocates a new env_vmap_renderer.
  *
- * @param subdivide Whether the vmap should be subdivided into multiple cells.
- * If true, the size of the vmap must be a sufficiently large power of 2.
+ * @param vmap The vmap to be rendered by this renderer. Its X and Z dimensions
+ * must be multiples of ENV_VMAP_RENDERER_CELL_SZ.
  */
 env_vmap_renderer* env_vmap_renderer_new(
   const env_vmap* vmap,
   const env_voxel_graphic*const graphics[NUM_ENV_VOXEL_CONTEXTUAL_TYPES],
   const vc3 base_coordinate,
   const void* base_object,
-  coord (*get_y_offset)(const void*, coord, coord),
-  int subdivide);
+  coord (*get_y_offset)(const void*, coord, coord));
 
 /**
  * Releases the resources held by the given env_vmap_renderer.

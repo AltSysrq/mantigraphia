@@ -122,8 +122,7 @@ game_state* cosine_world_new(unsigned seed) {
   memcpy(this, &template, sizeof(template));
   this->vmap_renderer = env_vmap_renderer_new(
     this->vmap, NULL, origin, this->world,
-    (coord(*)(const void*,coord,coord))terrain_base_y,
-    1);
+    (coord(*)(const void*,coord,coord))terrain_base_y);
 
   cosine_world_init_world(this);
   mouselook_set(1);
