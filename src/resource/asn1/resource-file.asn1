@@ -1,0 +1,234 @@
+---
+-- Copyright (c) 2014 Jason Lingle
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+-- 1. Redistributions of source code must retain the above copyright
+--    notice, this list of conditions and the following disclaimer.
+-- 2. Redistributions in binary form must reproduce the above copyright
+--    notice, this list of conditions and the following disclaimer in the
+--    documentation and/or other materials provided with the distribution.
+-- 3. Neither the name of the author nor the names of its contributors
+--    may be used to endorse or promote products derived from this software
+--    without specific prior written permission.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+-- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+-- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+-- IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+-- INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+-- NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+-- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+-- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+-- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+-- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ResourceFile DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Ascii85String ::= VisibleString (FROM ("!".."u"))
+LluaIdentifierString ::= VisibleString (FROM ("0".."9" | "a".."z" | "A".."Z" | "_"))
+LluaIdentifier ::= LluaIdentifierString SIZE (4..16)
+SDWord ::= INTEGER (-2147483648..2147483647)
+
+-- A resource file provides a set of resources (and possibly scripts) which in
+-- some way modify the game. As a coherent bundle, a single resource file is
+-- also termed a "module" (though a module could be spread over multiple
+-- resource files).
+--
+-- Resource files are encoded with XER (XML), and are intended to be reasonably
+-- human-readable, so that the files can be easily inspected, contain embedded
+-- documentation, etc. They are not intended to be human-written or -modified.
+--
+-- The resource file system deliberately uses an open identifier system that
+-- does not strongly isolate files from each other; for example, one file could
+-- deliberately override a symbol defined by another. Identifiers are scoped so
+-- that such replacements do not happen by accident.
+--
+-- Each resource is identified by one or more module/symbol names. Once a name
+-- is bound, it cannot be rebound, so one file can override another's resource
+-- by providing one of the same name and being loaded first. Resources of
+-- different types are in different namespaces.
+ResourceFile ::= SET {
+  -- The internal name of this module. Global Llua symbols are appended to a
+  -- table of this name at global scope. This should generally be the same as
+  -- the basename of the file itself, except with underscores instead of
+  -- hyphens (ie, "more_grass" lives in "more-grass.xml"). Modules spread over
+  -- multiple files which are conceptually one bundle should use the same
+  -- identifier here.
+  modulename    LluaIdentifier,
+  -- The name for this module to be shown to the user. This should be a short
+  -- name written in the conventional orthography of the language (eg,
+  -- "More Grass").
+  friendlyname  UTF8String,
+  -- The version of this resource file. No particular format is required, but
+  -- formats like "3.1.4" or "3.1.4-beta" are encouraged.
+  version       PrintableString,
+  -- A longer human-readable description of what this resource file does.
+  -- Generally, this should be one sentence. Example:
+  -- "Increases the density of grass voxels and removes all bare-grass tiles."
+  description   UTF8String,
+  -- The author(s) of this resource file.
+  author        UTF8String,
+  -- The full licence of this resource file, including copyright assertions and
+  -- dates.
+  license       UTF8String,
+  -- Any other text the author wishes to place at the head of the file. Eg,
+  -- documentation.
+  info          UTF8String OPTIONAL,
+  -- The resources exported by this module.
+  resources     SEQUENCE OF Resource
+}
+
+Resource ::= CHOICE {
+  -- No semantics. Conventionally, this is some kind of documentation for the
+  -- resource that follows.
+  notes         UTF8String,
+  texture       TextureResource,
+  palette       PaletteResource,
+  plane         PlaneResource,
+  voxelgraph    VoxelGraphicResource,
+  voxel         VoxelResource,
+  llua          LluaResource
+}
+
+-- Specifies a texture for use with voxel rendering.
+--
+-- Voxel textures are 24-bit RGB textures, though they do not represent true
+-- colour. The R channel is an index into a palette (see PaletteResource
+-- below). The G channel is passed through to the A channel of the output,
+-- which indicates not transparency but the special semantics described in
+-- render/paint-overlay.h. The B channel controls when texels become invisible
+-- due to the alpha of the colour palette or distance fading. This is usually
+-- uniform noise with values between 0 and 254.
+--
+-- All voxel textures are 64x64 pixels, and are mipmapped down to 1x1. No
+-- interpolation takes place between pixels at the same mipmap level, but there
+-- is linear interpolation across mipmap levels. The colour palette should thus
+-- be chosen so that such ramps look reasonable.
+TextureResource ::= SET {
+  export        ResourceExport,
+  d64           Ascii85String SIZE (15360),
+  d32           Ascii85String SIZE (3840),
+  d16           Ascii85String SIZE (960),
+  d8            Ascii85String SIZE (240),
+  d4            Ascii85String SIZE (60),
+  d2            Ascii85String SIZE (15),
+  d1            Ascii85String SIZE (5)
+}
+
+-- Specifies the colour palette to use with a voxel texture.
+--
+-- Palettes are RGBA textures. The RGB channels specify the true colour for
+-- each pixel. A determines pseudo-transparancy, by the rule that a texel is
+-- totally transparent if the palette's A is less than or equal to the B of the
+-- texture.
+--
+-- The X axis is indexed by the R channel of the texture. Note that
+-- interpolation essentially expands the palette to 256 colours, so, eg, a
+-- 3-colour palette would have its two specified colours at 0, 127, and 255,
+-- rather than at 0, 1, and 2. The Y axis is indexed by time to simulate
+-- advance of seasons.
+PaletteResource ::= SET {
+  export        ResourceExport,
+  -- The number of colours in this palette.
+  colours       INTEGER (1..256),
+  -- The image for this palette. The width of the texture is determined
+  -- implicitly from the colours value and the total size of the data.
+  data          Ascii85String SIZE (60..46080)
+}
+
+-- Describes how a plane of a voxel is rendered.
+PlaneResource ::= SET {
+  export        ResourceExport,
+  -- The texture data to render this plane.
+  texture       ResourceImport,
+  -- The colour palette to use with the texture.
+  palette       ResourceImport,
+  -- Scaling to apply to the S and T coordinates of the texture. The S texture
+  -- coordinate corresponds to X, except for planes within the X plane, in
+  -- which case Y is used. T corresponds to Z, except for planes in the Z
+  -- plane, in which case it is Y. (Ie, it is in order of preference X,Y,Z, but
+  -- neither is ever the axis that is constant.) These values are 15.16
+  -- fixed-point, so 1.0 == 65536.
+  sscale        SDWord,
+  tscale        SDWord
+}
+
+-- Describes the way a voxel is rendered.
+VoxelGraphicResource ::= SET {
+  export        ResourceExport,
+  -- In the general case, a voxel is drawn as three planes, one fixed to each
+  -- axis. If an axis is omitted, nothing is drawn for that plane.
+  x             ResourceImport OPTIONAL,
+  y             ResourceImport OPTIONAL,
+  z             ResourceImport OPTIONAL
+}
+
+-- Defines how a voxel looks and behaves in a certain context.
+VoxelResourceContext ::= SET {
+  -- The integer representation of the context to which this value applies.
+  -- This is internally defined.
+  context       INTEGER (0..63),
+  -- The graphic representation for the voxel in this context.
+  graphic       ResourceImport
+}
+
+-- Describes the behaviour and appearance of a new voxel type, depending on
+-- context.
+--
+-- This is a scarce resource - only 255 voxel types are available globally.
+VoxelResource ::= SET {
+  export        ResourceExport,
+  -- The sensitivity mask, determining in which directions this voxel type is
+  -- sensitive to context. This is internally defined.
+  sensitivity   INTEGER (0..63),
+  -- Imports targetting other voxel types (and possibly this one) which are
+  -- considered to affect the context of this type. These imports are resolved
+  -- lazily, and a missing import has no effect.
+  family        SEQUENCE OF ResourceImport,
+  -- The specification for this voxel in its possible contexts.
+  contexts      SEQUENCE SIZE (1..64) OF VoxelResourceContext,
+  -- The llua identifier for this voxel. The integer value of the voxel will be
+  -- stored at the global path `<module>.voxels.<typename>`
+  typename      LluaIdentifier
+}
+
+-- Specifies a llua script to load into the shared interpreter.
+LluaResource ::= SET {
+  -- The filename to report for this script.
+  --
+  -- Note that the input filename of the resource file is prepended to this,
+  -- separeted with a '!'. Eg, 'modules/more-grass.xml!more-grass.llua'.
+  filename      PrintableString SIZE(4..64),
+  -- The Llua source to evaluate.
+  program       UTF8String
+}
+
+-- Describes how to locate another resource.
+ResourceImport ::= CHOICE {
+  -- Searches for a single symbol with the given name and with the same module
+  -- as this resource file.
+  local         LluaIdentifier,
+  -- Specifies a series of fully-qualified symbols. The first one found is
+  -- used.
+  search        SEQUENCE OF ResourceIdentifier
+}
+
+-- Describes the symbol(s) that a resource supplies.
+ResourceExport ::= SET {
+  -- Indicates that the resource supplies a single symbol with a module equal
+  -- to this resource file's module and the given name.
+  natural       LluaIdentifier,
+  -- Specfies a series of fully-qualified names that this resource supplies.
+  override      SEQUENCE OF ResourceIdentifier
+}
+
+-- Fully identifies a resource symbol. (The type namespace is still implicit.)
+ResourceIdentifier ::= SEQUENCE {
+  module        LluaIdentifier,
+  symbol        LluaIdentifier
+}
+
+END
