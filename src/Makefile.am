@@ -13,15 +13,17 @@ AM_CFLAGS=-std=c99 -Wall -D_BSD_SOURCE -DLUA_ANSI \
           -Icontrib/praefectus/src/asn1-support
 AM_LDFLAGS=$(SDL_LIBS) $(SDLIMG_LIBS) $(GL_LIBS) $(GLEW_LIBS) $(GLU_LIBS)
 
-bin_PROGRAMS = mantigraphia
-noinst_PROGRAMS = llua
-noinst_LTLIBRARIES = libmantigraphia.la libllua.la libresourcefile.la
-mantigraphia_SOURCES = \
-top/main.c
-mantigraphia_LDADD = libmantigraphia.la libllua.la \
+MANTIGRAPHIA_LDCOMMON = libmantigraphia.la libllua.la \
 libresourcefile.la \
 contrib/praefectus/src/libpraefectus.la \
 contrib/praefectus/src/libpraefectus-umb.la
+
+bin_PROGRAMS = mantigraphia
+noinst_PROGRAMS = llua mgllua
+noinst_LTLIBRARIES = libmantigraphia.la libllua.la libresourcefile.la
+mantigraphia_SOURCES = \
+top/main.c
+mantigraphia_LDADD = $(MANTIGRAPHIA_LDCOMMON)
 
 libmantigraphia_la_SOURCES = \
 micromp.c \
@@ -60,6 +62,7 @@ render/colour-palettes.c \
 render/paint-overlay.c \
 render/env-vmap-renderer.c \
 control/mouselook.c \
+llua-bindings/mg-module.c \
 top/cosine-world.c
 
 libllua_la_SOURCES = \
@@ -96,6 +99,10 @@ contrib/lua/lzio.c
 llua_SOURCES = contrib/lua/lua.c
 llua_LDADD = libllua.la
 
+mgllua_CFLAGS = $(AM_CFLAGS) -DLUA_WITH_MANTIGRAPHIA_MODULES
+mgllua_SOURCES = contrib/lua/lua.c
+mgllua_LDADD = $(MANTIGRAPHIA_LDCOMMON)
+
 libresourcefile_la_CFLAGS = -w -Icontrib/praefectus/src/asn1-support
 libresourcefile_la_SOURCES = \
 resource/asn1/Ascii85String.c \
@@ -114,3 +121,8 @@ resource/asn1/TextureResource.c \
 resource/asn1/VoxelGraphicResource.c \
 resource/asn1/VoxelResource.c \
 resource/asn1/VoxelResourceContext.c
+
+llua-bindings/mg-module.c: llua-bindings/mg-module.lua \
+llua-bindings/gen-bindings.lua llua
+	$(AM_V_GEN)./llua llua-bindings/gen-bindings.lua \
+	    llua-bindings/mg-module >llua-bindings/mg-module.c

@@ -34,3 +34,5 @@ ltmain.sh
 *.t
 llua
 src/resource/asn1
+mgllua
+src/llua-bindings/*.c

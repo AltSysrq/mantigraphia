@@ -82,7 +82,9 @@
 
 #endif
 
-
+#ifdef LUA_WITH_MANTIGRAPHIA_MODULES
+extern void open_module_mg(lua_State*);
+#endif
 
 
 static lua_State *globalL = NULL;
@@ -456,6 +458,9 @@ static int pmain (lua_State *L) {
   luaL_checkversion(L);
   lua_gc(L, LUA_GCSTOP, 0);  /* stop collector during initialization */
   luaL_openlibs(L);  /* open libraries */
+#ifdef LUA_WITH_MANTIGRAPHIA_MODULES
+  open_module_mg(L);
+#endif
   lua_gc(L, LUA_GCRESTART, 0);
   if (!args[has_E] && handle_luainit(L) != LUA_OK)
     return 0;  /* error running LUA_INIT */
