@@ -178,8 +178,12 @@ function bytestring(length, extra_bytes)
 
   function self:into_c(dst, src, context)
     printf('if (!lua_isnil(L, %d) && !lua_isstring(L, %d)) {', src, src)
-    printf('  lua_pushfstring(L, "Expected byte[%%d] for %s", (int)(%s));',
-           context, length)
+    if length then
+      printf('  lua_pushfstring(L, "Expected byte[%%d] for %s", (int)(%s));',
+             context, length)
+    else
+      printf('  lua_pushstring(L, "Expected string for %s");', context)
+    end
     printf('  return lua_error(L);')
     printf('}')
     printf('%s_src = (void*)lua_tolstring(L, %d, &%s_sz);', dst, src, dst)
@@ -216,7 +220,7 @@ function bytestring(length, extra_bytes)
     end
   end
 
-  function self:echo_into_lua(src)
+  function self:echo_into_llua(src)
     self:into_llua(src)
   end
 
