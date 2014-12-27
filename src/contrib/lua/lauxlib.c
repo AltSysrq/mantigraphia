@@ -373,7 +373,11 @@ LUALIB_API const char *luaL_optlstring (lua_State *L, int narg,
 
 
 LUALIB_API lua_Number luaL_checknumber (lua_State *L, int narg) {
-  return lua_tonumberx(L, narg, NULL);
+  int isnum;
+  lua_Number d = lua_tonumberx(L, narg, &isnum);
+  if (!isnum)
+    tag_error(L, narg, LUA_TNUMBER);
+  return d;
 }
 
 
@@ -383,12 +387,20 @@ LUALIB_API lua_Number luaL_optnumber (lua_State *L, int narg, lua_Number def) {
 
 
 LUALIB_API lua_Integer luaL_checkinteger (lua_State *L, int narg) {
-  return lua_tointegerx(L, narg, NULL);
+  int isnum;
+  lua_Integer d = lua_tointegerx(L, narg, &isnum);
+  if (!isnum)
+    tag_error(L, narg, LUA_TNUMBER);
+  return d;
 }
 
 
 LUALIB_API lua_Unsigned luaL_checkunsigned (lua_State *L, int narg) {
-  return lua_tounsignedx(L, narg, NULL);
+  int isnum;
+  lua_Unsigned d = lua_tounsignedx(L, narg, &isnum);
+  if (!isnum)
+    tag_error(L, narg, LUA_TNUMBER);
+  return d;
 }
 
 

@@ -20,9 +20,6 @@ It differs from vanilla Lua in the following ways:
 
 - Common compound assignments are supported (+=, -=, *=, /=, postfix ++).
 
-- Strings cannot be implicitly converted to numbers, nor vice-versa, in many
-  cases.
-
 - The math, io, and os parts of the standard library are gone.
 
 The build produces an executable at `src/llua` which runs this dialect in
