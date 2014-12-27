@@ -23,10 +23,6 @@
 #define LUA_PROMPT2		">> "
 #endif
 
-#if !defined(LUA_PROGNAME)
-#define LUA_PROGNAME		"lua"
-#endif
-
 #if !defined(LUA_MAXINPUT)
 #define LUA_MAXINPUT		512
 #endif
@@ -37,6 +33,10 @@
 
 #define LUA_INITVERSION  \
 	LUA_INIT "_" LUA_VERSION_MAJOR "_" LUA_VERSION_MINOR
+
+
+#define LLUA_DIALECT_NOTICE                     \
+  "\nThis is Llua, Mantigraphia's Lua dialect."
 
 
 /*
@@ -83,7 +83,14 @@
 #endif
 
 #ifdef LUA_WITH_MANTIGRAPHIA_MODULES
+#define LUA_PROGNAME "mgllua"
+#define LLUA_MANTIGRAPHIA_PRESENCE                              \
+  "\nMantigraphia routines are available in this interpreter."
 extern void open_module_mg(lua_State*);
+#else
+#define LUA_PROGNAME "llua"
+#define LLUA_MANTIGRAPHIA_PRESENCE                                      \
+  "\nMantigraphia routines are not available in this interpreter."
 #endif
 
 
@@ -187,6 +194,9 @@ static int docall (lua_State *L, int narg, int nres) {
 
 static void print_version (void) {
   luai_writestring(LUA_COPYRIGHT, strlen(LUA_COPYRIGHT));
+  luai_writestring(LLUA_DIALECT_NOTICE, strlen(LLUA_DIALECT_NOTICE));
+  luai_writestring(LLUA_MANTIGRAPHIA_PRESENCE,
+                   strlen(LLUA_MANTIGRAPHIA_PRESENCE));
   luai_writeline();
 }
 
