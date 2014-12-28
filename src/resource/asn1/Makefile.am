@@ -4,7 +4,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 noinst_DATA = ResourceFile.c
 
 ResourceFile.c: resource-file.asn1
-	$(ASN1C) -fcompound-names -fnative-types -gen-PER -R resource-file.asn1
+	$(ASN1C) -fcompound-names -fnative-types -R resource-file.asn1
 	touch ResourceFile.c
 
 clean: clean-am
