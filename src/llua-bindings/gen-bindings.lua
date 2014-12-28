@@ -92,8 +92,8 @@ function integer(signed, width)
 
   function self:into_c(dst, src, context)
     printf('if (!lua_isnumber(L, %d)) {', src)
-    printf('  lua_pushstring(L, "Expected signed %d-bit integer for %s");',
-           width, context)
+    printf('  lua_pushstring(L, "Expected %ssigned %d-bit integer for %s");',
+           signed and "" or "un", width, context)
     printf('  return lua_error(L);')
     printf('}')
     printf('%s = lua_tonumber(L, %d);', dst, src)
