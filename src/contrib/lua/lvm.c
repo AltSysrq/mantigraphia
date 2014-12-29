@@ -553,6 +553,13 @@ void luaV_execute (lua_State *L) {
     ra = RA(i);
     lua_assert(base == ci->u.l.base);
     lua_assert(base <= L->top && L->top < L->stack + L->stacksize);
+    if (L->instrcount) {
+      --L->instrcount;
+    } else {
+      /* Instruction limit exceeeded, force throwing an error */
+      luaG_runerror(L, "Instruction execution limit reached");
+    }
+
     vmdispatch (GET_OPCODE(i)) {
       vmcase(OP_MOVE,
         setobjs2s(L, ra, RB(i));

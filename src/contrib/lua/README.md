@@ -22,5 +22,8 @@ It differs from vanilla Lua in the following ways:
 
 - The math, io, and os parts of the standard library are gone.
 
+- The interpreter has a fundamental limit as to how many instructions it will
+  execute until giving up.
+
 The build produces an executable at `src/llua` which runs this dialect in
 standalone format.

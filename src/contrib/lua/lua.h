@@ -137,6 +137,15 @@ LUA_API lua_CFunction (lua_atpanic) (lua_State *L, lua_CFunction panicf);
 
 LUA_API const lua_Number *(lua_version) (lua_State *L);
 
+/*
+** Sets the instruction execution limit in the given interpreter.
+**
+** Every opcode executed decrements this value; if it reaches zero, any attempt
+** at further execution immediately raises an error, forcing the interpreter to
+** completely unwind to the host application.
+ */
+LUA_API void (lua_setinstrlimit)(lua_State *L, unsigned limit);
+
 
 /*
 ** basic stack manipulation

@@ -271,6 +271,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   if (l == NULL) return NULL;
   L = &l->l.l;
   g = &l->g;
+  L->instrcount = ~0u;
   L->next = NULL;
   L->tt = LUA_TTHREAD;
   g->currentwhite = bit2mask(WHITE0BIT, FIXEDBIT);
@@ -321,3 +322,6 @@ LUA_API void lua_close (lua_State *L) {
 }
 
 
+LUA_API void lua_setinstrlimit (lua_State *L, unsigned limit) {
+  L->instrcount = limit;
+}
