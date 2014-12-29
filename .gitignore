@@ -33,6 +33,6 @@ ltmain.sh
 *.lo
 *.t
 llua
-src/resource/asn1
 mgllua
 src/llua-bindings/*.c
+

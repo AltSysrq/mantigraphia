@@ -1,5 +1,5 @@
 AUTOMAKE_OPTIONS = subdir-objects
-SUBDIRS = contrib/praefectus resource/asn1 .
+SUBDIRS = contrib/praefectus .
 
 .MAKE.JOB.PREFIX=
 
@@ -14,13 +14,12 @@ AM_CFLAGS=-std=c99 -Wall -D_BSD_SOURCE -DLUA_ANSI \
 AM_LDFLAGS=$(SDL_LIBS) $(SDLIMG_LIBS) $(GL_LIBS) $(GLEW_LIBS) $(GLU_LIBS)
 
 MANTIGRAPHIA_LDCOMMON = libmantigraphia.la libllua.la \
-libresourcefile.la \
 contrib/praefectus/src/libpraefectus.la \
 contrib/praefectus/src/libpraefectus-umb.la
 
 bin_PROGRAMS = mantigraphia
 noinst_PROGRAMS = llua mgllua
-noinst_LTLIBRARIES = libmantigraphia.la libllua.la libresourcefile.la
+noinst_LTLIBRARIES = libmantigraphia.la libllua.la
 mantigraphia_SOURCES = \
 top/main.c
 mantigraphia_LDADD = $(MANTIGRAPHIA_LDCOMMON)
@@ -102,25 +101,6 @@ llua_LDADD = libllua.la
 mgllua_CFLAGS = $(AM_CFLAGS) -DLUA_WITH_MANTIGRAPHIA_MODULES
 mgllua_SOURCES = contrib/lua/lua.c
 mgllua_LDADD = $(MANTIGRAPHIA_LDCOMMON)
-
-libresourcefile_la_CFLAGS = -w -Icontrib/praefectus/src/asn1-support
-libresourcefile_la_SOURCES = \
-resource/asn1/Ascii85String.c \
-resource/asn1/LluaIdentifier.c \
-resource/asn1/LluaIdentifierString.c \
-resource/asn1/LluaResource.c \
-resource/asn1/PaletteResource.c \
-resource/asn1/PlaneResource.c \
-resource/asn1/Resource.c \
-resource/asn1/ResourceExport.c \
-resource/asn1/ResourceFile.c \
-resource/asn1/ResourceIdentifier.c \
-resource/asn1/ResourceImport.c \
-resource/asn1/SDWord.c \
-resource/asn1/TextureResource.c \
-resource/asn1/VoxelGraphicResource.c \
-resource/asn1/VoxelResource.c \
-resource/asn1/VoxelResourceContext.c
 
 llua-bindings/mg-module.c: llua-bindings/mg-module.lua \
 llua-bindings/gen-bindings.lua llua

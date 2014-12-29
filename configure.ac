@@ -85,7 +85,6 @@ AC_CHECK_FUNCS([memmove memset pow setlocale sqrt dlfunc dlerror dnl
                 cpuset_setaffinity])
 
 AC_CONFIG_FILES([Makefile src/Makefile test/Makefile
-                 src/resource/asn1/Makefile
                  src/contrib/praefectus/Makefile
                  src/contrib/praefectus/src/Makefile
                  src/contrib/praefectus/src/asn1-support/Makefile
