@@ -62,9 +62,7 @@ render/colour-palettes.c \
 render/paint-overlay.c \
 render/env-vmap-renderer.c \
 control/mouselook.c \
-resource/resource-file-builder.c \
 llua-bindings/mg-module.c \
-llua-bindings/rfb-module.c \
 top/cosine-world.c
 
 libllua_la_SOURCES = \
@@ -114,9 +112,10 @@ resource/asn1/LluaResource.c \
 resource/asn1/PaletteResource.c \
 resource/asn1/PlaneResource.c \
 resource/asn1/Resource.c \
+resource/asn1/ResourceExport.c \
 resource/asn1/ResourceFile.c \
 resource/asn1/ResourceIdentifier.c \
-resource/asn1/ResourceLocator.c \
+resource/asn1/ResourceImport.c \
 resource/asn1/SDWord.c \
 resource/asn1/TextureResource.c \
 resource/asn1/VoxelGraphicResource.c \
@@ -127,8 +126,3 @@ llua-bindings/mg-module.c: llua-bindings/mg-module.lua \
 llua-bindings/gen-bindings.lua llua
 	$(AM_V_GEN)./llua llua-bindings/gen-bindings.lua \
 	    llua-bindings/mg-module >llua-bindings/mg-module.c
-
-llua-bindings/rfb-module.c: llua-bindings/rfb-module.lua \
-llua-bindings/gen-bindings.lua llua
-	$(AM_V_GEN)./llua llua-bindings/gen-bindings.lua \
-	    llua-bindings/rfb-module >llua-bindings/rfb-module.c

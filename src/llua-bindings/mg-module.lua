@@ -30,7 +30,6 @@ preamble = [[
 #include "../math/coords.h"
 #include "../math/frac.h"
 #include "../math/rand.h"
-#include "../world/env-vmap.h"
 ]]
 
 local coord = uint(32)
@@ -64,16 +63,6 @@ constants = {
   PRECISE_FRACTION_BITS = uint(32),
   PRECISE_FRACTION_BASE = precise_fraction,
   PRECISE_FRACTION_INTERMEDIATE_TRAILING_BITS = uint(32),
-
-  NUM_ENV_VOXEL_TYPES = uint(32),
-  ENV_VOXEL_CONTEXT_XP = uint(32),
-  ENV_VOXEL_CONTEXT_XN = uint(32),
-  ENV_VOXEL_CONTEXT_YP = uint(32),
-  ENV_VOXEL_CONTEXT_YN = uint(32),
-  ENV_VOXEL_CONTEXT_ZP = uint(32),
-  ENV_VOXEL_CONTEXT_ZN = uint(32),
-  NUM_ENV_VOXEL_CONTEXTUAL_TYPES = uint(32),
-  ENV_VMAP_H = uint(32)
 }
 
 functions = {

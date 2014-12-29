@@ -87,7 +87,6 @@
 #define LLUA_MANTIGRAPHIA_PRESENCE                              \
   "\nMantigraphia routines are available in this interpreter."
 extern void open_module_mg(lua_State*);
-extern void open_module_rfb(lua_State*);
 #else
 #define LUA_PROGNAME "llua"
 #define LLUA_MANTIGRAPHIA_PRESENCE                                      \
@@ -471,7 +470,6 @@ static int pmain (lua_State *L) {
   luaL_openlibs(L);  /* open libraries */
 #ifdef LUA_WITH_MANTIGRAPHIA_MODULES
   open_module_mg(L);
-  open_module_rfb(L);
 #endif
   lua_gc(L, LUA_GCRESTART, 0);
   if (!args[has_E] && handle_luainit(L) != LUA_OK)
