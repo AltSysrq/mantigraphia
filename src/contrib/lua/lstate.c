@@ -217,7 +217,6 @@ static void preinit_state (lua_State *L, global_State *g) {
   L->nny = 1;
   L->status = LUA_OK;
   L->errfunc = 0;
-  L->bailout = 0;
 }
 
 
@@ -272,7 +271,6 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   if (l == NULL) return NULL;
   L = &l->l.l;
   g = &l->g;
-  L->bailout = 0;
   L->next = NULL;
   L->tt = LUA_TTHREAD;
   g->currentwhite = bit2mask(WHITE0BIT, FIXEDBIT);
@@ -320,14 +318,6 @@ LUA_API void lua_close (lua_State *L) {
   L = G(L)->mainthread;  /* only the main thread can be closed */
   lua_lock(L);
   close_state(L);
-}
-
-LUALIB_API void luaL_setbailout(lua_State* L, int bailout) {
-    L->bailout=bailout;
-}
-
-LUALIB_API int luaL_getbailout(lua_State* L) {
-    return L->bailout;
 }
 
 

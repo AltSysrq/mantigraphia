@@ -751,10 +751,6 @@ void luaV_execute (lua_State *L) {
       )
       vmcasenb(OP_RETURN,
         int b = GETARG_B(i);
-        /* if we're bailing out, just teardown as fast as possible */
-        if(L->bailout) {
-          b=0;
-        }
         if (b != 0) L->top = ra+b-1;
         if (cl->p->sizep > 0) luaF_close(L, base);
         b = luaD_poscall(L, ra);
