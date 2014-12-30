@@ -61,6 +61,7 @@ render/colour-palettes.c \
 render/paint-overlay.c \
 render/env-vmap-renderer.c \
 control/mouselook.c \
+resource/resource-loader.c \
 llua-bindings/mg-module.c \
 top/cosine-world.c
 

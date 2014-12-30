@@ -79,6 +79,8 @@ end
 function integer(signed, width)
   local min = nil
   local max = nil
+  local failure_value = nil
+  local failure_message = nil
 
   local self = {}
 
@@ -118,6 +120,12 @@ function integer(signed, width)
 
   function self:into_llua(src)
     self:bang_bits(src)
+    if failure_value then
+      printf('if (%s == %d) {', src, failure_value)
+      printf('  lua_pushstring(L, "%s");', failure_message);
+      printf('  return lua_error(L);')
+      printf('}')
+    end
     printf('lua_pushnumber(L, %s);', src)
   end
 
@@ -136,6 +144,12 @@ function integer(signed, width)
 
   function self:max(m)
     max = m
+    return self
+  end
+
+  function self:fail_on(value, message)
+    failure_value = value
+    failure_message = message
     return self
   end
 
