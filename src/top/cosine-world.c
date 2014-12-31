@@ -51,6 +51,7 @@
 #include "render/paint-overlay.h"
 #include "render/env-vmap-renderer.h"
 #include "control/mouselook.h"
+#include "llua-bindings/lluas.h"
 
 #include "cosine-world.h"
 
@@ -126,6 +127,9 @@ game_state* cosine_world_new(unsigned seed) {
 
   cosine_world_init_world(this);
   mouselook_set(1);
+
+  lluas_init();
+  lluas_load_file("share/llua/hello-world.lua", 65536);
 
   return (game_state*)this;
 }

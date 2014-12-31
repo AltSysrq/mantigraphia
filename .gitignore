@@ -32,7 +32,7 @@ m4
 ltmain.sh
 *.lo
 *.t
-llua
+src/llua
 mgllua
-src/llua-bindings/*.c
+src/llua-bindings/*-module.c
 
