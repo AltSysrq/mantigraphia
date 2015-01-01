@@ -202,6 +202,7 @@ unsigned rl_texture_load64x64rgb(unsigned texture,
   CKIX(texture, res_num_textures);
 
   glBindTexture(GL_TEXTURE_2D, res_textures[texture]);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 #define L(l,s)                                          \
   glTexImage2D(GL_TEXTURE_2D, l, GL_RGB, s, s, 0,       \
                GL_RGB, GL_UNSIGNED_BYTE, d##s)
@@ -234,6 +235,7 @@ unsigned rl_palette_loadNxMrgba(unsigned palette,
   if (ntimes < 10 || ntimes > 256) return 0;
 
   glBindTexture(GL_TEXTURE_2D, res_palettes[palette]);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ncolours, ntimes, 0,
                GL_RGBA, GL_UNSIGNED_BYTE, data);
   return 1;
