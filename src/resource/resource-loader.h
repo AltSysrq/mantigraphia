@@ -196,7 +196,7 @@ unsigned rl_palette_new(void);
  * @param palette The palette to edit.
  * @param ncoluors The number of colours (ie, the S axis) being specified.
  * Maximum 256.
- * @param ntimes The number of time-frames being specified. Minimum 12, maximum
+ * @param ntimes The number of time-frames being specified. Minimum 10, maximum
  * 256.
  * @param data The RGBA data. Size ncolours*ntimes*4.
  * @return Whether successful.

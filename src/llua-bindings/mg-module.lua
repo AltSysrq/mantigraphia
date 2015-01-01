@@ -132,7 +132,7 @@ functions = {
   rl_texture_new = resource_loader(),
   rl_texture_load64x64rgb = resource_loader(uint(32):min(1),
                                             bytes(12288),
-                                            bytes(3027),
+                                            bytes(3072),
                                             bytes(768),
                                             bytes(192),
                                             bytes(48),
@@ -141,6 +141,6 @@ functions = {
   rl_palette_new = resource_loader(),
   rl_palette_loadNxMrgba = resource_loader(uint(32):min(1),
                                            uint(32):min(1):max(256),
-                                           uint(32):min(12):max(256),
+                                           uint(32):min(10):max(256),
                                            bytes("argument_2*argument_3*4"))
 }

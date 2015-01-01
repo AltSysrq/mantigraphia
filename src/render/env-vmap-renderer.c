@@ -114,40 +114,6 @@ static void render_env_vmap_impl(env_vmap_render_op*);
 static void env_vmap_render_cell_render(const env_vmap_render_cell*restrict,
                                         const rendering_context*restrict);
 
-static GLuint temp_tex, temp_palette;
-
-static void env_vmap_init_textures() {
-  unsigned char texd[64][64][3], paletted[12][8][4];
-  unsigned x, y, c;
-  signed dx, dy;
-
-  for (y = 0; y < 64; ++y) {
-    for (x = 0; x < 64; ++x) {
-      dx = 32 - x;
-      dy = 32 - y;
-      texd[y][x][0] = isqrt(dx*dx + dy*dy) * 255 / 32;
-      texd[y][x][1] = 255;
-      texd[y][x][2] = rand() & 0xFF;
-    }
-  }
-
-  for (y = 0; y < 12; ++y)
-    for (x = 0; x < 8; ++x)
-      for (c = 0; c < 4; ++c)
-        paletted[y][x][c] = rand() & 0xFF;
-
-  glGenTextures(1, &temp_tex);
-  glBindTexture(GL_TEXTURE_2D, temp_tex);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-  gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, 64, 64,
-                    GL_RGB, GL_UNSIGNED_BYTE, texd);
-
-  glGenTextures(1, &temp_palette);
-  glBindTexture(GL_TEXTURE_2D, temp_palette);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 8, 12, 0,
-               GL_RGBA, GL_UNSIGNED_BYTE, paletted);
-}
-
 env_vmap_renderer* env_vmap_renderer_new(
   const env_vmap* vmap,
   const env_voxel_graphic*const graphics[NUM_ENV_VOXEL_CONTEXTUAL_TYPES],
@@ -167,9 +133,6 @@ env_vmap_renderer* env_vmap_renderer_new(
   this->base_object = base_object;
   this->get_y_offset = get_y_offset;
   memset(this->cells, 0, cells_sz);
-
-  if (!temp_tex)
-    env_vmap_init_textures();
 
   return this;
 }
@@ -241,27 +204,7 @@ void render_env_vmap_impl(env_vmap_render_op* op) {
 static const env_voxel_graphic* env_vmap_renderer_get_graphic(
   const env_vmap_renderer* this, coord x, coord y, coord z
 ) {
-  /* TODO: Use real implementation later */
-  static env_voxel_graphic sg;
-  static env_voxel_graphic_plane sgp;
-  static int init = 0;
-  const env_voxel_graphic_plane gp = {
-    temp_tex, temp_palette, { 65536, 65536 }
-  };
-  const env_voxel_graphic g = {
-    { &sgp, &sgp, &sgp }
-  };
-
-  if (!init) {
-    sg = g;
-    sgp = gp;
-    init = 1;
-  }
-
-  if (this->vmap->voxels[env_vmap_offset(this->vmap, x, y, z)])
-    return &sg;
-  else
-    return NULL;
+  return this->graphics[env_vmap_expand_type(this->vmap, x, y, z)];
 }
 
 static env_vmap_render_cell* env_vmap_render_cell_new(

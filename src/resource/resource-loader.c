@@ -160,7 +160,7 @@ unsigned rl_graphic_plane_set_texture(unsigned plane, unsigned texture) {
   CKIX(plane, res_num_graphic_planes);
   CKIX(texture, res_num_textures);
 
-  res_graphic_planes[plane].texture = texture;
+  res_graphic_planes[plane].texture = res_textures[texture];
   return 1;
 }
 
@@ -169,7 +169,7 @@ unsigned rl_graphic_plane_set_palette(unsigned plane, unsigned palette) {
   CKIX(plane, res_num_graphic_planes);
   CKIX(palette, res_num_palettes);
 
-  res_graphic_planes[plane].palette = palette;
+  res_graphic_planes[plane].palette = res_palettes[palette];
   return 1;
 }
 
@@ -231,7 +231,7 @@ unsigned rl_palette_loadNxMrgba(unsigned palette,
   CKNF();
   CKIX(palette, res_num_palettes);
   if (!ncolours || ncolours > 256) return 0;
-  if (ntimes < 12 || ntimes > 256) return 0;
+  if (ntimes < 10 || ntimes > 256) return 0;
 
   glBindTexture(GL_TEXTURE_2D, res_palettes[palette]);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ncolours, ntimes, 0,

@@ -243,8 +243,8 @@ static void lluas_invoke_function(unsigned interp, const char* name,
 
   if (les_fatal == error_stati[interp]) return;
 
-  lua_setinstrlimit(L, lluas_ump_instr_limit);
-  lua_getglobal(L, lluas_ump_name);
+  lua_setinstrlimit(L, instr_limit);
+  lua_getglobal(L, name);
   lluas_invoke_top_of_stack(interp);
 }
 

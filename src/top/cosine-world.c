@@ -51,6 +51,7 @@
 #include "render/paint-overlay.h"
 #include "render/env-vmap-renderer.h"
 #include "control/mouselook.h"
+#include "resource/resource-loader.h"
 #include "llua-bindings/lluas.h"
 
 #include "cosine-world.h"
@@ -110,7 +111,7 @@ game_state* cosine_world_new(unsigned seed) {
     parchment_new(),
     NULL,
     terrain_tilemap_new(SIZE, SIZE, SIZE/256, SIZE/256),
-    env_vmap_new(SIZE, SIZE, 1, /* not needed (yet) */ NULL),
+    env_vmap_new(SIZE, SIZE, 1, &res_voxel_context_map),
     NULL,
     rendering_context_new(),
     0,0,0,0,
@@ -122,14 +123,19 @@ game_state* cosine_world_new(unsigned seed) {
   cosine_world_state* this = xmalloc(sizeof(cosine_world_state));
   memcpy(this, &template, sizeof(template));
   this->vmap_renderer = env_vmap_renderer_new(
-    this->vmap, NULL, origin, this->world,
+    this->vmap, (const env_voxel_graphic*const*)&res_voxel_graphics,
+    origin, this->world,
     (coord(*)(const void*,coord,coord))terrain_base_y);
 
   cosine_world_init_world(this);
   mouselook_set(1);
 
+  rl_clear();
+  rl_set_frozen(0);
   lluas_init();
-  lluas_load_file("share/llua/hello-world.lua", 65536);
+  lluas_load_file("share/llua/core.lua", 65536);
+  lluas_load_file("share/llua/test-resources.lua", 65536);
+  lluas_invoke_local(0, "load_resources", 1<<24);
 
   return (game_state*)this;
 }
