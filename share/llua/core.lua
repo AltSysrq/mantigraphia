@@ -31,6 +31,28 @@
 
 core = {}
 
+--- Tables of resource exports.
+--
+-- The conventional way for modules to define resources is to define functions
+-- within each sub-table which allocate the resource and return the resource's
+-- index, eg,
+--
+--   function resource.graphic_plane.mymodule_myplane()
+--     local v = mg.rl_graphic_plane_new()
+--     -- configure v
+--     return v
+--   end
+--
+-- When resources are to be loaded, the functions in every sub-table are
+-- memoised, and then the root types (eg, voxels) are forced.
+resource = {
+  graphic_plane = {},
+  voxel_graphic = {},
+  texture = {},
+  palette = {},
+  voxel = {},
+}
+
 local bit_extract = bit32.extract
 local string_chars = string.char
 
@@ -225,4 +247,65 @@ function core.new_texture(t64, mipmap)
                              core.rgb_string_from_argb_table(t2),
                              core.rgb_string_from_argb_table(t1))
   return texture
+end
+
+--- Memoises the given no-argument function.
+--
+-- Given a no-argument function, returns a new no-argument function. When
+-- invoked, it invokes the original function and returns its value. Further
+-- invocations return the same value without re-invoking the original function.
+function core.memoise(fun)
+  local value = nil
+  return function()
+    if fun then
+      value = fun()
+      fun = nil
+    end
+    return value
+  end
+end
+
+--- Binds a function to its arguments without calling it.
+--
+-- Takes a function of any arity and returns a new function of the same arity.
+-- Calling that function returns a zero-argument function. Calling that
+-- function in turn will invoke the original function with the arguments passed
+-- into the second.
+--
+-- This is mainly useful for declaring resources that can be produced with a
+-- single function call, eg
+--
+--   resource.palette.mymodule_mypalette = core.bind(core.new_palette) { ... }
+function core.bind(fun)
+  return function(...)
+    --- ... isn't really lexically scoped, apparently; it's not visible in the
+    --- inner function, so we need to pack it into a variable, sadly.
+    local args = table.pack(...)
+    return function()
+      return fun(table.unpack(args))
+    end
+  end
+end
+
+--- The global resoure loading trigger.
+--
+-- Called by the application when it wishes to load resources. This call is the
+-- only time during with the mg.rl_* funcctions will work.
+--
+-- The default implementation is documented with the `resource` global.
+function load_resources()
+  -- Memoise all the subtables
+  for group, members in pairs(resource) do
+    for name, fun in pairs(members) do
+      members[name] = core.memoise(fun)
+    end
+  end
+
+  -- Force the roots
+  local function force_roots(members)
+    for name, fun in pairs(members) do
+      fun()
+    end
+  end
+  force_roots(resource.voxel)
 end

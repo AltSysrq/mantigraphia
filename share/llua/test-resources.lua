@@ -28,62 +28,42 @@
 -- Playground for testing the resource system. This will eventually need to be
 -- refactored into proper modules.
 
--- TODO: Move to core, centralise a way to configure
-function load_resources()
-  local palette = core.new_palette {
-    -- M
-    {
-      0xffffffff, 0xffffffff, 0xff003000, 0xffffffff,
-      0xff144010, 0xff144010, 0xff103408, 0xff103408,
-    },
-    -- A
-    {
-      0xffffffff, 0xffffffff, 0xff003000, 0xff003000,
-      0xff144010, 0xff144010, 0xff103408, 0xff103408,
-    },
-    -- M
-    {
-      0xff003000, 0xff002000, 0xff004800, 0xff003000,
-      0xff1e6018, 0xff144010, 0xff184e0c, 0xff103408,
-    },
-    -- J
-    {
-      0xff003000, 0xff003000, 0xff004800, 0xff004800,
-      0xff1e6018, 0xff1e6018, 0xff184e0c, 0xff184e0c,
-    },
-    -- J
-    {
-      0xff003000, 0xff002000, 0xff004800, 0xff003000,
-      0xff1e6018, 0xff144010, 0xff184e0c, 0xff103408,
-    },
-    -- A
-    {
-      0xff002000, 0xff002000, 0xff003000, 0xff003000,
-      0xff144010, 0xff144010, 0xff103408, 0xff103408,
-    },
-    -- S
-    {
-      0xff002000, 0xff002000, 0xff003000, 0xff003000,
-      0xff144010, 0xff144010, 0xff103408, 0xff103408,
-    },
-    -- O
-    {
-      0xffa00000, 0xffa00000, 0xffa00000, 0xffa02000,
-      0xffa04000, 0xffa06000, 0xffa08000, 0xffa0a000,
-    },
-    -- N
-    {
-      0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-      0xff704020, 0xff705030, 0xff706040, 0xff707050,
-    },
-    -- D
-    {
-      0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-      0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-    },
-  }
+resource.palette.test_palette = core.bind(core.new_palette) {
+  -- M
+  { 0xffffffff, 0xffffffff, 0xff003000, 0xffffffff,
+    0xff144010, 0xff144010, 0xff103408, 0xff103408, },
+  -- A
+  { 0xffffffff, 0xffffffff, 0xff003000, 0xff003000,
+    0xff144010, 0xff144010, 0xff103408, 0xff103408, },
+  -- M
+  { 0xff003000, 0xff002000, 0xff004800, 0xff003000,
+    0xff1e6018, 0xff144010, 0xff184e0c, 0xff103408, },
+  -- J
+  { 0xff003000, 0xff003000, 0xff004800, 0xff004800,
+    0xff1e6018, 0xff1e6018, 0xff184e0c, 0xff184e0c, },
+  -- J
+  { 0xff003000, 0xff002000, 0xff004800, 0xff003000,
+    0xff1e6018, 0xff144010, 0xff184e0c, 0xff103408, },
+  -- A
+  { 0xff002000, 0xff002000, 0xff003000, 0xff003000,
+    0xff144010, 0xff144010, 0xff103408, 0xff103408, },
+  -- S
+  { 0xff002000, 0xff002000, 0xff003000, 0xff003000,
+    0xff144010, 0xff144010, 0xff103408, 0xff103408, },
+  -- O
+  { 0xffa00000, 0xffa00000, 0xffa00000, 0xffa02000,
+    0xffa04000, 0xffa06000, 0xffa08000, 0xffa0a000, },
+  -- N
+  { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
+    0xff704020, 0xff705030, 0xff706040, 0xff707050, },
+  -- D
+  { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
+    0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, },
+}
+
+function resource.texture.test_texture()
   local rnd = 42
-  local texture = core.new_texture(
+  return core.new_texture(
     core.gentable2d(64, 64, function (x,y)
                       local r, b
                       r, rnd = mg.lcgrand(rnd)
@@ -93,15 +73,28 @@ function load_resources()
                         bit32.lshift(r, 16),
                         0x00ff00, b)
     end), core.mipmap_nearest)
+end
 
-  local voxel_type = mg.rl_voxel_type_new()
-  local voxel_graphic = mg.rl_voxel_graphic_new()
-  local graphic_plane = mg.rl_graphic_plane_new()
-  mg.rl_voxel_set_voxel_graphic(voxel_type * (2^mg.ENV_VOXEL_CONTEXT_BITS),
-                                voxel_graphic)
+function resource.graphic_plane.test_graphic_plane()
+  local g = mg.rl_graphic_plane_new()
+  mg.rl_graphic_plane_set_texture(g, resource.texture.test_texture())
+  mg.rl_graphic_plane_set_palette(g, resource.palette.test_palette())
+  return g
+end
+
+function resource.voxel_graphic.test_voxel_graphic()
+  local g = mg.rl_voxel_graphic_new()
   for p = 0, 2 do
-    mg.rl_voxel_graphic_set_plane(voxel_graphic, p, graphic_plane)
+    mg.rl_voxel_graphic_set_plane(
+      g, p, resource.graphic_plane.test_graphic_plane())
   end
-  mg.rl_graphic_plane_set_texture(graphic_plane, texture)
-  mg.rl_graphic_plane_set_palette(graphic_plane, palette)
+  return g
+end
+
+function resource.voxel.test_voxel()
+  local v = mg.rl_voxel_type_new()
+  mg.rl_voxel_set_voxel_graphic(
+    v * (2^mg.ENV_VOXEL_CONTEXT_BITS),
+    resource.voxel_graphic.test_voxel_graphic())
+  return v
 end
