@@ -348,6 +348,16 @@ function core.chaos(...)
   return mg.chaos_of(accum)
 end
 
+--- Modulo function for Llua tables.
+--
+-- Since Llua tables are 1-indexed, normal modulus doesn't fully correctly
+-- handle wrapping. This function returns (n%m), except that it returns m if
+-- the result would be zero.
+function core.mod1(n, m)
+  n = n % m
+  return 0 ~= n and n or m
+end
+
 --- Generates an NTVP by observing the behaviour of a set of functions.
 --
 -- Idiomatic usage is

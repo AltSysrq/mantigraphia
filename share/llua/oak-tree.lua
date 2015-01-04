@@ -147,159 +147,143 @@ end
 
 function resource.ntvp.oaktree()
   local nfa = {}
-  local max_height = 8
+  local _ENV = core.ntvp_compiler()
+
   local directions = {
-    { 1, 0, 0 }, { -1, 0, 0 },
-    { 0, 0, 1 }, { 0, 0, -1 },
-    { 0, 1, 0 }, { 0, -1, 0 },
-  }
-  local branch_lengths = {
-    0, 0, 2, 4, 4,
-    4, 4, 3, 1, 0,
+    { 1, 0 }, { -1, 0 },
+    { 0, 1 }, { 0, -1 },
+    { 1, 1 }, { -1, 1 },
+    { 1, -1 }, { -1, -1 },
   }
 
-  local _ENV = core.ntvp_compiler()
+  local half_directions = {
+    { 0, 0 }, { 0, 1 }, { 1, 0 }, { 1, 1 },
+  }
 
   function nfa:terminate()
   end
 
-  function nfa:trunk(y)
-    put_voxel(0, resource.voxel.oaktree_trunk())
-
-    if branch_lengths[y] > 0 then
-      fork(self.spawn_branches, 1, branch_lengths[y])
+  function nfa:init_state()
+    -- 7/8 of trees are normal size...
+    for i = 1, 7 do
+      go(0, 0, 0, self.init_state, 1)
     end
 
-    if y < max_height - 1 then
-      go(0, 1, 0, self.trunk, y + 1)
-      go(0, 1, 0, self.trunk, y + 2)
-    elseif y == max_height - 1 then
-      go(0, 1, 0, self.trunk, y + 1)
-      go(0, 0, 0, self.explode_leaves, 1)
-    else
-      go(0, 0, 0, self.explode_leaves, 1)
-    end
+    -- 1/8 of trees might be larger
+    go(0, 0, 0, self.larger_init_state)
   end
 
-  function nfa:spawn_branches(direction, branch_length)
+  function nfa:larger_init_state()
+    -- 63/64 trees are double size
+    for i = 1, 7 do
+      go(0, 0, 0, self.start, 1)
+    end
+
+    -- 1/64 trees are double size
+    go(0, 0, 0, self.double_init_state, 1)
+  end
+
+  function nfa:double_init_state(direction)
     if direction < 4 then
-      fork(self.spawn_branches, direction+1, branch_length)
+      fork(self.double_init_state, direction + 1)
     end
 
-    local dx, dy, dz = table.unpack(directions[direction])
-    go(dx, dy, dz,
-       self.branch, 0, branch_length,
-       dx, dy, dz)
-    if branch_length > 1 then
-      go(dx, dy, dz,
-         self.branch, 0, branch_length/2,
-         dx, dy, dz)
-    end
-    go(0, 0, 0, self.terminate)
-    go(0, 0, 0, self.terminate)
+    go(half_directions[direction][1], 0, half_directions[direction][2],
+       self.start, 2)
   end
 
-  function nfa:branch(length, off, ...)
+  function nfa:start(m)
+    go(0, 0, 0, self.base_trunk, 3*m, 3*m)
+    go(0, 0, 0, self.base_trunk, 4*m, 3*m)
+    go(0, 0, 0, self.base_trunk, 4*m, 4*m)
+    go(0, 0, 0, self.base_trunk, 5*m, 4*m)
+    go(0, 0, 0, self.base_trunk, 6*m, 5*m)
+  end
+
+  function nfa:base_trunk(segments_left, radius)
     put_voxel(0, resource.voxel.oaktree_trunk())
 
-    local dx, dy, dz = ...
-    if length > 2 then
-      go(dx, dy, dz, self.branch, length - 1,
-         off == 2 and 2 or off + 1,
-         dx, dy, dz)
-      go(dx, dy, dz, self.branch, length - 1,
-         off == 2 and 2 or off + 1,
-         dx, dy, dz)
-    elseif 1 == length then
-      go(dx, dy, dz, self.branch, length - 1,
-         off == 2 and 2 or off + 1,
-         dx, dy, dz)
-      go(dx, dy, dz, self.explode_leaves, 1)
+    if segments_left > 1 then
+      for i = 1, 7 do
+        go(0, 1, 0, self.base_trunk, segments_left - 1, radius)
+      end
+      go(0, 0, 0, self.crooked_trunk, segments_left, radius)
     else
-      go(dx, dy, dz, self.explode_leaves, 1)
-    end
-
-    if 2 == off and length > 1 then
-      fork(self.maybe_spawn_side_branch, ...)
+      go(0, 1, 0, self.branching_trunk, radius/2 + 1, 1, radius)
     end
   end
 
-  function nfa:maybe_spawn_side_branch(bx, by, bz)
-    local nbx, nbz
-    if 0 ~= bx then
-      nbx = 0
-      nbz = 1
-    else
-      nbx = 1
-      nbz = 0
+  function nfa:crooked_trunk(segments_left, radius)
+    go( 1, 0,  0, self.base_trunk, segments_left, radius)
+    go(-1, 0,  0, self.base_trunk, segments_left, radius)
+    go( 0, 0,  1, self.base_trunk, segments_left, radius)
+    go( 0, 0, -1, self.base_trunk, segments_left, radius)
+  end
+
+  function nfa:branching_trunk(segments_left, may_branch, radius)
+    put_voxel(0, resource.voxel.oaktree_trunk())
+    if 1 == may_branch then
+      fork(self.spawn_branches, radius, 1)
     end
 
-    go(0,  1, 0, self.branch, 1, 0, 0,  1, 0)
-    go(0, -1, 0, self.branch, 1, 0, 0, -1, 0)
-    go(1*nbx, 0, 1*nbz, self.branch, 1, 0, 1*nbx, 0, 1*nbz)
-    go(-1*nbx, 0, -1*nbz, self.branch, 1, 0, -1*nbx, 0, -1*nbz)
-    for i = 1, 4 do
-      go(0, 0, 0, self.terminate)
+    if segments_left > 1 then
+      go(0, 1, 0, self.branching_trunk, segments_left - 1,
+            0 == may_branch and 1 or 0, radius - 1)
+    else
+      go(0, 1, 0, self.cluster_centre, 1)
     end
   end
 
-  function nfa:explode_leaves(direction)
+  function nfa:cluster_centre(direction)
+    put_voxel(0, resource.voxel.oaktree_leaf())
     if direction < #directions then
-      fork(self.explode_leaves, direction + 1)
+      fork(self.cluster_centre, direction + 1)
     end
 
-    local dx, dy, dz = table.unpack(directions[direction])
-    go(dx, dy, dz,
-       self.leaf_explosion_centre, (direction+1)/2, 1)
-    go(0, 0, 0, self.terminate)
+    go(directions[direction][1], 0, directions[direction][2],
+       self.leaf)
   end
 
-  local edge_offsets = {
-    { { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } },
-    { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 } },
-    { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 0, 1 }, { 0, 0, -1 } },
-  }
-  local edge_axes = {
-    { 3, 3, 2, 2 },
-    { 2, 2, 1, 1 },
-    { 3, 3, 1, 1 },
-  }
-  function nfa:leaf_explosion_centre(axis, off)
-    put_voxel(0, resource.voxel.oaktree_leaf())
-    if off < 4 then
-      fork(self.leaf_explosion_centre, axis, off+1)
-    end
-
-    local dx, dy, dz = table.unpack(edge_offsets[axis][off])
-    go(dx, dy, dz,
-       self.leaf_explosion_edge,
-       edge_axes[axis][off], 1)
-    go(0, 0, 0, self.terminate)
-    go(0, 0, 0, self.terminate)
-  end
-
-  local corner_offsets = {
-    { { 1, 0, 0 }, { -1, 0, 0 } },
-    { { 0, 1, 0 }, { 0, -1, 0 } },
-    { { 0, 0, 1 }, { 0, 0, -1 } },
-  }
-  function nfa:leaf_explosion_edge(edge, off)
-    put_voxel(0, resource.voxel.oaktree_leaf())
-    if off < 2 then
-      fork(self.leaf_explosion_edge, edge, off+1)
-    end
-
-    local dx, dy, dz = table.unpack(corner_offsets[edge][off])
-    go(dx, dy, dz,
-       self.leaf_explosion_corner)
-    go(0, 0, 0, self.terminate)
-    go(0, 0, 0, self.terminate)
-    go(0, 0, 0, self.terminate)
-  end
-
-  function nfa:leaf_explosion_corner()
+  function nfa:leaf(direction)
     put_voxel(0, resource.voxel.oaktree_leaf())
   end
 
-  return compile(nfa, nfa.trunk, 1)
+  function nfa:spawn_branches(radius, direction)
+    if direction < 4 then
+      fork(self.spawn_branches, radius, direction + 1)
+    end
+
+    go(directions[direction][1], 0, directions[direction][2],
+       self.branch, radius, direction)
+  end
+
+  function nfa:branch(segments_left, direction)
+    put_voxel(0, resource.voxel.oaktree_trunk())
+
+    if segments_left > 1 then
+      fork(self.continue_branch, segments_left - 1, direction)
+    else
+      fork(self.cluster_centre, 1)
+    end
+
+    go(0, 1, 0, self.cluster_centre, 1)
+    go(0, 1, 0, self.cluster_centre, 1)
+    go(0, -1, 0, self.leaf)
+    if segments_left > 1 then
+      local d2 = core.mod1(direction+1, 4)
+      go(directions[d2][1], 0, directions[d2][2],
+         self.branch, segments_left - 1, d2)
+      d2 = core.mod1(direction-1, 4)
+      go(directions[d2][1], 0, directions[d2][2],
+         self.branch, segments_left - 1, d2)
+    end
+  end
+
+  function nfa:continue_branch(segments_left, direction)
+    fork(self.cluster_centre, 1)
+    go(directions[direction][1], 0, directions[direction][2],
+       self.branch, segments_left, direction)
+  end
+
+  return compile(nfa, nfa.init_state)
 end

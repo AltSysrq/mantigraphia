@@ -32,10 +32,13 @@
 -- TODO: Centralise, make sane, etc
 function populate_vmap()
   local nfa = resource.ntvp.oaktree()
+  local rnd = 0
 
-  for z = 0, 4000, 64 do
-    for x = 0, 4000, 64 do
-      mg.ntvp_paint(nfa, x, 0, z, x-16, z-16, 32, 32, 2048)
-    end
+  for i = 0, 65536 do
+    z, rnd = mg.lcgrand(rnd)
+    x, rnd = mg.lcgrand(rnd)
+    z = z % 2048
+    x = x % 2048
+    mg.ntvp_paint(nfa, x, 0, z, x-16, z-16, 32, 32, 65535)
   end
 end
