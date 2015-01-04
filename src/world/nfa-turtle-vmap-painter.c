@@ -138,7 +138,7 @@ unsigned ntvp_paint(unsigned nfa,
   ntvp_nfas[nfa].is_frozen = 1;
   vmap_painter_add(&op);
 
-  return max_iterations? max_iterations : 1;
+  return max_iterations/64? max_iterations/64 : 1;
 }
 
 static void ntvp_do_paint(env_vmap* vmap,
@@ -152,8 +152,8 @@ static void ntvp_do_paint(env_vmap* vmap,
   struct {
     unsigned short x, y, z;
     unsigned char state;
-  } states[256];
-  unsigned char head, tail;
+  } states[65536];
+  unsigned short head, tail;
   unsigned short xmin, xmax, zmin, zmax, xmask, zmask;
   unsigned i, rnd, s;
 
