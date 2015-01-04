@@ -134,8 +134,11 @@ game_state* cosine_world_new(unsigned seed) {
   ntvp_clear_all();
   lluas_init();
   lluas_load_file("share/llua/core.lua", 65536);
+  lluas_load_file("share/llua/oak-tree.lua", 65536);
   lluas_load_file("share/llua/test-resources.lua", 65536);
   lluas_invoke_local(0, "load_resources", 1<<24);
+  if (lluas_get_error_status())
+    errx(EX_SOFTWARE, "Lluas not OK, aborting");
   rl_set_frozen(1);
 
   cosine_world_init_world(this);

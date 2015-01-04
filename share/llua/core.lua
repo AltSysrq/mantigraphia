@@ -51,6 +51,7 @@ resource = {
   texture = {},
   palette = {},
   voxel = {},
+  ntvp = {},
 }
 
 local bit_extract = bit32.extract
@@ -249,6 +250,51 @@ function core.new_texture(t64, mipmap)
   return texture
 end
 
+--- Creates a new graphic plane with the specified properties.
+--
+-- Parameters are passed in in a single table for readability. The relevant
+-- parameters are:
+--
+-- - texture. Specifies a key to resource.texture from which to obtain the
+--   texture to use with the graphic plane.
+--
+-- - palette. Specifies a key to resource.palette from which to obtain the
+--   palette to use with the graphic plane.
+--
+-- @parm parms A table of parameters, as described above.
+-- @return The new graphic plane.
+function core.new_graphic_plane(parms)
+  local g = mg.rl_graphic_plane_new()
+  mg.rl_graphic_plane_set_texture(g, resource.texture[parms.texture]())
+  mg.rl_graphic_plane_set_palette(g, resource.palette[parms.palette]())
+  return g
+end
+
+--- Creates a new voxel graphic with the specified properties.
+--
+-- Parameters are passed in a single table for readability. The relevant
+-- parameters are:
+--
+-- - x, y, z. Optional. If present, specify a key to resource.graphic_plane
+--   from which to obtain the graphic plane to use with each plane of the
+--   graphic.
+--
+-- @param parms A table of parameters, as described above.
+-- @return The new voxel graphic.
+function core.new_voxel_graphic(parms)
+  local g = mg.rl_voxel_graphic_new()
+  if parms.x then
+    mg.rl_voxel_graphic_set_plane(g, 0, resource.graphic_plane[parms.x]())
+  end
+  if parms.y then
+    mg.rl_voxel_graphic_set_plane(g, 1, resource.graphic_plane[parms.y]())
+  end
+  if parms.z then
+    mg.rl_voxel_graphic_set_plane(g, 2, resource.graphic_plane[parms.z]())
+  end
+  return g
+end
+
 --- Memoises the given no-argument function.
 --
 -- Given a no-argument function, returns a new no-argument function. When
@@ -285,6 +331,101 @@ function core.bind(fun)
       return fun(table.unpack(args))
     end
   end
+end
+
+
+--- Produces a chaotic value from the given integer sequence.
+--
+-- Uses mg.chaos_of() and mg.chaos_accum() to produce an essentially random
+-- 32-bit value determined from the given inputs.
+function core.chaos(...)
+  local args = table.pack(...)
+  local accum = 0
+  for i = 1, #args do
+    accum = mg.chaos_accum(accum, args[i])
+  end
+
+  return mg.chaos_of(accum)
+end
+
+--- Generates an NTVP by observing the behaviour of a set of functions.
+--
+-- Idiomatic usage is
+--
+--   local _ENV = core.ntvp_compiler()
+--   local nfa = {}
+--   -- Define functions in nfa
+--   return compile(nfa, nfa.<initial-state>, <some-arguments>)
+--
+-- Each state in the NFA is inferred by the identity of one of the functions in
+-- the nfa map and its (numeric) arguments. Transitions are added by calling
+--
+--   go(dx, dy, dz, self.<new-state>, <arguments>)
+--
+-- within one of the functions. Branches of size 1 are similarly added with
+--
+--   branch(self.<new-state>, <arguments>)
+--
+-- Voxel replacement is specified with
+--
+--   put_voxel(from_type, to_type)
+--
+-- Note that it is important to keep the entropy of arguments reasonably small,
+-- since there are only 256 states to go around. All arguments to functions (if
+-- they take any) must be numeric.
+function core.ntvp_compiler()
+  local nfa
+  local states = {}
+  local compiler = {}
+  local that
+  local next_state = 0
+  local current_state
+
+  setmetatable(compiler, { __index = _ENV })
+
+  local function get_state(fun, ...)
+    local strkey = table.concat(table.pack(...), ',')
+    if not states[fun] or not states[fun][strkey] then
+      if 256 == next_state then
+        error("Exceeded limit of 256 states for nfa")
+      end
+
+      if not states[fun] then
+        states[fun] = {}
+      end
+      states[fun][strkey] = next_state
+      next_state++
+
+      local prev_state = current_state
+      current_state = next_state-1
+      fun(that, ...)
+      current_state = prev_state
+    end
+
+    return states[fun][strkey]
+  end
+
+  function compiler.go(dx, dy, dz, fun, ...)
+    mg.ntvp_transition(nfa, current_state, get_state(fun, ...),
+                       dx, dy, dz)
+  end
+
+  function compiler.fork(fun, ...)
+    mg.ntvp_branch(nfa, current_state, get_state(fun, ...), 1)
+  end
+
+  function compiler.compile(t, fun, ...)
+    nfa = mg.ntvp_new()
+    that = t
+    get_state(fun, ...)
+    return nfa
+  end
+
+  function compiler.put_voxel(from_type, to_type)
+    mg.ntvp_put_voxel(nfa, current_state, from_type, to_type)
+  end
+
+  return compiler
 end
 
 --- The global resoure loading trigger.
