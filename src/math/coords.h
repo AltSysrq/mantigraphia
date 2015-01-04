@@ -106,6 +106,14 @@ static inline signed clamps(signed min, signed x, signed max) {
   else         return x;
 }
 
+static inline unsigned umin(unsigned a, unsigned b) {
+  return a < b? a : b;
+}
+
+static inline unsigned umax(unsigned a, unsigned b) {
+  return a > b? a : b;
+}
+
 /**
  * Time is tracked in terms of chronons, there being 64 chronons in one wall
  * second. A 32-bit integer is sufficient for about 2 years of simulation at

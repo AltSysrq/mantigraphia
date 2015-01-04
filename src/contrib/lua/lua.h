@@ -143,8 +143,19 @@ LUA_API const lua_Number *(lua_version) (lua_State *L);
 ** Every opcode executed decrements this value; if it reaches zero, any attempt
 ** at further execution immediately raises an error, forcing the interpreter to
 ** completely unwind to the host application.
- */
+*/
 LUA_API void (lua_setinstrlimit)(lua_State *L, unsigned limit);
+
+/*
+** Reduces the execution limit in the given interpreter.
+**
+** The instruction limit (see lua_setinstrlimit) is reduced by the amount
+** given, becomming zero if the amount to deduct is greater than the current
+** instruction limit.
+**
+** This can be used to "charge" Llua scripts for expensive native calls.
+*/
+LUA_API void (lua_reduceinstrlimit)(lua_State *L, unsigned delta);
 
 
 /*

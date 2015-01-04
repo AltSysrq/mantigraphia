@@ -325,3 +325,10 @@ LUA_API void lua_close (lua_State *L) {
 LUA_API void lua_setinstrlimit (lua_State *L, unsigned limit) {
   L->instrcount = limit;
 }
+
+LUA_API void lua_reduceinstrlimit (lua_State *L, unsigned delta) {
+  if (delta > L->instrcount)
+    L->instrcount = 0;
+  else
+    L->instrcount -= delta;
+}

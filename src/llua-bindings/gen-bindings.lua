@@ -81,6 +81,7 @@ function integer(signed, width)
   local max = nil
   local failure_value = nil
   local failure_message = nil
+  local deduct_from_instr_limit = false
 
   local self = {}
 
@@ -126,6 +127,9 @@ function integer(signed, width)
       printf('  return lua_error(L);')
       printf('}')
     end
+    if deduct_from_instr_limit then
+      printf('lua_reduceinstrlimit(L, %s);', src)
+    end
     printf('lua_pushnumber(L, %s);', src)
   end
 
@@ -150,6 +154,11 @@ function integer(signed, width)
   function self:fail_on(value, message)
     failure_value = value
     failure_message = message
+    return self
+  end
+
+  function self:cost()
+    deduct_from_instr_limit = true
     return self
   end
 

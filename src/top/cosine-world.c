@@ -46,6 +46,8 @@
 #include "world/terrain.h"
 #include "world/env-vmap.h"
 #include "world/generate.h"
+#include "world/vmap-painter.h"
+#include "world/nfa-turtle-vmap-painter.h"
 #include "render/context.h"
 #include "render/terrain-tilemap.h"
 #include "render/paint-overlay.h"
@@ -127,15 +129,17 @@ game_state* cosine_world_new(unsigned seed) {
     origin, this->world,
     (coord(*)(const void*,coord,coord))terrain_base_y);
 
-  cosine_world_init_world(this);
-  mouselook_set(1);
-
   rl_clear();
   rl_set_frozen(0);
+  ntvp_clear_all();
   lluas_init();
   lluas_load_file("share/llua/core.lua", 65536);
   lluas_load_file("share/llua/test-resources.lua", 65536);
   lluas_invoke_local(0, "load_resources", 1<<24);
+  rl_set_frozen(1);
+
+  cosine_world_init_world(this);
+  mouselook_set(1);
 
   return (game_state*)this;
 }
@@ -150,35 +154,13 @@ static void cosine_world_delete(cosine_world_state* this) {
   free(this);
 }
 
-static void plant_lolipops(env_vmap* vmap, unsigned rnd) {
-  coord x, y, z;
-  coord h;
-
-  for (z = 0; z < vmap->zmax; z += 8) {
-    for (x = 8; x < vmap->xmax - 8; x += 8) {
-      h = lcgrand(&rnd) % (ENV_VMAP_H-2) + 2;
-
-      for (y = 0; y < h; ++y)
-        vmap->voxels[env_vmap_offset(vmap, x, y, z)] = 1;
-
-      vmap->voxels[env_vmap_offset(vmap, x-1, h-2, z)] = 1;
-      vmap->voxels[env_vmap_offset(vmap, x+1, h-2, z)] = 1;
-    }
-  }
-}
-
 static void cosine_world_init_world(cosine_world_state* this) {
-  FILE* out;
   unsigned seed = this->seed;
   world_generate(this->world, seed);
 
-  plant_lolipops(this->vmap, seed+1);
-
-  out = fopen("world.bmp", "wb");
-  if (out) {
-    terrain_tilemap_bmp_dump(out, this->world);
-    fclose(out);
-  }
+  vmap_painter_init(this->vmap);
+  lluas_invoke_local(0, "populate_vmap", 1 << 24);
+  vmap_painter_flush();
 }
 
 #define SPEED (4*METRES_PER_SECOND)

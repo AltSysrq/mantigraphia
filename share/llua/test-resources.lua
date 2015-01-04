@@ -98,3 +98,34 @@ function resource.voxel.test_voxel()
     resource.voxel_graphic.test_voxel_graphic())
   return v
 end
+
+-- TODO: Centralise, make sane, etc
+function populate_vmap()
+  local nfa = mg.ntvp_new()
+
+  mg.ntvp_put_voxel(nfa, 0, 0, resource.voxel.test_voxel())
+  mg.ntvp_transition(nfa, 0, 0, 0, 1, 0)
+  mg.ntvp_transition(nfa, 0, 255, 0, 0, 0)
+  mg.ntvp_branch(nfa, 0, 1, 1)
+  mg.ntvp_transition(nfa, 1, 255, 0, 0, 0)
+  mg.ntvp_transition(nfa, 1, 255, 0, 0, 0)
+  mg.ntvp_transition(nfa, 1, 255, 0, 0, 0)
+  mg.ntvp_transition(nfa, 1, 255, 0, 0, 0)
+  for s = 2, 5 do
+    local dx = 2 == s and 1 or 3 == s and -1 or 0
+    local dz = 4 == s and 1 or 5 == s and -1 or 0
+    mg.ntvp_put_voxel(nfa, s, 0, resource.voxel.test_voxel())
+    mg.ntvp_transition(nfa, 1, s, 0, 0, 0)
+    mg.ntvp_transition(nfa, s, s, dx, 0, dz)
+    mg.ntvp_transition(nfa, s, s, dx, 0, dz)
+    mg.ntvp_transition(nfa, s, s, dx, 0, dz)
+    mg.ntvp_transition(nfa, s, s, dx, 0, dz)
+    mg.ntvp_transition(nfa, s, 0, dx, 0, dz)
+  end
+
+  for z = 0, 4000, 64 do
+    for x = 0, 4000, 64 do
+      mg.ntvp_paint(nfa, x, 0, z, x-16, z-16, 32, 32, 2048)
+    end
+  end
+end

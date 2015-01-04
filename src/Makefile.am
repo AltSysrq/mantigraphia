@@ -52,6 +52,8 @@ world/terrain.c \
 world/generate.c \
 world/hspace.c \
 world/env-vmap.c \
+world/vmap-painter.c \
+world/nfa-turtle-vmap-painter.c \
 render/turtle.c \
 render/context.c \
 render/terrabuff.c \
