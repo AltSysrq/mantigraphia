@@ -94,12 +94,12 @@ resource.palette.oaktree_trunk = core.bind(core.new_palette) {
 }
 
 -- TODO: Real textures instead of noise
-function resource.texture.oaktree_temp()
+function resource.texture.oaktree_trunk()
   local rnd = 42
   return core.new_texture(
     core.gentable2d(64, 64, function (x,y)
                       local r, b
-                      r = core.chaos(x/2, y/2)
+                      r = core.chaos(x/6, y/6)
                       b = bit32.extract(r, 8, 8)
                       r = bit32.extract(r, 0, 8)
                       return bit32.bor(
@@ -108,14 +108,20 @@ function resource.texture.oaktree_temp()
     end), core.mipmap_nearest)
 end
 
-resource.graphic_plane.oaktree_trunk = core.bind(core.new_graphic_plane) {
-  texture = "oaktree_temp",
-  palette = "oaktree_trunk",
-}
+function oaktree_generate_leaf_texture(bias)
+  return core.new_texture(
+    core.gentable2d(64, 64, function(x,y)
+                      local dx, dy = x - 32, y - 32
+                      return bit32.bor(
+                        bit32.lshift(bias + mg.isqrt(dx*dx + dy*dy), 16),
+                        0x00ff00,
+                        bit32.extract(core.chaos(x,y), 0, 7))
+    end), core.mipmap_nearest)
+end
 
-resource.graphic_plane.oaktree_leaf = core.bind(core.new_graphic_plane) {
-  texture = "oaktree_temp",
-  palette = "oaktree_leaf",
+resource.graphic_plane.oaktree_trunk = core.bind(core.new_graphic_plane) {
+  texture = "oaktree_trunk",
+  palette = "oaktree_trunk",
 }
 
 resource.voxel_graphic.oaktree_trunk = core.bind(core.new_voxel_graphic) {
@@ -123,11 +129,29 @@ resource.voxel_graphic.oaktree_trunk = core.bind(core.new_voxel_graphic) {
   z = "oaktree_trunk",
 }
 
-resource.voxel_graphic.oaktree_leaf = core.bind(core.new_voxel_graphic) {
-  x = "oaktree_leaf",
-  y = "oaktree_leaf",
-  z = "oaktree_leaf",
-}
+for i = 1, 4 do
+  resource.texture["oaktree_leaf"..i] =
+    core.bind(oaktree_generate_leaf_texture)(96 + i*32)
+
+  resource.graphic_plane["oaktree_leaf"..i] = core.bind(core.new_graphic_plane) {
+    texture = "oaktree_leaf" .. i,
+    palette = "oaktree_leaf",
+  }
+
+  resource.voxel_graphic["oaktree_leaf"..i] = core.bind(core.new_voxel_graphic) {
+    x = "oaktree_leaf" .. i,
+    y = "oaktree_leaf" .. i,
+    z = "oaktree_leaf" .. i,
+  }
+
+  resource.voxel["oaktree_leaf"..i] = function()
+    local v = mg.rl_voxel_type_new()
+    mg.rl_voxel_set_voxel_graphic(
+      v * (2^mg.ENV_VOXEL_CONTEXT_BITS),
+      resource.voxel_graphic["oaktree_leaf"..i]())
+    return v
+  end
+end
 
 function resource.voxel.oaktree_trunk()
   local v = mg.rl_voxel_type_new()
@@ -137,15 +161,7 @@ function resource.voxel.oaktree_trunk()
   return v
 end
 
-function resource.voxel.oaktree_leaf()
-  local v = mg.rl_voxel_type_new()
-  mg.rl_voxel_set_voxel_graphic(
-    v * (2^mg.ENV_VOXEL_CONTEXT_BITS),
-    resource.voxel_graphic.oaktree_leaf())
-  return v
-end
-
-function resource.ntvp.oaktree()
+function oaktree_gen_ntvp(leafkey)
   local nfa = {}
   local _ENV = core.ntvp_compiler()
 
@@ -235,7 +251,7 @@ function resource.ntvp.oaktree()
   end
 
   function nfa:cluster_centre(direction)
-    put_voxel(0, resource.voxel.oaktree_leaf())
+    put_voxel(0, resource.voxel[leafkey]())
     if direction < #directions then
       fork(self.cluster_centre, direction + 1)
     end
@@ -245,7 +261,7 @@ function resource.ntvp.oaktree()
   end
 
   function nfa:leaf(direction)
-    put_voxel(0, resource.voxel.oaktree_leaf())
+    put_voxel(0, resource.voxel[leafkey]())
   end
 
   function nfa:spawn_branches(radius, direction)
@@ -286,4 +302,9 @@ function resource.ntvp.oaktree()
   end
 
   return compile(nfa, nfa.init_state)
+end
+
+for i = 1, 4 do
+  resource.ntvp["oaktree"..i] =
+    core.bind(oaktree_gen_ntvp)("oaktree_leaf"..i)
 end
