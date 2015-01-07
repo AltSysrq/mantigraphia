@@ -70,6 +70,10 @@ typedef struct {
  */
 struct env_vmap_render_cell_s {
   /**
+   * The level of detail of this cell (0 = maximum).
+   */
+  unsigned char lod;
+  /**
    * The vertex and index buffers for this cell.
    */
   GLuint buffers[2];
@@ -108,7 +112,8 @@ SPLAY_GENERATE(env_voxel_graphic_presence_set, env_voxel_graphic_presence_s,
 static const env_voxel_graphic* env_vmap_renderer_get_graphic(
   const env_vmap_renderer* this, coord x, coord y, coord z);
 static env_vmap_render_cell* env_vmap_render_cell_new(
-  const env_vmap_renderer* parent, coord x0, coord z0);
+  const env_vmap_renderer* parent, coord x0, coord z0,
+  unsigned char lod);
 static void env_vmap_render_cell_delete(env_vmap_render_cell*);
 static void render_env_vmap_impl(env_vmap_render_op*);
 static void env_vmap_render_cell_render(const env_vmap_render_cell*restrict,
@@ -165,7 +170,8 @@ void render_env_vmap_impl(env_vmap_render_op* op) {
   const rendering_context_invariant*restrict context = CTXTINV(ctxt);
   unsigned x, z, xmax, zmax, cx, cz;
   signed dx, dz;
-  int should_draw;
+  unsigned d;
+  unsigned char desired_lod;
 
   free(op);
 
@@ -183,12 +189,25 @@ void render_env_vmap_impl(env_vmap_render_op* op) {
         dz = torus_dist(dz, zmax);
       }
 
-      should_draw = abs(dx) < DRAW_DISTANCE && abs(dz) < DRAW_DISTANCE;
+      d = umax(abs(dx), abs(dz));
 
-      if (should_draw) {
+      if (d < DRAW_DISTANCE) {
+        if (d <= 2)
+          desired_lod = 0;
+        else if (d <= 4)
+          desired_lod = 1;
+        else
+          desired_lod = 2;
+
+        if (this->cells[z*xmax + x] &&
+            this->cells[z*xmax + x]->lod != desired_lod) {
+          env_vmap_render_cell_delete(this->cells[z*xmax + x]);
+          this->cells[z*xmax + x] = NULL;
+        }
+
         if (!this->cells[z*xmax + x])
           this->cells[z*xmax + x] = env_vmap_render_cell_new(
-            this, x*CELL_SZ, z*CELL_SZ);
+            this, x*CELL_SZ, z*CELL_SZ, desired_lod);
 
         env_vmap_render_cell_render(this->cells[z*xmax + x], ctxt);
       } else {
@@ -208,7 +227,8 @@ static const env_voxel_graphic* env_vmap_renderer_get_graphic(
 }
 
 static env_vmap_render_cell* env_vmap_render_cell_new(
-  const env_vmap_renderer* r, coord x0, coord z0
+  const env_vmap_renderer* r, coord x0, coord z0,
+  unsigned char lod
 ) {
   /* Vertices are handed to the GPU all in one buffer, approximately in
    * ascending (Z,X,Y) order, rotating between those for X plane polygons, then
@@ -278,10 +298,11 @@ static env_vmap_render_cell* env_vmap_render_cell_new(
   memset(vertex_indices, ~0, sizeof(vertex_indices));
 
   /* PASS 1 */
-  for (z = 0; z < CELL_SZ; ++z) {
-    for (x = 0; x < CELL_SZ; ++x) {
-      for (y = 0; y < ENV_VMAP_H; ++y) {
-        graphic = env_vmap_renderer_get_graphic(r, x0+x, y, z0+z);
+  for (z = 0; z < (unsigned)(CELL_SZ >> lod); ++z) {
+    for (x = 0; x < (unsigned)(CELL_SZ >> lod); ++x) {
+      for (y = 0; y < (unsigned)(ENV_VMAP_H >> lod); ++y) {
+        graphic = env_vmap_renderer_get_graphic(
+          r, x0+(x<<lod), y<<lod, z0+(z<<lod));
         if (!graphic) continue;
 
         if (graphic->planes[0]) {
@@ -289,15 +310,15 @@ static env_vmap_render_cell* env_vmap_render_cell_new(
           do {                                                          \
             if (!~vertex_indices[vz][vx][vy][p]) {                      \
               vertex_indices[vz][vx][vy][p] = v = vertex_data_len++;    \
-              pos[0] = ((vx)+x0)*TILE_SZ + (0==p)*TILE_SZ/2;            \
-              pos[2] = ((vz)+z0)*TILE_SZ + (2==p)*TILE_SZ/2;            \
-              pos[1] = (vy)*TILE_SZ + (1==p)*TILE_SZ/2 +                \
+              pos[0] = (((vx)<<lod)+x0)*TILE_SZ + (0==p)*TILE_SZ/2;     \
+              pos[2] = (((vz)<<lod)+z0)*TILE_SZ + (2==p)*TILE_SZ/2;     \
+              pos[1] = ((vy)<<lod)*TILE_SZ + (1==p)*TILE_SZ/2 +         \
                 (*r->get_y_offset)(r->base_object, pos[0], pos[2]);     \
               vertex_data[v].v[0] = pos[0] + r->base_coordinate[0];     \
               vertex_data[v].v[1] = pos[1] + r->base_coordinate[1];     \
               vertex_data[v].v[2] = pos[2] + r->base_coordinate[2];     \
-              vertex_data[v].tc[0] = (0==p? vy : vx);                   \
-              vertex_data[v].tc[1] = (0==p || 1==p? vz : vy);           \
+              vertex_data[v].tc[0] = (0==p? vy : vx) << lod;            \
+              vertex_data[v].tc[1] = (0==p || 1==p? vz : vy) << lod;    \
             }                                                           \
           } while (0)
 
@@ -348,6 +369,7 @@ static env_vmap_render_cell* env_vmap_render_cell_new(
   cell = xmalloc(offsetof(env_vmap_render_cell, operations) +
                  graphic_presence_len * sizeof(env_vmap_render_operation));
   cell->num_operations = graphic_presence_len;
+  cell->lod = lod;
   glGenBuffers(2, cell->buffers);
 
   index_off = 0;
@@ -363,10 +385,11 @@ static env_vmap_render_cell* env_vmap_render_cell_new(
   }
 
   /* PASS 2 */
-  for (z = 0; z < CELL_SZ; ++z) {
-    for (x = 0; x < CELL_SZ; ++x) {
-      for (y = 0; y < ENV_VMAP_H; ++y) {
-        graphic = env_vmap_renderer_get_graphic(r, x0+x, y, z0+z);
+  for (z = 0; z < (unsigned)(CELL_SZ >> lod); ++z) {
+    for (x = 0; x < (unsigned)(CELL_SZ >> lod); ++x) {
+      for (y = 0; y < (unsigned)(ENV_VMAP_H >> lod); ++y) {
+        graphic = env_vmap_renderer_get_graphic(
+          r, x0+(x<<lod), y<<lod, z0+(z<<lod));
         if (!graphic) continue;
 
 #define DOPLANE(p)                                              \
