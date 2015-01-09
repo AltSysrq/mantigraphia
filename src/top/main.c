@@ -211,6 +211,7 @@ int main(int argc, char** argv) {
   game_state* state;
   GLenum glew_status;
   SDL_Rect window_bounds;
+  unsigned last_fps_report, frames_since_fps_report;
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
     errx(EX_SOFTWARE, "Unable to initialise SDL: %s", SDL_GetError());
@@ -279,10 +280,19 @@ int main(int argc, char** argv) {
 
   state = cosine_world_new(2 == argc? atoi(argv[1]) : 3);
 
+  last_fps_report = SDL_GetTicks();
+  frames_since_fps_report = 0;
   do {
     draw(canv, state, screen);
     if (handle_input(state)) break; /* quit */
     state = update(state);
+
+    ++frames_since_fps_report;
+    if (SDL_GetTicks() - last_fps_report >= 3000) {
+      printf("FPS: %d\n", frames_since_fps_report/3);
+      frames_since_fps_report = 0;
+      last_fps_report = SDL_GetTicks();
+    }
   } while (state);
 
   return 0;
@@ -312,11 +322,8 @@ static game_state* update(game_state* state) {
 
 static void draw(canvas* canv, game_state* state,
                  SDL_Window* screen) {
-  unsigned draw_start, draw_end;
-
   glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-  draw_start = SDL_GetTicks();
   (*state->predraw)(state, canv);
   /* Todo: Run on separate thread */
   (*state->draw)(state, canv);
@@ -330,13 +337,6 @@ static void draw(canvas* canv, game_state* state,
   glm_done();
   glm_main();
   SDL_GL_SwapWindow(screen);
-  draw_end = SDL_GetTicks();
-
-  if (draw_end > draw_start)
-    printf("Drawing took %3d ms (%3d FPS)\n", draw_end-draw_start,
-           1000 / (draw_end-draw_start));
-  else
-    printf("Drawing took 0 ms (>1000 FPS)\n");
 }
 
 static int handle_input(game_state* state) {
