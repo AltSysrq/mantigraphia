@@ -197,8 +197,10 @@ void render_env_vmap_impl(env_vmap_render_op* op) {
           desired_lod = 0;
         else if (d <= 4)
           desired_lod = 1;
-        else
+        else if (d < DRAW_DISTANCE/2)
           desired_lod = 2;
+        else
+          desired_lod = 3;
 
         if (this->cells[z*xmax + x] &&
             this->cells[z*xmax + x]->lod != desired_lod) {
