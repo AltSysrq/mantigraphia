@@ -31,7 +31,7 @@
 /**
  * @file
  *
- * Provides access to a set of identical Llua interpreters.
+ * Provides simlified access to a Llua interpreter.
  *
  * The interface here is very simplistic. It takes a stance of "If given the
  * choice of crashing and doing something nonsensical, do something
@@ -47,8 +47,8 @@
  * Additionally, diagnostics are printed to stderr.
  *
  * Note that memory allocation errors (which may happen due to the strict
- * control placed on memory allocation (TODO)) are *not* consistent, since they
- * depend strongly on the host architecture, ABI, and malloc implementation.
+ * control placed on memory allocation) are *not* consistent, since they depend
+ * strongly on the host architecture, ABI, and malloc implementation.
  * Therefore, a memory error is a fatal condition that prevents further
  * execution of scripts in the interpreters.
  *
@@ -81,41 +81,27 @@ typedef enum {
 } lluas_error_status;
 
 /**
- * Initialises a fresh set of llua interpreters, one per uMP thread and the
- * main thread. This frees any resources held by prior incarnations, and
- * additionally clears the error status.
+ * Initialises a fresh llua interpreter. This frees any resources held by prior
+ * incarnations, and additionally clears the error status.
  */
 void lluas_init(void);
 
 /**
- * Returns the current errors status of the llua interpreters.
+ * Returns the current error status of the llua interpreter.
  */
 lluas_error_status lluas_get_error_status(void);
 
 /**
- * Loads and executes the given llua file in all interpreters.
+ * Loads and executes the given llua file in the interpreter.
  *
  * Only text files are accepted (no bytecode).
- *
- * This uses uMP to load the file into all interpreters in parallel.
  */
 void lluas_load_file(const char* filename, unsigned instr_limit);
 
 /**
- * Invokes the global function of the given name in all interpreters.
- *
- * This uses uMP to run the function across all interpreters in parallel.
+ * Invokes the global function of the given name in the interpreter, with no
+ * arguments.
  */
 void lluas_invoke_global(const char* function, unsigned instr_limit);
-
-/**
- * Invokes the global function of the given name in one specific interpreter.
- * This interpreter will be in "frozen" mode (TODO).
- *
- * Interpreter 0 "belongs" to the main thread, and 1..n belong to uMP threads
- * 1..n. There is no real thread affinity, though.
- */
-void lluas_invoke_local(unsigned interp, const char* function,
-                        unsigned instr_limit);
 
 #endif /* LLUA_BINDINGS_LLUAS_H_ */

@@ -136,7 +136,7 @@ game_state* cosine_world_new(unsigned seed) {
   lluas_load_file("share/llua/core.lua", 65536);
   lluas_load_file("share/llua/oak-tree.lua", 65536);
   lluas_load_file("share/llua/test-resources.lua", 65536);
-  lluas_invoke_local(0, "load_resources", 1<<24);
+  lluas_invoke_global("load_resources", 1<<24);
   if (lluas_get_error_status())
     errx(EX_SOFTWARE, "Lluas not OK, aborting");
   rl_set_frozen(1);
@@ -162,7 +162,7 @@ static void cosine_world_init_world(cosine_world_state* this) {
   world_generate(this->world, seed);
 
   vmap_painter_init(this->vmap);
-  lluas_invoke_local(0, "populate_vmap", 1 << 24);
+  lluas_invoke_global("populate_vmap", 1 << 24);
   vmap_painter_flush();
 }
 
