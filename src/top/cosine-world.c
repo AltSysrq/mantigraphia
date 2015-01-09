@@ -157,6 +157,28 @@ static void cosine_world_delete(cosine_world_state* this) {
   free(this);
 }
 
+static void cosine_world_add_shadows(terrain_tilemap* terrain,
+                                     const env_vmap* vmap) {
+  unsigned x, y, z, n;
+
+  /* TODO: This is very primitive. It should take diffusion into account (ie,
+   * not be strictly one column) and should be configurable per voxel type.
+   *
+   * Also, the magic numbers really shouldn't be literals.
+   */
+  for (z = 0; z < terrain->zmax; ++z) {
+    for (x = 0; x < terrain->xmax; ++x) {
+      n = 0;
+      for (y = 0; y < ENV_VMAP_H; ++y)
+        if (vmap->voxels[env_vmap_offset(vmap, x, y, z)])
+          ++n;
+
+      if (n > 3) n = 3;
+      terrain->type[terrain_tilemap_offset(terrain, x, z)] |= n;
+    }
+  }
+}
+
 static void cosine_world_init_world(cosine_world_state* this) {
   unsigned seed = this->seed;
   world_generate(this->world, seed);
@@ -164,6 +186,8 @@ static void cosine_world_init_world(cosine_world_state* this) {
   vmap_painter_init(this->vmap);
   lluas_invoke_global("populate_vmap", 1 << 24);
   vmap_painter_flush();
+
+  cosine_world_add_shadows(this->world, this->vmap);
 }
 
 #define SPEED (4*METRES_PER_SECOND)
