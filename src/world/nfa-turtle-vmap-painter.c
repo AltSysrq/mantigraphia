@@ -57,6 +57,7 @@ typedef struct {
 typedef struct {
   int is_frozen;
   ntvp_state states[MAX_STATES];
+  unsigned char voxel_visibilites[NUM_ENV_VOXEL_TYPES];
 } ntvp_nfa;
 
 static void ntvp_do_paint(env_vmap*, const vmap_paint_operation*);
@@ -75,6 +76,18 @@ void ntvp_clear_all(void) {
 unsigned ntvp_new(void) {
   CKIX(ntvp_num_nfas, MAX_NFAS);
   return ntvp_num_nfas++;
+}
+
+unsigned ntvp_visibility(unsigned nfa, env_voxel_type type,
+                         unsigned char v0, unsigned char v1,
+                         unsigned char v2, unsigned char v3) {
+  CKIX(nfa, ntvp_num_nfas);
+  CKNF(nfa);
+  if (!type) return 0;
+
+  ntvp_nfas[nfa].voxel_visibilites[type] =
+    v0 | (v1 << 2) | (v2 << 4) | (v3 << 6);
+  return 1;
 }
 
 unsigned ntvp_put_voxel(unsigned nfa, unsigned char state,
@@ -145,6 +158,8 @@ static void ntvp_do_paint(env_vmap* vmap,
                           const vmap_paint_operation* op) {
   unsigned short iterations_left = (op->parms[3] >> 16) & 0xFFFF;
   const ntvp_state* nfa = ntvp_nfas[op->parms[3] & 0xFF].states;
+  const unsigned char* voxel_visibilites =
+    ntvp_nfas[op->parms[3] & 0xFF].voxel_visibilites;
   /* Each transition or branch writes its new state at states[head++]; each
    * iteration advances tail, and operates on states[tail++]. Thus, we get
    * cheap breadth-first evaluation with a hard limit on recursion depth.
@@ -155,7 +170,7 @@ static void ntvp_do_paint(env_vmap* vmap,
   } states[65536];
   unsigned short head, tail;
   unsigned short xmin, xmax, zmin, zmax, xmask, zmask;
-  unsigned i, rnd, s;
+  unsigned i, rnd, s, vis;
 
   states[0].x = op->parms[0];
   states[0].y = op->parms[1];
@@ -174,6 +189,9 @@ static void ntvp_do_paint(env_vmap* vmap,
     rnd = chaos_accum(rnd, op->parms[i]);
   rnd = chaos_of(rnd);
 
+  vis = lcgrand(&rnd) & 0x3;
+  vis <<= 1;
+
   for (tail = 0, head = 1; head != tail && iterations_left;
        ++tail, --iterations_left) {
     s = states[tail].state;
@@ -183,10 +201,14 @@ static void ntvp_do_paint(env_vmap* vmap,
         states[tail].y < ENV_VMAP_H &&
         vmap->voxels[env_vmap_offset(vmap, states[tail].x,
                                      states[tail].y,
-                                     states[tail].z)] == nfa[s].from_type)
+                                     states[tail].z)] == nfa[s].from_type) {
       vmap->voxels[env_vmap_offset(vmap, states[tail].x,
                                    states[tail].y,
                                    states[tail].z)] = nfa[s].to_type;
+      env_vmap_make_visible(
+        vmap, states[tail].x, states[tail].y, states[tail].z,
+        (voxel_visibilites[nfa[s].to_type] >> vis) & 3);
+    }
 
     for (i = 0; i < nfa[s].branch_count; ++i) {
       states[head] = states[tail];

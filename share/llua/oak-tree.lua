@@ -301,7 +301,10 @@ function oaktree_gen_ntvp(leafkey)
        self.branch, segments_left, direction)
   end
 
-  return compile(nfa, nfa.init_state)
+  local n = compile(nfa, nfa.init_state)
+  mg.ntvp_visibility(n, resource.voxel.oaktree_trunk(), 1, 1, 1, 1)
+  mg.ntvp_visibility(n, resource.voxel[leafkey](), 1, 1, 2, 3)
+  return n
 end
 
 for i = 1, 4 do

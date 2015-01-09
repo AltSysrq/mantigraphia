@@ -144,6 +144,10 @@ typedef unsigned short env_voxel_contextual_type;
  *   and generally would fail to reduce the graphical primitive count as much
  *   as would be desired. Furthermore, it would also look strange, as the
  *   result would be many primitives in approximately the same space.
+ *
+ * The vmap also stores approximate maximum draw distance per voxel. This is a
+ * two-bit field which is not directly addressable, and has lower resolution
+ * than the vmap as a whole.
  */
 typedef struct {
   /**
@@ -192,6 +196,12 @@ typedef struct {
    *   with 4 SSE registers.
    */
   env_voxel_type*restrict voxels;
+
+  /**
+   * Stores the visibility distance for voxels. The format of this memory is
+   * unspecified, except that it is cache-line-aligned.
+   */
+  unsigned char*restrict visibility;
 } env_vmap;
 
 /**
@@ -224,6 +234,27 @@ static inline unsigned env_vmap_offset(const env_vmap* vmap,
   unsigned voxel_offset = (z&1)*4 + (x&1)*2 + (y&1);
   return supercell_offset*64 + cell_offset*8 + voxel_offset;
 }
+
+/**
+ * Modifies the vmap to ensure that the voxel at (x,y,z) has at least the given
+ * visibility level. This may affect neighbouring voxels, and will never reduce
+ * any voxel's visibility.
+ */
+void env_vmap_make_visible(env_vmap* vmap,
+                           coord x, coord y, coord z,
+                           unsigned char level);
+
+/**
+ * Checks whether the voxel at (x,y,z) is visible at the given level.
+ *
+ * The level parameter controls not only the threshold of the test, but the
+ * resoultion at which the test is carried out.
+ *
+ * This is always true at level 0.
+ */
+int env_vmap_is_visible(const env_vmap* vmap,
+                        coord x, coord y, coord z,
+                        unsigned char level);
 
 /**
  * Returns the contextual type for the voxel at the given coordinates.

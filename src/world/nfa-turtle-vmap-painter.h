@@ -38,6 +38,11 @@
  * automaton to move a "turtle" and populate voxels which match an expected
  * type.
  *
+ * Every voxel type in an NFA is associated with an array of four visibility
+ * values. When an NFA is generated, it chooses a random value between 0 and 3,
+ * and all voxels will have a visibility chosen from that index of their
+ * visibility values.
+ *
  * Each NFA has up to 256 states. Each state has the following properties:
  *
  * - A "from" and "to" voxel type. On each iteration, if the voxel under the
@@ -76,6 +81,19 @@ void ntvp_clear_all(void);
  * available.
  */
 unsigned ntvp_new(void);
+/**
+ * Sets the four visibility values of the given voxel type within the given
+ * NFA.
+ *
+ * The default is (0,0,0,0) for all voxel types.
+ *
+ * @param nfa The unfrozen NFA to edit.
+ * @param type The voxel type whose visibilities are to be set.
+ * @return 1 if successful, 0 on failure (ie, invalid or frozen NFA).
+ */
+unsigned ntvp_visibility(unsigned nfa, env_voxel_type type,
+                         unsigned char v0, unsigned char v1,
+                         unsigned char v2, unsigned char v3);
 /**
  * Sets the from->to voxel change associated with the given state of the given
  * nfa.

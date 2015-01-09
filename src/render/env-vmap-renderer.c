@@ -301,6 +301,10 @@ static env_vmap_render_cell* env_vmap_render_cell_new(
   for (z = 0; z < (unsigned)(CELL_SZ >> lod); ++z) {
     for (x = 0; x < (unsigned)(CELL_SZ >> lod); ++x) {
       for (y = 0; y < (unsigned)(ENV_VMAP_H >> lod); ++y) {
+        if (lod && !env_vmap_is_visible(
+              r->vmap, x0+(x<<lod), y<<lod, z0+(z<<lod), lod))
+          continue;
+
         graphic = env_vmap_renderer_get_graphic(
           r, x0+(x<<lod), y<<lod, z0+(z<<lod));
         if (!graphic) continue;
@@ -388,6 +392,10 @@ static env_vmap_render_cell* env_vmap_render_cell_new(
   for (z = 0; z < (unsigned)(CELL_SZ >> lod); ++z) {
     for (x = 0; x < (unsigned)(CELL_SZ >> lod); ++x) {
       for (y = 0; y < (unsigned)(ENV_VMAP_H >> lod); ++y) {
+        if (lod && !env_vmap_is_visible(
+              r->vmap, x0+(x<<lod), y<<lod, z0+(z<<lod), lod))
+          continue;
+
         graphic = env_vmap_renderer_get_graphic(
           r, x0+(x<<lod), y<<lod, z0+(z<<lod));
         if (!graphic) continue;

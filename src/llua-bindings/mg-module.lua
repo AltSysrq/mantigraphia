@@ -146,6 +146,9 @@ functions = {
                                            bytes("argument_2*argument_3*4")),
 
   ntvp_new = fun (uint(32):fail_on(0, "Out of NFAs")) (),
+  ntvp_visibility = fun(uint(32):fail_on(0, "Invalid or frozen NFA")) (
+    uint(32):min(1), uint(8):min(1),
+    uint(8):max(3), uint(8):max(3), uint(8):max(3), uint(8):max(3)),
   ntvp_put_voxel = fun (uint(32):fail_on(0, "Invalid or frozen NFA")) (
     uint(32):min(1), uint(8), uint(8), uint(8)),
   ntvp_transition = fun (
