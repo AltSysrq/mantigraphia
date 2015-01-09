@@ -167,9 +167,29 @@ typedef struct {
   const env_voxel_context_map*restrict context_map;
 
   /**
-   * An array of voxels in this vmap, indexed by (z,x,y).
+   * An array of voxels in this vmap.
    *
    * The head of the array is cache-line aligned.
+   *
+   * Voxels within the array are arranged in a somewhat peculiar fashion. Space
+   * is divided into 4x4x4 (64-byte) "supercells". Supercells are layed out in
+   * (Z,X,Y) order. Each supercell is divided into 8 2x2x2 (8-byte) "cells",
+   * which themselves are layed out in (Z,X,Y) order within the supercell. The
+   * 8 voxels within the cell are layed out in (Z,X,Y) order within the cell.
+   *
+   * This layout provides a number of benefits:
+   *
+   * - Each supercell lies on exactly one cache line. Accessing a voxel and all
+   *   its neighbours thus has 4 cache misses worst-case and 1 cache miss
+   *   best-case, whereas a linear layout has 6 cache misses worst-case and 3
+   *   cache misses best-case.
+   *
+   * - Cells are 8-byte aligned. Therefore, a single `unsigned long long` can
+   *   be read to quickly obtain a cell's contents (but in no particular
+   *   order).
+   *
+   * - Supercells are aligned suitably for use with SSE, and can be represented
+   *   with 4 SSE registers.
    */
   env_voxel_type*restrict voxels;
 } env_vmap;
@@ -197,7 +217,12 @@ void env_vmap_delete(env_vmap*);
  */
 static inline unsigned env_vmap_offset(const env_vmap* vmap,
                                        coord x, coord y, coord z) {
-  return z * vmap->xmax * ENV_VMAP_H + x * ENV_VMAP_H + y;
+  unsigned supercell_offset =
+    z/4 * (vmap->xmax/4) * (ENV_VMAP_H/4) + x/4 * (ENV_VMAP_H/4) + y/4;
+  unsigned cell_offset =
+    (z&2)*2 + (x&2) + (y&2)/2;
+  unsigned voxel_offset = (z&1)*4 + (x&1)*2 + (y&1);
+  return supercell_offset*64 + cell_offset*8 + voxel_offset;
 }
 
 /**
