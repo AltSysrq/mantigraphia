@@ -39,8 +39,8 @@ function populate_vmap()
   for i = 0, 65536 do
     z, rnd = mg.lcgrand(rnd)
     x, rnd = mg.lcgrand(rnd)
-    z = z % 2048
-    x = x % 2048
+    z = (z % 2048 - 1024) % 4096
+    x = (x % 2048 - 1024) % 4096
     t = mg.lcgrand(rnd) % 4 + 1
     mg.ntvp_paint(nfa[t], x, 0, z, x-16, z-16, 32, 32, 65535)
   end
