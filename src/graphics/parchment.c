@@ -124,15 +124,16 @@ static void parchment_deactivate(void* ignore) {
   glPopAttrib();
 }
 
-void parchment_draw(canvas* dst, const parchment* this) {
+void parchment_draw(canvas* dst, const parchment* this,
+                    unsigned screen_size_reduction) {
   shader_fixed_texture_vertex* vertices;
   unsigned short* indices, base;
   coord_offset x, y, x0, y0;
   glm_slab* slab = glm_slab_get(glmsg);
 
-  x0 = this->tx / 1024 & PARCHMENT_MASK;
+  x0 = this->tx / 1024 / screen_size_reduction & PARCHMENT_MASK;
   if (x0 > 0) x0 -= PARCHMENT_DIM;
-  y0 = this->ty / 1024 & PARCHMENT_MASK;
+  y0 = this->ty / 1024 / screen_size_reduction & PARCHMENT_MASK;
   if (y0 > 0) y0 -= PARCHMENT_DIM;
 
   for (y = y0; y < (signed)dst->h; y += PARCHMENT_DIM) {

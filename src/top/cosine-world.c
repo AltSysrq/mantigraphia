@@ -301,7 +301,7 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
     this->overlay = paint_overlay_new(&after_paint_overlay);
   paint_overlay_preprocess(this->overlay, this->context,
                            &before_paint_overlay, dst);
-  parchment_draw(&after_paint_overlay, this->bg);
+  parchment_draw(&after_paint_overlay, this->bg, PAINT_SIZE_REDUCTION);
   paint_overlay_postprocess(this->overlay, this->context);
   canvas_gl_clip_sub(dst, dst);
   parchment_postprocess(this->bg, dst, &after_paint_overlay);
