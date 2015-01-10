@@ -66,6 +66,7 @@
 
 /* This should be a configuration at some point, not a compile-time constant. */
 #define RENDER_SIZE_REDUCTION 1
+#define PAINT_SIZE_REDUCTION 1
 
 typedef struct {
   game_state vtab;
@@ -284,21 +285,26 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
    * ensure that the value remains valid until then by making the value static.
    */
   static canvas before_paint_overlay;
+  static canvas after_paint_overlay;
 
   canvas_init_thin(&before_paint_overlay,
                    dst->w/RENDER_SIZE_REDUCTION, dst->h/RENDER_SIZE_REDUCTION);
+  canvas_init_thin(&after_paint_overlay,
+                   dst->w/PAINT_SIZE_REDUCTION, dst->h/PAINT_SIZE_REDUCTION);
 
   canvas_gl_clip_sub(&before_paint_overlay, dst);
   render_terrain_tilemap(&before_paint_overlay, this->world, this->context);
   render_env_vmap(&before_paint_overlay, this->vmap_renderer, this->context);
   ump_join();
-  canvas_gl_clip_sub(dst, dst);
+  canvas_gl_clip_sub(&after_paint_overlay, dst);
   if (!this->overlay)
-    this->overlay = paint_overlay_new(dst);
-  paint_overlay_preprocess(this->overlay, this->context, &before_paint_overlay);
-  parchment_draw(dst, this->bg);
+    this->overlay = paint_overlay_new(&after_paint_overlay);
+  paint_overlay_preprocess(this->overlay, this->context,
+                           &before_paint_overlay, dst);
+  parchment_draw(&after_paint_overlay, this->bg);
   paint_overlay_postprocess(this->overlay, this->context);
-  parchment_postprocess(this->bg, dst);
+  canvas_gl_clip_sub(dst, dst);
+  parchment_postprocess(this->bg, dst, &after_paint_overlay);
 }
 
 static void cosine_world_key(cosine_world_state* this,

@@ -73,10 +73,11 @@ void paint_overlay_delete(paint_overlay*);
  *
  * The input canvas is used to size the portion of the framebuffer which is
  * *read*, whereas the one given to the paint_overlay_new() determines the size
- * of the framebuffer which is *written*.
+ * of the framebuffer which is *written*. The "whole" canvas represents the
+ * whole screen, and is used to position the selection rectangle.
  */
 void paint_overlay_preprocess(paint_overlay*, const rendering_context*restrict,
-                              const canvas*);
+                              const canvas* section, const canvas* whole);
 
 /**
  * Post-processes the current state of the OpenGL framebuffer using the results

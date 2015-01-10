@@ -53,7 +53,7 @@ struct paint_overlay_s {
   GLuint vbo, fbtex, brushtex;
   unsigned num_points;
   unsigned point_size;
-  unsigned screenw, screenh, src_screenw, src_screenh;
+  unsigned screenw, screenh, src_screenw, src_screenh, whole_screenh;
   float xoff, yoff;
 };
 
@@ -231,7 +231,7 @@ static void paint_overlay_preprocess_impl(paint_overlay* this) {
                    /* Need to offset Y because OpenGL's concept of the Y axis
                     * is upside-down.
                     */
-                   0, this->screenh - this->src_screenh,
+                   0, this->whole_screenh - this->src_screenh,
                    this->src_screenw, this->src_screenh, 0);
 }
 
@@ -274,9 +274,10 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
 
 void paint_overlay_preprocess(paint_overlay* this,
                               const rendering_context*restrict ctxt,
-                              const canvas* src) {
+                              const canvas* src, const canvas* whole) {
   this->src_screenw = src->w;
   this->src_screenh = src->h;
+  this->whole_screenh = whole->h;
   glm_do((void(*)(void*))paint_overlay_preprocess_impl, this);
 }
 

@@ -172,7 +172,7 @@ void parchment_draw(canvas* dst, const parchment* this) {
 
 struct parchment_postprocess {
   const parchment* this;
-  const canvas* canv;
+  const canvas* canv, * selection;
 };
 
 static void parchment_do_postprocess(struct parchment_postprocess* d) {
@@ -188,7 +188,10 @@ static void parchment_do_postprocess(struct parchment_postprocess* d) {
   uniform.pocket_size_scr[1] = uniform.pocket_size_px / (float)d->canv->h;
 
   glBindTexture(GL_TEXTURE_2D, postprocess_tex);
-  glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, d->canv->w, d->canv->h, 0);
+  glCopyTexImage2D(
+    GL_TEXTURE_2D, 0, GL_RGB,
+    d->selection->ox, d->canv->h - d->selection->oy - d->selection->h,
+    d->selection->w, d->selection->h, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -210,11 +213,13 @@ static void parchment_do_postprocess(struct parchment_postprocess* d) {
   free(d);
 }
 
-void parchment_postprocess(const parchment* this, const canvas* canv) {
+void parchment_postprocess(const parchment* this, const canvas* canv,
+                           const canvas* selection) {
   struct parchment_postprocess* d =
     xmalloc(sizeof(struct parchment_postprocess));
   d->this = this;
   d->canv = canv;
+  d->selection = selection;
 
   glm_do((void(*)(void*))parchment_do_postprocess, d);
 }
