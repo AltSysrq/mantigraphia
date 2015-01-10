@@ -172,6 +172,7 @@ void render_env_vmap_impl(env_vmap_render_op* op) {
   unsigned x, z, xmax, zmax, cx, cz;
   signed dx, dz;
   unsigned d;
+  signed dot;
   unsigned char desired_lod;
 
   free(op);
@@ -202,6 +203,10 @@ void render_env_vmap_impl(env_vmap_render_op* op) {
         else
           desired_lod = 3;
 
+        /* We want to keep cells prepared even if they won't be rendered this
+         * frame, since the angle the camera is facing can change rapidly.
+         */
+
         if (this->cells[z*xmax + x] &&
             this->cells[z*xmax + x]->lod != desired_lod) {
           env_vmap_render_cell_delete(this->cells[z*xmax + x]);
@@ -212,7 +217,23 @@ void render_env_vmap_impl(env_vmap_render_op* op) {
           this->cells[z*xmax + x] = env_vmap_render_cell_new(
             this, x*CELL_SZ, z*CELL_SZ, desired_lod);
 
-        env_vmap_render_cell_render(this->cells[z*xmax + x], ctxt);
+        dot = dx * context->proj->yrot_sin +
+              dz * context->proj->yrot_cos;
+        /* Only render cells that are actually visible.
+         *
+         * The (d<2) condition serves two purposes. First, it is a "fudge
+         * factor" to account for the fact that the calculations are based on
+         * the corners of the cells instead of the centre. Second, it causes
+         * cells "behind" the camera to be drawn when very close, which means
+         * that even at somewhat high altitutes, one cannot see the cells not
+         * being drawn.
+         *
+         * (One can still go high enough to see those cells, but this shouldn't
+         * be too much of an issue, since the plan is to obscure that part of
+         * the view anyway.)
+         */
+        if (dot <= 0 || d < 2)
+          env_vmap_render_cell_render(this->cells[z*xmax + x], ctxt);
       } else {
         if (this->cells[z*xmax + x]) {
           env_vmap_render_cell_delete(this->cells[z*xmax + x]);
