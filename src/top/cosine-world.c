@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013, 2014 Jason Lingle
+ * Copyright (c) 2013, 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@
 #include "world/generate.h"
 #include "world/vmap-painter.h"
 #include "world/nfa-turtle-vmap-painter.h"
+#include "gl/marshal.h"
 #include "render/context.h"
 #include "render/terrain-tilemap.h"
 #include "render/paint-overlay.h"
@@ -62,6 +63,9 @@
 #define SIZE 4096
 #define NUM_GRASS (1024*1024*4)
 #define NUM_TREES 32768*2
+
+/* This should be a configuration at some point, not a compile-time constant. */
+#define RENDER_SIZE_REDUCTION 1
 
 typedef struct {
   game_state vtab;
@@ -177,6 +181,8 @@ static void cosine_world_add_shadows(terrain_tilemap* terrain,
       terrain->type[terrain_tilemap_offset(terrain, x, z)] |= n;
     }
   }
+
+  terrain_tilemap_calc_next(terrain);
 }
 
 static void cosine_world_init_world(cosine_world_state* this) {
@@ -241,11 +247,15 @@ static game_state* cosine_world_update(cosine_world_state* this, chronon et) {
 static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   rendering_context_invariant context_inv;
   perspective* proj = &this->proj;
+  canvas render_dst;
+
+  canvas_init_thin(&render_dst, dst->w / RENDER_SIZE_REDUCTION,
+                   dst->h / RENDER_SIZE_REDUCTION);
 
   context_inv.proj = proj;
   context_inv.long_yrot = this->look.yrot;
-  context_inv.screen_width = dst->w;
-  context_inv.screen_height = dst->h;
+  context_inv.screen_width = dst->w / RENDER_SIZE_REDUCTION;
+  context_inv.screen_height = dst->h / RENDER_SIZE_REDUCTION;
   context_inv.now = this->now;
   context_inv.frame_no = this->frame_no++;
   context_inv.month_integral = this->month_integral;
@@ -264,22 +274,33 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   proj->rxrot_cos = zo_cos(this->look.rxrot);
   proj->rxrot_sin = zo_sin(this->look.rxrot);
   proj->near_clipping_plane = 1;
-  perspective_init(proj, dst, FOV);
+  perspective_init(proj, &render_dst, FOV);
 
   rendering_context_set(this->context, &context_inv);
 }
 
 static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
-  render_terrain_tilemap(dst, this->world, this->context);
-  render_env_vmap(dst, this->vmap_renderer, this->context);
+  /* GL calls don't actually execute until after this function returns, so
+   * ensure that the value remains valid until then by making the value static.
+   */
+  static canvas before_paint_overlay;
+
+  canvas_init_thin(&before_paint_overlay,
+                   dst->w/RENDER_SIZE_REDUCTION, dst->h/RENDER_SIZE_REDUCTION);
+
+  canvas_gl_clip_sub(&before_paint_overlay, dst);
+  render_terrain_tilemap(&before_paint_overlay, this->world, this->context);
+  render_env_vmap(&before_paint_overlay, this->vmap_renderer, this->context);
   ump_join();
+  canvas_gl_clip_sub(dst, dst);
   if (!this->overlay)
     this->overlay = paint_overlay_new(dst);
-  paint_overlay_preprocess(this->overlay, this->context);
+  paint_overlay_preprocess(this->overlay, this->context, &before_paint_overlay);
   parchment_draw(dst, this->bg);
   paint_overlay_postprocess(this->overlay, this->context);
   parchment_postprocess(this->bg, dst);
 }
+
 static void cosine_world_key(cosine_world_state* this,
                              SDL_KeyboardEvent* evt) {
   int down = SDL_KEYDOWN == evt->type;

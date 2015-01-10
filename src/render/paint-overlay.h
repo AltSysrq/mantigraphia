@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 Jason Lingle
+ * Copyright (c) 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,8 +70,13 @@ void paint_overlay_delete(paint_overlay*);
 /**
  * Prepares the current state of the OpenGL framebuffer for post-processing.
  * This should be performed before the background is filled in.
+ *
+ * The input canvas is used to size the portion of the framebuffer which is
+ * *read*, whereas the one given to the paint_overlay_new() determines the size
+ * of the framebuffer which is *written*.
  */
-void paint_overlay_preprocess(paint_overlay*, const rendering_context*restrict);
+void paint_overlay_preprocess(paint_overlay*, const rendering_context*restrict,
+                              const canvas*);
 
 /**
  * Post-processes the current state of the OpenGL framebuffer using the results

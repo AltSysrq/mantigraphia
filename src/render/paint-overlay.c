@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 Jason Lingle
+ * Copyright (c) 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@ struct paint_overlay_s {
   GLuint vbo, fbtex, brushtex;
   unsigned num_points;
   unsigned point_size;
-  unsigned screenw, screenh;
+  unsigned screenw, screenh, src_screenw, src_screenh;
   float xoff, yoff;
 };
 
@@ -227,8 +227,12 @@ void paint_overlay_delete(paint_overlay* this) {
 
 static void paint_overlay_preprocess_impl(paint_overlay* this) {
   glBindTexture(GL_TEXTURE_2D, this->fbtex);
-  glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0,
-                   this->screenw, this->screenh, 0);
+  glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                   /* Need to offset Y because OpenGL's concept of the Y axis
+                    * is upside-down.
+                    */
+                   0, this->screenh - this->src_screenh,
+                   this->src_screenw, this->src_screenh, 0);
 }
 
 static void paint_overlay_postprocess_impl(paint_overlay* this) {
@@ -269,7 +273,10 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
 }
 
 void paint_overlay_preprocess(paint_overlay* this,
-                              const rendering_context*restrict ctxt) {
+                              const rendering_context*restrict ctxt,
+                              const canvas* src) {
+  this->src_screenw = src->w;
+  this->src_screenh = src->h;
   glm_do((void(*)(void*))paint_overlay_preprocess_impl, this);
 }
 

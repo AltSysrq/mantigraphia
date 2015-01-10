@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013, 2014 Jason Lingle
+ * Copyright (c) 2013, 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -105,6 +105,15 @@ canvas* canvas_new(unsigned width, unsigned height);
 void canvas_delete(canvas*);
 
 /**
+ * Initialises the given canvas object to a canvas of the given dimensions, but
+ * which has no backing; ie, it is merely a conventional representation of an
+ * area of the OpenGL framebuffer.
+ *
+ * As the canvas is not backed by anything, nothing need be done to destroy it.
+ */
+void canvas_init_thin(canvas*, unsigned width, unsigned height);
+
+/**
  * Initialises slice to point to a rectangle within backing, such that the top
  * left of slice corresponds to the point (x,y) in backing, and the dimensions
  * of slice are (w,h).
@@ -147,6 +156,22 @@ void canvas_scale_onto(canvas*restrict, const canvas*restrict);
  * canvas are wholely independent after this call.
  */
 GLuint canvas_to_texture(const canvas*, int mipmap);
+
+/**
+ * Adjusts the OpenGL viewport and matrices so that rendering is clipped to the
+ * logical canvas sub.
+ *
+ * whole_screen is needed to compensate for OpenGL's reversed Y axis.
+ *
+ * This is queued in glm and does not take effect immediately.
+ */
+void canvas_gl_clip_sub(const canvas* sub, const canvas* whole_screen);
+
+/**
+ * Like canvas_gl_clip_sub(), but takes effect immediately.
+ */
+void canvas_gl_clip_sub_immediate(const canvas* sub,
+                                  const canvas* whole_screen);
 
 /**
  * Calculates the array offset within the given canvas for the given pixel

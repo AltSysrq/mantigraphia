@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013, 2014 Jason Lingle
+ * Copyright (c) 2013, 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,9 +40,13 @@
 #include "../alloc.h"
 #include "../micromp.h"
 #include "../math/frac.h"
+#include "../math/coords.h"
+#include "../gl/marshal.h"
 #include "canvas.h"
 
 SDL_PixelFormat* screen_pixel_format;
+
+static void canvas_do_gl_clip_sub(const canvas**);
 
 canvas* canvas_new(unsigned width, unsigned height) {
   canvas* this = xmalloc(
@@ -62,6 +66,16 @@ canvas* canvas_new(unsigned width, unsigned height) {
 
 void canvas_delete(canvas* this) {
   free(this);
+}
+
+void canvas_init_thin(canvas* this, unsigned w, unsigned h) {
+  this->w = w;
+  this->h = h;
+  this->pitch = w;
+  this->logical_width = w;
+  this->ox = this->oy = 0;
+  this->px = NULL;
+  this->depth = NULL;
 }
 
 void canvas_clear(canvas* this) {
@@ -153,4 +167,38 @@ GLuint canvas_to_texture(const canvas* this, int mipmap) {
   if (temporary) free(temporary);
 
   return texture;
+}
+
+static void canvas_do_gl_clip_sub(const canvas** parms) {
+  const canvas* sub = parms[0], * whole = parms[1];
+
+  free(parms);
+  canvas_gl_clip_sub_immediate(sub, whole);
+}
+
+void canvas_gl_clip_sub_immediate(const canvas* sub,
+                                  const canvas* whole) {
+  glViewport(sub->ox, whole->h - sub->oy - sub->h,
+             sub->w, sub->h);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glOrtho(sub->ox, sub->w, sub->oy, sub->h,
+          0, 4096*METRE);
+  /* Invert the Y axis so that GL coordinates match screen coordinates, and the
+   * Z axis so that positive moves into the screen. (Ie, match the canvas
+   * coordinate system.)
+   */
+  glScalef(1.0f, -1.0f, -1.0f);
+  glTranslatef(0.0f, -(float)sub->h, 0.0f);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+}
+
+void canvas_gl_clip_sub(const canvas* sub, const canvas* whole) {
+  const canvas** parms;
+
+  parms = xmalloc(2 * sizeof(const canvas*));
+  parms[0] = sub;
+  parms[1] = whole;
+  glm_do((void(*)(void*))canvas_do_gl_clip_sub, parms);
 }

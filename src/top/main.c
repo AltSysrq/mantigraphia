@@ -207,7 +207,7 @@ int main(int argc, char** argv) {
   SDL_Window* screen;
   SDL_GLContext glcontext;
   const int image_types = IMG_INIT_JPG | IMG_INIT_PNG;
-  canvas* canv;
+  canvas canv;
   game_state* state;
   GLenum glew_status;
   SDL_Rect window_bounds;
@@ -250,20 +250,10 @@ int main(int argc, char** argv) {
     errx(EX_SOFTWARE, "Unable to initialise GLEW: %s",
          glewGetErrorString(glew_status));
 
-  glViewport(0, 0, ww, wh);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_TEXTURE_2D);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glOrtho(0, ww, 0, wh, 0, 4096*METRE);
-  /* Invert the Y axis so that GL coordinates match screen coordinates, and the
-   * Z axis so that positive moves into the screen. (Ie, match the canvas
-   * coordinate system.)
-   */
-  glScalef(1.0f, -1.0f, -1.0f);
-  glTranslatef(0.0f, -(float)wh, 0.0f);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
+  canvas_init_thin(&canv, ww, wh);
+  canvas_gl_clip_sub_immediate(&canv, &canv);
 
   ump_init(SDL_GetCPUCount()-1);
   glinfo_detect(wh);
@@ -276,14 +266,12 @@ int main(int argc, char** argv) {
   mouselook_init(screen);
   terrabuff_init();
 
-  canv = canvas_new(ww, wh);
-
   state = cosine_world_new(2 == argc? atoi(argv[1]) : 3);
 
   last_fps_report = SDL_GetTicks();
   frames_since_fps_report = 0;
   do {
-    draw(canv, state, screen);
+    draw(&canv, state, screen);
     if (handle_input(state)) break; /* quit */
     state = update(state);
 
