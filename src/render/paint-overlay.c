@@ -64,6 +64,7 @@ static inline unsigned max_effective_point_size(void) {
     max_point_size / POINT_SIZE_MULT : 1;
 }
 
+#define FP 16
 paint_overlay* paint_overlay_new(const canvas* canv) {
   /* Poisson-disc sampling.
    *
@@ -71,25 +72,24 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
    */
   paint_overlay* this = xmalloc(sizeof(paint_overlay));
 
-  unsigned point_size = canv->w / DESIRED_POINTS_PER_SCREENW <
-    max_effective_point_size()?
-    canv->w / DESIRED_POINTS_PER_SCREENW :
-    max_effective_point_size();
-  unsigned radius = point_size/2 + 1;
-  unsigned natural_grid_sz =
-    fraction_umul(radius, 0x5A827999 /*1/sqrt(2)*/) - 1;
-  unsigned grid_sz = natural_grid_sz? natural_grid_sz : 1;
-  unsigned gridw = canv->w / grid_sz, gridh = canv->h / grid_sz;
+  unsigned point_size_fp =
+    umin(canv->w / DESIRED_POINTS_PER_SCREENW,
+         max_effective_point_size()) * FP;
+  unsigned radius_fp = umax(point_size_fp/2, 2);
+  unsigned natural_grid_sz_fp =
+    fraction_umul(radius_fp, 0x5A827999 /*1/sqrt(2)*/) - 1;
+  unsigned grid_sz_fp = umax(natural_grid_sz_fp, 1);
+  unsigned gridw = canv->w*FP / grid_sz_fp, gridh = canv->h*FP / grid_sz_fp;
 
   unsigned* active_points;
-  struct { unsigned x, y; }* points;
+  struct { unsigned x_fp, y_fp; }* points;
   unsigned (*indices)[gridw];
   unsigned num_points = 0, num_active_points = 0;
 
   unsigned lcg = 0x5A827999 /* arbitrary seed */;
   angle ang;
-  unsigned r, x, y, gx, gy;
-  signed gox, goy, dx, dy;
+  unsigned r_fp, x_fp, y_fp, gx, gy;
+  signed gox, goy, dx_fp, dy_fp;
   unsigned i, p;
 
   shader_paint_overlay_vertex* vertices;
@@ -102,8 +102,8 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
   memset(indices, 0, sizeof(unsigned)*gridh*gridw);
   memset(points, 0, sizeof(points[0])*gridh*gridw);
 
-  points[0].x = canv->w / 2;
-  points[0].y = canv->h / 2;
+  points[0].x_fp = canv->w * FP / 2;
+  points[0].y_fp = canv->h * FP / 2;
   active_points[0] = 0;
   num_active_points = num_points = 1;
 
@@ -111,30 +111,30 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
     place_next_point:
 
     /* Ensure the most recent point is in the grid */
-    indices[points[num_points-1].y / grid_sz]
-      [points[num_points-1].x / grid_sz] = num_points - 1;
+    indices[points[num_points-1].y_fp / grid_sz_fp]
+      [points[num_points-1].x_fp / grid_sz_fp] = num_points - 1;
 
     p = active_points[lcgrand(&lcg) % num_active_points];
     for (i = 0; i < 8; ++i) {
       ang = lcgrand(&lcg);
-      r = radius + lcgrand(&lcg) % radius;
-      x = points[p].x + zo_cosms(ang, r);
-      y = points[p].y + zo_sinms(ang, r);
-      if (x >= canv->w || y >= canv->h) goto reject_point;
+      r_fp = radius_fp + lcgrand(&lcg) % radius_fp;
+      x_fp = points[p].x_fp + zo_cosms(ang, r_fp);
+      y_fp = points[p].y_fp + zo_sinms(ang, r_fp);
+      if (x_fp/FP >= canv->w || y_fp/FP >= canv->h) goto reject_point;
 
-      gx = x / grid_sz;
-      gy = y / grid_sz;
-      if (gx == points[indices[gy][gx]].x / grid_sz ||
-          gy == points[indices[gy][gx]].y / grid_sz)
+      gx = x_fp / grid_sz_fp;
+      gy = y_fp / grid_sz_fp;
+      if (gx == points[indices[gy][gx]].x_fp / grid_sz_fp ||
+          gy == points[indices[gy][gx]].y_fp / grid_sz_fp)
         goto reject_point;
 
       for (goy = -5; goy <= +5; ++goy) {
         if ((unsigned)(gy+goy) < gridh) {
           for (gox = -5; gox <= +5; ++gox) {
             if ((unsigned)(gx+gox) < gridw) {
-              dx = x - points[indices[gy+goy][gx+gox]].x;
-              dy = y - points[indices[gy+goy][gx+gox]].y;
-              if (dx*dx + dy*dy < (signed)(radius*radius))
+              dx_fp = x_fp - points[indices[gy+goy][gx+gox]].x_fp;
+              dy_fp = y_fp - points[indices[gy+goy][gx+gox]].y_fp;
+              if (dx_fp*dx_fp + dy_fp*dy_fp < (signed)(radius_fp*radius_fp))
                 goto reject_point;
             }
           }
@@ -142,8 +142,8 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
       }
 
       /* Acceptable distance from all neighbours */
-      points[num_points].x = x;
-      points[num_points].y = y;
+      points[num_points].x_fp = x_fp;
+      points[num_points].y_fp = y_fp;
       active_points[num_active_points] = num_points;
       ++num_points;
       ++num_active_points;
@@ -161,8 +161,8 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
 
   vertices = xmalloc(num_points * sizeof(shader_paint_overlay_vertex));
   for (i = 0; i < num_points; ++i) {
-    vertices[i].v[0] = points[i].x;
-    vertices[i].v[1] = points[i].y;
+    vertices[i].v[0] = points[i].x_fp / FP;
+    vertices[i].v[1] = points[i].y_fp / FP;
     vertices[i].v[2] = 0;
   }
 
@@ -178,7 +178,7 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
   paint_overlay_create_texture(this);
 
   this->num_points = num_points;
-  this->point_size = point_size;
+  this->point_size = umax(point_size_fp / FP, 1);
   this->screenw = canv->w;
   this->screenh = canv->h;
   return this;
