@@ -35,10 +35,10 @@ void main() {
                        centre_offset.y*angv.x + centre_offset.x*angv.y);
   centre_offset.y *= 2.0f;
   r = centre_offset.x*centre_offset.x + centre_offset.y*centre_offset.y;
-  /* Add a slight bias to X so that (0,0) is never input (ie, atan() will
-   * always be defined).
+  /* This isn't actually an angle, but it's much cheaper than atan2(), and
+   * somehow still looks reasonable.
    */
-  theta = atan(centre_offset.y, centre_offset.x + 0.000001f);
+  theta = centre_offset.x;
 
   if ((selected.a > 0.00f && selected.a <= 0.25f) ||
       (selected.a > 0.50f && selected.a <= 0.75f)) {
