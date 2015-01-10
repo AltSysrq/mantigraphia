@@ -126,6 +126,7 @@ shader(paint_overlay) {
   uniform(tex2d, brush)
   uniform(vec2, screen_size)
   uniform(vec2, screen_off)
+  uniform(vec2, screen_shift)
 }
 
 shader(voxel) {
