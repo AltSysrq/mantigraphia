@@ -60,6 +60,7 @@ void perspective_xlate(vo3 dst,
                        const perspective* this) {
   vo3 tx, rty;
   vc3 src_clamped;
+  unsigned long long yz;
 
   src_clamped[0] = src[0] & (this->torus_w-1);
   src_clamped[1] = src[1];
@@ -82,8 +83,11 @@ void perspective_xlate(vo3 dst,
    *    much less pronounced than in reference paintings, but it's disorienting
    *    if it is too strong anyway.
    */
-  rty[1] += (src[1]*(signed long long)(-rty[2]))/METRE/1024
-         +  (((signed long long)rty[2]/16384)*rty[2]/METRE);
+  yz = (rty[2] * (signed long long)rty[2]) +
+       (rty[0] * (signed long long)rty[0]);
+  yz = isqrt(yz);
+  rty[1] += (src[1]*yz)/METRE/256
+         +  ((yz/16384)*yz/METRE);
   /* Rotate X */
   dst[0] = rty[0];
   dst[1] = zo_scale(rty[1], this->rxrot_cos) - zo_scale(rty[2], this->rxrot_sin);

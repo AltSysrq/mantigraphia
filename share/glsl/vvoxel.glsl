@@ -50,8 +50,8 @@ vec3 perspective_xlate(vec3 src) {
   rty = vec3(tx.x * yrot.x - tx.z * yrot.y,
              tx.y,
              tx.z * yrot.x + tx.x * yrot.y);
-  yz = max(0.0f, -rty.z);
-  rty.y += src.y * yz / METRE / 1024.0f
+  yz = sqrt(rty.z*rty.z + rty.x*rty.x);
+  rty.y += src.y * yz / METRE / 256.0f
         + yz / 16384.0f * yz / METRE;
 
   return vec3(rty.x,
