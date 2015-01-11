@@ -8,7 +8,7 @@ varying vec2 stroke_centre;
 varying vec2 lumtc_scale;
 varying vec2 angv;
 
-const vec4 GRAPHITE = vec4(0.05f,0.05f,0.05f,0.80f);
+const vec4 GRAPHITE = vec4(0.5f,0.5f,0.5f,0.80f);
 
 void main() {
   vec4 selected, direct;
@@ -18,7 +18,8 @@ void main() {
   direct = texture2D(framebuffer,
                      gl_FragCoord.xy / screen_size + screen_shift);
   if (direct.a > 0.0f && direct.a <= 0.50f) {
-    gl_FragColor = GRAPHITE;
+    gl_FragColor.rgb = direct.rgb * GRAPHITE.rgb;
+    gl_FragColor.a = GRAPHITE.a;
     return;
   }
 

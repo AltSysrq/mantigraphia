@@ -555,19 +555,5 @@ void terrabuff_render(canvas*restrict dst,
     upper += dst->pitch;
   }
 
-  /* Add line over final scan */
-  scan = this->scan - 1;
-  for (i = this->boundaries[scan].low;
-       i+1 < this->boundaries[scan].high; ++i) {
-    render_rectangle_between(
-      slab,
-      this->points + scan*this->scap + i,
-      this->points + scan*this->scap + i + 1,
-      /* The texture is clamped, so we can just pass an arbitrarily large value
-       * to ensure that the shader sees only the top.
-       */
-      lower, lower, dst->w, 2.0f);
-  }
-
   glm_finish_thread();
 }
