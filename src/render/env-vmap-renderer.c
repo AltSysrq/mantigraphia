@@ -565,10 +565,14 @@ static void env_vmap_render_cell_render(
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glActiveTexture(GL_TEXTURE0);
 
-    uniform.texture_scale[0] =
-      cell->operations[i].graphic->texture_scale[0] / 65536.0f;
-    uniform.texture_scale[1] =
-      cell->operations[i].graphic->texture_scale[1] / 65536.0f;
+    uniform.texture_scale_s[0] =
+      cell->operations[i].graphic->texture_scale[0][0] / 65536.0f;
+    uniform.texture_scale_s[1] =
+      cell->operations[i].graphic->texture_scale[0][1] / 65536.0f;
+    uniform.texture_scale_t[0] =
+      cell->operations[i].graphic->texture_scale[1][0] / 65536.0f;
+    uniform.texture_scale_t[1] =
+      cell->operations[i].graphic->texture_scale[1][1] / 65536.0f;
 
     shader_voxel_activate(&uniform);
     shader_voxel_configure_vbo();

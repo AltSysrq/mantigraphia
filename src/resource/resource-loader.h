@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 Jason Lingle
+ * Copyright (c) 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -151,12 +151,19 @@ unsigned rl_graphic_plane_set_palette(unsigned plane, unsigned palette);
  * Sets the scale applied to the texture of the given graphic plane.
  *
  * @param plane The plane to edit.
- * @param sscale The scale of the S axis (in 16.16 fixed-point format).
- * @param tscale The scale of the T axis (in 16.16 fixed-point format).
+ * @param sxscale The scale of the S axis (in 16.16 fixed-point format)
+ * relative to the effective X axis.
+ * @param syscale The scale of the S axis (in 16.16 fixed-point format)
+ * relative to the effective Y axis.
+ * @param txscale The scale of the T axis (in 16.16 fixed-point format)
+ * relative to the effective X axis.
+ * @param tyscale The scale of the T axis (in 16.16 fixed-point format)
+ * relative to the effective Y axis.
  * @return Whether successful.
  */
 unsigned rl_graphic_plane_set_scale(unsigned plane,
-                                    signed sscale, signed tscale);
+                                    signed sxscale, signed syscale,
+                                    signed txscale, signed tyscale);
 /**
  * Allocates a new texture with unspecified content.
  *

@@ -67,10 +67,15 @@ typedef struct {
   unsigned palette;
 
   /**
-   * Factor by which texture coordinates for this plane shall be multiplied.
+   * Factor by which texture coordinates for this plane shall be multiplied,
+   * allowing arbitrary affine transforms.
+   *
+   * tex.t = x * texture_scale[0][0] + y * texture_scale[0][1]
+   * tex.t = y * texture_scale[1][0] + x * texture_scale[1][1]
+   *
    * This is 16.16 fixed-point, so 1.0 == 65536.
    */
-  signed texture_scale[2];
+  signed texture_scale[2][2];
 } env_voxel_graphic_plane;
 
 /**

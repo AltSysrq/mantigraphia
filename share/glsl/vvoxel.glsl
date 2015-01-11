@@ -23,7 +23,8 @@ uniform vec2 soff; /* sxo, syo */
  */
 uniform vec3 camera_integer, camera_fractional;
 
-uniform vec2 texture_scale;
+uniform vec2 texture_scale_s;
+uniform vec2 texture_scale_t;
 
 const float METRE = 65536.0f;
 
@@ -74,8 +75,10 @@ vec4 perspective_proj(vec4 src) {
 }
 
 void main() {
+  vec2 texst;
+
   gl_Position = gl_ModelViewProjectionMatrix *
     perspective_proj(gl_Vertex);
-  gl_TexCoord[0] = gl_MultiTexCoord0 * vec4(texture_scale.x, texture_scale.y,
-                                            1.0f, 1.0f);
+  texst = gl_MultiTexCoord0.st * mat2(texture_scale_s, texture_scale_t);
+  gl_TexCoord[0] = vec4(texst.s, texst.t, 0.0f, 1.0f);
 }

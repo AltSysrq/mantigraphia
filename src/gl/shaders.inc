@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 Jason Lingle
+ * Copyright (c) 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -142,5 +142,6 @@ shader(voxel) {
   uniform(tex2d, tex)
   uniform(tex2d, palette)
   uniform(float, palette_t)
-  uniform(vec2, texture_scale)
+  uniform(vec2, texture_scale_s)
+  uniform(vec2, texture_scale_t)
 }

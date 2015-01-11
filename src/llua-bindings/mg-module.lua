@@ -1,5 +1,5 @@
 ---
--- Copyright (c) 2014 Jason Lingle
+-- Copyright (c) 2014, 2015 Jason Lingle
 -- All rights reserved.
 --
 -- Redistribution and use in source and binary forms, with or without
@@ -129,6 +129,7 @@ functions = {
   rl_graphic_plane_set_palette = resource_loader(uint(32):min(1),
                                                  uint(32):min(1)),
   rl_graphic_plane_set_scale = resource_loader(uint(32):min(1),
+                                               sint(32), sint(32),
                                                sint(32), sint(32)),
   rl_texture_new = resource_loader(),
   rl_texture_load64x64rgb = resource_loader(uint(32):min(1),

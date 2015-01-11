@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 Jason Lingle
+ * Copyright (c) 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -150,8 +150,10 @@ unsigned rl_graphic_plane_new(void) {
 
   res_graphic_planes[res_num_graphic_planes].texture = res_default_texture;
   res_graphic_planes[res_num_graphic_planes].palette = res_default_texture;
-  res_graphic_planes[res_num_graphic_planes].texture_scale[0] = 65536;
-  res_graphic_planes[res_num_graphic_planes].texture_scale[1] = 65536;
+  res_graphic_planes[res_num_graphic_planes].texture_scale[0][0] = 65536;
+  res_graphic_planes[res_num_graphic_planes].texture_scale[0][1] = 0;
+  res_graphic_planes[res_num_graphic_planes].texture_scale[1][0] = 0;
+  res_graphic_planes[res_num_graphic_planes].texture_scale[1][1] = 65536;
   return res_num_graphic_planes++;
 }
 
@@ -173,12 +175,15 @@ unsigned rl_graphic_plane_set_palette(unsigned plane, unsigned palette) {
   return 1;
 }
 
-unsigned rl_graphic_plane_set_scale(unsigned plane, signed s, signed t) {
+unsigned rl_graphic_plane_set_scale(unsigned plane, signed sx, signed sy,
+                                    signed tx, signed ty) {
   CKNF();
   CKIX(plane, res_num_graphic_planes);
 
-  res_graphic_planes[plane].texture_scale[0] = s;
-  res_graphic_planes[plane].texture_scale[1] = t;
+  res_graphic_planes[plane].texture_scale[0][0] = sx;
+  res_graphic_planes[plane].texture_scale[0][1] = sy;
+  res_graphic_planes[plane].texture_scale[1][0] = tx;
+  res_graphic_planes[plane].texture_scale[1][1] = ty;
   return 1;
 }
 
