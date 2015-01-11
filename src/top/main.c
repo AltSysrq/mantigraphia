@@ -310,6 +310,8 @@ static game_state* update(game_state* state) {
 
 static void draw(canvas* canv, game_state* state,
                  SDL_Window* screen) {
+  /* TODO: Replace with skybox/etc */
+  glClearColor(0.5f, 0.5f, 1.0f, 1.0f);
   glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
   (*state->predraw)(state, canv);
