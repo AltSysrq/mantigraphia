@@ -86,7 +86,7 @@ void perspective_xlate(vo3 dst,
   yz = (rty[2] * (signed long long)rty[2]) +
        (rty[0] * (signed long long)rty[0]);
   yz = isqrt(yz);
-  rty[1] += (src[1]*yz)/METRE/256
+  rty[1] += (tx[1]*yz)/METRE/256
          +  ((yz/16384)*yz/METRE);
   /* Rotate X */
   dst[0] = rty[0];
