@@ -33,6 +33,7 @@ preamble = [[
 #include "../world/env-vmap.h"
 #include "../world/nfa-turtle-vmap-painter.h"
 #include "../resource/resource-loader.h"
+#include "../resource/texgen.h"
 ]]
 
 local coord = uint(32)
@@ -45,6 +46,8 @@ local angular_velocity = angle
 local zo_scaling_factor = sint(16)
 local fraction = uint(32)
 local precise_fraction = uint(64)
+local tg_tex8 = bytes("TG_TEXSIZE")
+local tg_texrgb = bytes("TG_TEXSIZE*3")
 
 local function resource_loader(...)
   return fun(uint(32):fail_on(0, "Invalid usage or resource overflow"))(...)
@@ -162,4 +165,15 @@ functions = {
     uint(32):min(1), coord, coord, coord,
     uint(16), uint(16), uint(16):min(1), uint(16):min(1),
     uint(16):min(1)),
+
+  tg_fill = fun (tg_tex8) (uint(8)),
+  tg_uniform_noise = fun (tg_tex8) (ntbs():nullable(), uint(32)),
+  tg_similarity = fun (tg_tex8) (sint(32), sint(32), tg_tex8, sint(32)),
+  tg_max = fun (tg_tex8) (tg_tex8, tg_tex8),
+  tg_min = fun (tg_tex8) (tg_tex8, tg_tex8),
+  tg_stencil = fun (tg_tex8) (tg_tex8, tg_tex8, tg_tex8, tg_tex8, tg_tex8),
+  tg_normalise = fun (tg_tex8) (tg_tex8, uint(8), uint(8)),
+  tg_zip = fun (tg_texrgb) (tg_tex8, tg_tex8, tg_tex8),
+  tg_mipmap_maximum = fun (bytes("argument_1*argument_1/4*3")) (
+    uint(32):max(64), bytes("argument_1*argument_1*3")),
 }

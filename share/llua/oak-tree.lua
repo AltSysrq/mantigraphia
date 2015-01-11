@@ -29,67 +29,67 @@
 -- through a rendering system that distorted the colours a lot.
 resource.palette.oaktree_leaf = core.bind(core.new_palette) {
   -- M
-  { 0xffffffff, 0xffffffff, 0xff003000, 0xffffffff,
+  { 0x00ffffff, 0xffffffff, 0xff003000, 0xffffffff,
     0xff144010, 0xff144010, 0xff103408, 0xff103408, },
   -- A
-  { 0xffffffff, 0xffffffff, 0xff003000, 0xff003000,
+  { 0x00ffffff, 0xffffffff, 0xff003000, 0xff003000,
     0xff144010, 0xff144010, 0xff103408, 0xff103408, },
   -- M
-  { 0xff003000, 0xff002000, 0xff004800, 0xff003000,
+  { 0x00003000, 0xff002000, 0xff004800, 0xff003000,
     0xff1e6018, 0xff144010, 0xff184e0c, 0xff103408, },
   -- J
-  { 0xff003000, 0xff003000, 0xff004800, 0xff004800,
+  { 0x00003000, 0xff003000, 0xff004800, 0xff004800,
     0xff1e6018, 0xff1e6018, 0xff184e0c, 0xff184e0c, },
   -- J
-  { 0xff003000, 0xff002000, 0xff004800, 0xff003000,
+  { 0x00003000, 0xff002000, 0xff004800, 0xff003000,
     0xff1e6018, 0xff144010, 0xff184e0c, 0xff103408, },
   -- A
-  { 0xff002000, 0xff002000, 0xff003000, 0xff003000,
+  { 0x00002000, 0xff002000, 0xff003000, 0xff003000,
     0xff144010, 0xff144010, 0xff103408, 0xff103408, },
   -- S
-  { 0xff002000, 0xff002000, 0xff003000, 0xff003000,
+  { 0x00002000, 0xff002000, 0xff003000, 0xff003000,
     0xff144010, 0xff144010, 0xff103408, 0xff103408, },
   -- O
-  { 0xffa00000, 0xffa00000, 0xffa00000, 0xffa02000,
+  { 0x00a00000, 0xffa00000, 0xffa00000, 0xffa02000,
     0xffa04000, 0xffa06000, 0xffa08000, 0xffa0a000, },
   -- N
-  { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
+  { 0x00ffffff, 0xffffffff, 0xffffffff, 0xffffffff,
     0xff704020, 0xff705030, 0xff706040, 0xff707050, },
   -- D
-  { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
+  { 0x00ffffff, 0xffffffff, 0xffffffff, 0xffffffff,
     0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, },
 }
 
 resource.palette.oaktree_trunk = core.bind(core.new_palette) {
   -- M
-  { 0xffffffff, 0xffffffff, 0xffffffff, 0xff302020, 0xff636357,
+  { 0x00ffffff, 0xffffffff, 0xffffffff, 0xff302020, 0xff636357,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
   -- A
-  { 0xff000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
+  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
   -- M
-  { 0xff000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
+  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
   -- J
-  { 0xff000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
+  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
   -- J
-  { 0xff000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
+  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
   -- A
-  { 0xff000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
+  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
   -- S
-  { 0xff000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
+  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
   -- O
-  { 0xff000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
+  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
   -- N
-  { 0xffffffff, 0xffffffff, 0xffffffff, 0xff302020, 0xff636357,
+  { 0x00ffffff, 0xffffffff, 0xffffffff, 0xff302020, 0xff636357,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
   -- D
-  { 0xffffffff, 0xffffffff, 0xffffffff, 0xff302020, 0xffffffff,
+  { 0x00ffffff, 0xffffffff, 0xffffffff, 0xff302020, 0xffffffff,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
 }
 
@@ -97,26 +97,37 @@ resource.palette.oaktree_trunk = core.bind(core.new_palette) {
 function resource.texture.oaktree_trunk()
   local rnd = 42
   return core.new_texture(
-    core.gentable2d(64, 64, function (x,y)
-                      local r, b
-                      r = core.chaos(x/6, y/6)
-                      b = bit32.extract(r, 8, 8)
-                      r = bit32.extract(r, 0, 8)
-                      return bit32.bor(
-                        bit32.lshift(r, 16),
-                        0x00ff00, b)
-    end), core.mipmap_nearest)
+    mg.tg_zip(mg.tg_uniform_noise(core.byte_array { 64, 128, 224 }, 1),
+              mg.tg_uniform_noise(core.byte_array { 255 }, 3),
+              mg.tg_uniform_noise(nil, 2)),
+    core.binary_mipmap_maximum, true)
 end
 
 function oaktree_generate_leaf_texture(bias)
+  local rnd = 751
+  local zero = mg.tg_fill(0)
+  local worley = zero
+  for i = 1, 32 do
+    local sx, sy
+    sx, rnd = mg.lcgrand(rnd)
+    sy, rnd = mg.lcgrand(rnd)
+    worley = mg.tg_max(
+      worley, mg.tg_similarity(sx % 64, sy % 64, zero, 0))
+  end
+
+  worley = mg.tg_normalise(worley, 255-64, 255)
+
+  local sphere = mg.tg_similarity(32, 32, zero, 0)
+  local colour = mg.tg_normalise(worley, bias, bias + 32)
+  local clipped = mg.tg_stencil(zero, colour, worley,
+                                mg.tg_fill(255-32), sphere)
+
   return core.new_texture(
-    core.gentable2d(64, 64, function(x,y)
-                      local dx, dy = x - 32, y - 32
-                      return bit32.bor(
-                        bit32.lshift(bias + mg.isqrt(dx*dx + dy*dy), 16),
-                        0x00ff00,
-                        bit32.extract(core.chaos(x,y), 0, 7))
-    end), core.mipmap_nearest)
+    mg.tg_zip(
+      clipped,
+      mg.tg_uniform_noise(core.byte_array { 255, 220, 200, 197 }, rnd),
+      mg.tg_uniform_noise(nil, rnd+1)),
+    core.binary_mipmap_maximum, true)
 end
 
 resource.graphic_plane.oaktree_trunk = core.bind(core.new_graphic_plane) {
@@ -131,7 +142,7 @@ resource.voxel_graphic.oaktree_trunk = core.bind(core.new_voxel_graphic) {
 
 for i = 1, 4 do
   resource.texture["oaktree_leaf"..i] =
-    core.bind(oaktree_generate_leaf_texture)(96 + i*32)
+    core.bind(oaktree_generate_leaf_texture)(32 + i*32)
 
   resource.graphic_plane["oaktree_leaf"..i] = core.bind(core.new_graphic_plane) {
     texture = "oaktree_leaf" .. i,

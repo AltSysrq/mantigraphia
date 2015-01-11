@@ -129,6 +129,13 @@ function core.rgb_string_from_argb_table(tab)
   return data
 end
 
+--- Converts an array of integers into a byte string.
+--
+-- The upper 56 bits of each integer are discarded.
+function core.byte_array(tab)
+  return string_chars(table.unpack(tab))
+end
+
 --- Produces a two-dimensional table containing the given value in all cells.
 --
 -- @param rows The number of rows for the table (ie, first index)
@@ -206,6 +213,14 @@ function core.mipmap_nearest(tab)
   return result
 end
 
+--- Front-end to mg.tg_mipmap_maximum
+--
+-- Passes through to mg.tg_mipmap_maximum after automatically determining the
+-- current size.
+function core.binary_mipmap_maximum(data)
+  return mg.tg_mipmap_maximum(mg.isqrt(#data/3), data)
+end
+
 --- Creates and loads a palette from a table.
 --
 -- Convenience function for allocating a new palette and loading it with the
@@ -230,7 +245,8 @@ end
 -- a new two-dimensional table whose dimensions are half those of the input,
 -- and still compatible with core.rgb_string_from_argb_table().
 -- @return The index of the new texture object.
-function core.new_texture(t64, mipmap)
+-- @param is_raw If true, input textures are assumed to already be byte arrays.
+function core.new_texture(t64, mipmap, is_raw)
   local texture = mg.rl_texture_new()
   local t32 = mipmap(t64)
   local t16 = mipmap(t32)
@@ -239,14 +255,15 @@ function core.new_texture(t64, mipmap)
   local t2  = mipmap(t4)
   local t1  = mipmap(t2)
 
-  mg.rl_texture_load64x64rgb(texture,
-                             core.rgb_string_from_argb_table(t64),
-                             core.rgb_string_from_argb_table(t32),
-                             core.rgb_string_from_argb_table(t16),
-                             core.rgb_string_from_argb_table(t8),
-                             core.rgb_string_from_argb_table(t4),
-                             core.rgb_string_from_argb_table(t2),
-                             core.rgb_string_from_argb_table(t1))
+  local cvt
+  if is_raw then
+    cvt = function(x) return x end
+  else
+    cvt = core.rgb_string_from_argb_table
+  end
+
+  mg.rl_texture_load64x64rgb(texture, cvt(t64), cvt(t32), cvt(t16),
+                             cvt(t8), cvt(t4), cvt(t2), cvt(t1))
   return texture
 end
 
