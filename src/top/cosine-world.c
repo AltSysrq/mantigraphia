@@ -53,6 +53,7 @@
 #include "render/terrain-tilemap.h"
 #include "render/paint-overlay.h"
 #include "render/env-vmap-renderer.h"
+#include "render/skybox.h"
 #include "control/mouselook.h"
 #include "resource/resource-loader.h"
 #include "llua-bindings/lluas.h"
@@ -81,6 +82,7 @@ typedef struct {
   terrain_tilemap* world;
   env_vmap* vmap;
   env_vmap_renderer* vmap_renderer;
+  skybox* sky;
   rendering_context*restrict context;
 
   int moving_forward, moving_backward, moving_left, moving_right;
@@ -120,6 +122,7 @@ game_state* cosine_world_new(unsigned seed) {
     terrain_tilemap_new(SIZE, SIZE, SIZE/256, SIZE/256),
     env_vmap_new(SIZE, SIZE, 1, &res_voxel_context_map),
     NULL,
+    skybox_new(),
     rendering_context_new(),
     0,0,0,0,
     0,0,0,0,
@@ -158,6 +161,7 @@ static void cosine_world_delete(cosine_world_state* this) {
   env_vmap_renderer_delete(this->vmap_renderer);
   env_vmap_delete(this->vmap);
   terrain_tilemap_delete(this->world);
+  skybox_delete(this->sky);
   rendering_context_delete(this->context);
   free(this);
 }
@@ -293,6 +297,7 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
                    dst->w/PAINT_SIZE_REDUCTION, dst->h/PAINT_SIZE_REDUCTION);
 
   canvas_gl_clip_sub(&before_paint_overlay, dst);
+  skybox_render(&before_paint_overlay, this->sky, this->context);
   render_terrain_tilemap(&before_paint_overlay, this->world, this->context);
   render_env_vmap(&before_paint_overlay, this->vmap_renderer, this->context);
   ump_join();

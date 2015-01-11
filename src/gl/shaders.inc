@@ -33,6 +33,7 @@ shader_source(fpointcircle)
 shader_source(fpostprocess)
 shader_source(fsplotch)
 shader_source(fsplotch_poly)
+shader_source(fskybox)
 shader_source(fterrabuff)
 shader_source(fvoxel)
 shader_source(vbrush)
@@ -43,6 +44,7 @@ shader_source(vpencil)
 shader_source(vsplotch)
 shader_source(vsplotch_poly)
 shader_source(vterrabuff)
+shader_source(vskybox)
 shader_source(vvoxel)
 
 shader(fixed_texture) {
@@ -144,4 +146,9 @@ shader(voxel) {
   uniform(float, palette_t)
   uniform(vec2, texture_scale_s)
   uniform(vec2, texture_scale_t)
+}
+
+shader(skybox) {
+  composed_of(fskybox, vskybox)
+  uniform(vec2, screen_size)
 }

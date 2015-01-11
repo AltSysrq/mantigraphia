@@ -62,6 +62,7 @@ render/lsystem.c \
 render/colour-palettes.c \
 render/paint-overlay.c \
 render/env-vmap-renderer.c \
+render/skybox.c \
 control/mouselook.c \
 resource/resource-loader.c \
 resource/texgen.c \
