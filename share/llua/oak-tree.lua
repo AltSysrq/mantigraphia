@@ -115,7 +115,7 @@ function oaktree_generate_leaf_texture(bias)
       worley, mg.tg_similarity(sx % 64, sy % 64, zero, 0))
   end
 
-  worley = mg.tg_normalise(worley, 255-64, 255)
+  worley = mg.tg_normalise(worley, 255-32, 255-16)
 
   local sphere = mg.tg_similarity(32, 32, zero, 0)
   local colour = mg.tg_normalise(worley, bias, bias + 32)
