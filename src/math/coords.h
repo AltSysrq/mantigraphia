@@ -114,6 +114,14 @@ static inline unsigned umax(unsigned a, unsigned b) {
   return a > b? a : b;
 }
 
+static inline signed smin(signed a, signed b) {
+  return a < b? a : b;
+}
+
+static inline signed smax(signed a, signed b) {
+  return a > b? a : b;
+}
+
 /**
  * Time is tracked in terms of chronons, there being 64 chronons in one wall
  * second. A 32-bit integer is sufficient for about 2 years of simulation at
