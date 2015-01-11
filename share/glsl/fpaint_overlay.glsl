@@ -3,14 +3,17 @@ uniform sampler2D brush;
 uniform vec2 screen_size;
 uniform vec2 screen_off;
 uniform vec2 screen_shift;
+varying vec4 selected_colour;
 varying vec2 stroke_centre;
+varying vec2 lumtc_scale;
+varying vec2 angv;
 
 const vec4 GRAPHITE = vec4(0.05f,0.05f,0.05f,0.80f);
 
 void main() {
   vec4 selected, direct;
-  float angle, r, theta, alpha, lum;
-  vec2 angv, atcoff, ltcoff, centre_offset, atc, lumtc_scale, lumtc;
+  float r, theta, alpha, lum;
+  vec2 atcoff, ltcoff, centre_offset, atc, lumtc;
 
   direct = texture2D(framebuffer,
                      gl_FragCoord.xy / screen_size + screen_shift);
@@ -19,11 +22,8 @@ void main() {
     return;
   }
 
-  selected = texture2D(framebuffer, stroke_centre);
+  selected = selected_colour;
   if (0.0f == selected.a) discard;
-
-  angle = selected.a * 8.0f * 3.14159f;
-  angv = vec2(cos(angle), sin(angle));
 
   /* Reading from more than 2 textures is surprisingly expensive on nVidia (and
    * others?), so we'll need to make due with a perlin noise source and make
@@ -40,13 +40,6 @@ void main() {
    * somehow still looks reasonable.
    */
   theta = centre_offset.x;
-
-  if ((selected.a > 0.00f && selected.a <= 0.25f) ||
-      (selected.a > 0.50f && selected.a <= 0.75f)) {
-    lumtc_scale = vec2(0.1f,0.25f);
-  } else {
-    lumtc_scale = vec2(0.5f,0.25f);
-  }
 
   atc = atcoff + vec2(r/2.0f, theta/2.0f);
   lumtc = ltcoff + centre_offset*lumtc_scale + vec2(0.0f,0.5f);
