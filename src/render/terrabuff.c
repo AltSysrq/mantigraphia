@@ -229,8 +229,37 @@ void terrabuff_merge(terrabuff*restrict this, const terrabuff*restrict that) {
 
   /* Merge shared scans */
   for (i = 0; i < this->scan && i < that->scan; ++i) {
-    assert(this->boundaries[i].high == that->boundaries[i].low);
     off = i * this->scap;
+
+    /* In theory,
+     * assert(this->boundaries[i].high == that->boundaries[i].low);
+     * should always hold.
+     *
+     * However, in extreme cases, it does not, mainly due to the non-cartesion
+     * space projection we use. When this case does come up, just patch it into
+     * sane conditions and carry on.
+     */
+    if (this->boundaries[i].high != that->boundaries[i].low) {
+      if (this->boundaries[i].high == this->boundaries[i].low) {
+        /* This slice contains nothing anyway, just move it over */
+        this->boundaries[i].high = this->boundaries[i].low =
+          that->boundaries[i].low;
+      } else if (this->boundaries[i].high < that->boundaries[i].low) {
+        /* Copy the last element from this's points to fill the hole */
+        while (this->boundaries[i].high < that->boundaries[i].low) {
+          this->points[off + this->boundaries[i].high] =
+            this->points[off + this->boundaries[i].high-1];
+          ++this->boundaries[i].high;
+        }
+      } else /* this->boundaries[i].high > that->boundaries[i].low */ {
+        /* Knock away the duplicate points in that. Make sure to advance it's
+         * own high if this ends up removing everything.
+         */
+        that->boundaries[i].low = this->boundaries[i].high;
+        if (that->boundaries[i].low > that->boundaries[i].high)
+          that->boundaries[i].high = that->boundaries[i].low;
+      }
+    }
 
     /* Copy slices in that higher than in this */
     memcpy(this->points + off + this->boundaries[i].high,
