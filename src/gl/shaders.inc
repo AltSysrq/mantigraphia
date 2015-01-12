@@ -151,4 +151,6 @@ shader(voxel) {
 shader(skybox) {
   composed_of(fskybox, vskybox)
   uniform(vec2, screen_size)
+  uniform(float, fov)
+  uniform(float, rxrot)
 }

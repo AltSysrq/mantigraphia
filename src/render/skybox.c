@@ -74,6 +74,7 @@ static void skybox_do_render(skybox_render_op* op) {
   canvas* dst = op->dst;
   skybox* this = op->this;
   const rendering_context*restrict ctxt = op->ctxt;
+  const rendering_context_invariant*restrict context = CTXTINV(ctxt);
   shader_skybox_uniform uniform;
 
   free(op);
@@ -83,6 +84,8 @@ static void skybox_do_render(skybox_render_op* op) {
 
   uniform.screen_size[0] = dst->w;
   uniform.screen_size[1] = dst->h;
+  uniform.fov = context->proj->fov * 2.0f * 3.14159f / 65536.0f;
+  uniform.rxrot = context->proj->rxrot * 2.0f * 3.14159f / 65536.0f;
 
   shader_skybox_activate(&uniform);
   shader_skybox_configure_vbo();
