@@ -152,5 +152,9 @@ shader(skybox) {
   composed_of(fskybox, vskybox)
   uniform(vec2, screen_size)
   uniform(float, fov)
-  uniform(float, rxrot)
+  uniform(vec2, yrot)
+  uniform(vec2, rxrot)
+  uniform(tex2d, clouds)
+  uniform(vec2, cloud_offset_1)
+  uniform(vec2, cloud_offset_2)
 }

@@ -518,10 +518,6 @@ static void env_vmap_render_cell_delete(env_vmap_render_cell* this) {
   free(this);
 }
 
-static inline float zo_float(zo_scaling_factor f) {
-  return f / (float)ZO_SCALING_FACTOR_MAX;
-}
-
 static void env_vmap_render_cell_render(
   const env_vmap_render_cell*restrict cell,
   const rendering_context*restrict ctxt

@@ -206,6 +206,10 @@ static inline void cossinms(signed* x, signed* y, angle ang, signed dist) {
   *y = zo_sinms(ang, dist);
 }
 
+static inline float zo_float(zo_scaling_factor f) {
+  return f / (float)ZO_SCALING_FACTOR_MAX;
+}
+
 unsigned isqrt(unsigned long long);
 
 #define FISQRT_CNT 4096

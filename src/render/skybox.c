@@ -31,24 +31,40 @@
 
 #include "../alloc.h"
 #include "../math/coords.h"
+#include "../math/rand.h"
 #include "../graphics/canvas.h"
 #include "../gl/shaders.h"
 #include "../gl/marshal.h"
 #include "context.h"
 #include "skybox.h"
 
+#define TEXSZ 1024
+
 struct skybox_s {
-  /* TODO, there'll be stuff here later */
-  int dummy;
+  GLuint clouds;
 };
 
-skybox* skybox_new(void) {
+skybox* skybox_new(unsigned seed) {
   skybox* this = xmalloc(sizeof(skybox));
+  unsigned* texdata = zxmalloc(sizeof(unsigned) * TEXSZ * TEXSZ);
+  unsigned freq, amp;
+
+  for (freq = 16, amp = 0x80000000; freq < TEXSZ/4 && amp;
+       freq *= 2, amp /= 2)
+    perlin_noise(texdata, TEXSZ, TEXSZ, freq, amp, seed + amp);
+
+  glGenTextures(1, &this->clouds);
+  glBindTexture(GL_TEXTURE_2D, this->clouds);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, TEXSZ, TEXSZ, 0,
+               GL_RED, GL_UNSIGNED_INT, texdata);
+
+  free(texdata);
 
   return this;
 }
 
 void skybox_delete(skybox* this) {
+  glDeleteTextures(1, &this->clouds);
   free(this);
 }
 
@@ -82,10 +98,28 @@ static void skybox_do_render(skybox_render_op* op) {
   glPushAttrib(GL_ENABLE_BIT);
   glDisable(GL_DEPTH_TEST);
 
+  glBindTexture(GL_TEXTURE_2D, this->clouds);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  float basic_cloud_offset = - context->month_fraction / (float)fraction_of(1);
+  basic_cloud_offset -= context->month_integral;
+  basic_cloud_offset /= 20.0f;
+
   uniform.screen_size[0] = dst->w;
   uniform.screen_size[1] = dst->h;
   uniform.fov = context->proj->fov * 2.0f * 3.14159f / 65536.0f;
-  uniform.rxrot = context->proj->rxrot * 2.0f * 3.14159f / 65536.0f;
+  uniform.yrot[0] = zo_float(context->proj->yrot_cos);
+  uniform.yrot[1] = zo_float(context->proj->yrot_sin);
+  uniform.rxrot[0] = zo_float(context->proj->rxrot_cos);
+  uniform.rxrot[1] = zo_float(context->proj->rxrot_sin);
+  uniform.cloud_offset_1[0] = basic_cloud_offset;
+  uniform.cloud_offset_1[1] = basic_cloud_offset;
+  uniform.cloud_offset_2[0] = basic_cloud_offset * 3.14f;
+  uniform.cloud_offset_2[1] = basic_cloud_offset * 4.14f;
+  uniform.clouds = 0;
 
   shader_skybox_activate(&uniform);
   shader_skybox_configure_vbo();

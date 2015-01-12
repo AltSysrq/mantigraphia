@@ -122,7 +122,7 @@ game_state* cosine_world_new(unsigned seed) {
     terrain_tilemap_new(SIZE, SIZE, SIZE/256, SIZE/256),
     env_vmap_new(SIZE, SIZE, 1, &res_voxel_context_map),
     NULL,
-    skybox_new(),
+    skybox_new(seed + 7512),
     rendering_context_new(),
     0,0,0,0,
     0,0,0,0,

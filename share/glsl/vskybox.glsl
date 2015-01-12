@@ -1,10 +1,17 @@
 uniform vec2 screen_size;
 uniform float fov;
-uniform float rxrot;
+uniform vec2 rxrot;
+
+varying vec2 screen_off;
+varying float scale;
 
 void main() {
-  vec2 screen_off = gl_Vertex.xy - screen_size / 2.0f;
-  float angle = rxrot + screen_off.y * fov / screen_size.x +
+  mat3 camera_y, camera_rx;
+  float angle;
+
+  screen_off = gl_Vertex.xy - screen_size / 2.0f;
+  scale = screen_size.x * tan(fov / 2.0f) / 2.0f;
+  angle = rxrot + screen_off.y * fov / screen_size.x +
     3.14159f / 2.0f;
 
   gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;

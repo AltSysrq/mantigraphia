@@ -33,7 +33,7 @@
 
 typedef struct skybox_s skybox;
 
-skybox* skybox_new(void);
+skybox* skybox_new(unsigned seed);
 void skybox_delete(skybox*);
 
 void skybox_render(canvas*, skybox*,
