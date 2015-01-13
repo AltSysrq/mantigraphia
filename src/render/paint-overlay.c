@@ -126,7 +126,8 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
 
       gx = x_fp / grid_sz_fp;
       gy = y_fp / grid_sz_fp;
-      if (gx == points[indices[gy][gx]].x_fp / grid_sz_fp ||
+      if (gx >= gridw || gy >= gridh ||
+          gx == points[indices[gy][gx]].x_fp / grid_sz_fp ||
           gy == points[indices[gy][gx]].y_fp / grid_sz_fp)
         goto reject_point;
 
