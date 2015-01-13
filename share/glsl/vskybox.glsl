@@ -26,11 +26,11 @@ void main() {
     camera_rx *
     vec3(screen_off.x / scale, -screen_off.y / scale, -1.0f));
 
-  angle = rxrot + screen_off.y * fov / screen_size.x +
+  angle = asin(rxrot.y) + screen_off.y * fov / screen_size.x +
     3.14159f / 2.0f;
 
   gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
   gl_FrontColor = vec4(0.2f, 0.2f, 0.5f, 1.0f) +
     clamp(angle / 3.14159f, 0.0f, 1.0f) *
-    vec4(0.4f, 0.4f, 0.4f, 0.0f);
+    vec4(0.6f, 0.6f, 0.6f, 0.0f);
 }
