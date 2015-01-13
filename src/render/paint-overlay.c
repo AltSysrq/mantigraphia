@@ -81,7 +81,7 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
   unsigned natural_grid_sz_fp =
     fraction_umul(radius_fp, 0x5A827999 /*1/sqrt(2)*/) - 1;
   unsigned grid_sz_fp = umax(natural_grid_sz_fp, 1);
-  unsigned gridw = canv->w*FP / grid_sz_fp, gridh = canv->h*FP / grid_sz_fp;
+  unsigned gridw = canv->w*FP / grid_sz_fp + 1, gridh = canv->h*FP / grid_sz_fp + 1;
 
   unsigned* active_points;
   struct { unsigned x_fp, y_fp; }* points;
