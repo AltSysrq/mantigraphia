@@ -66,6 +66,12 @@ void parchment_draw(canvas*, const parchment*,
                     unsigned screen_size_reduction);
 
 /**
+ * Reconfigures GL to capture draw operations into the parchment's postprocess
+ * texture.
+ */
+void parchment_preprocess(const parchment*, const canvas* selection);
+
+/**
  * Performs postprocessing against the OpenGL framebuffer, whose size is given
  * by the given canvas, using the area of the framebuffer indicated by the
  * selection canvas.

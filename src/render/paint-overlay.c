@@ -42,6 +42,7 @@
 #include "../gl/shaders.h"
 #include "../gl/glinfo.h"
 #include "../gl/marshal.h"
+#include "../gl/auxbuff.h"
 #include "../graphics/canvas.h"
 #include "paint-overlay.h"
 
@@ -53,8 +54,9 @@ struct paint_overlay_s {
   GLuint vbo, fbtex, brushtex;
   unsigned num_points;
   unsigned point_size;
-  unsigned screenw, screenh, src_screenw, src_screenh, whole_screenh;
-  float xoff, yoff, screen_shift_y;
+  unsigned screenw, screenh, src_screenw, src_screenh;
+  unsigned fbtex_dim[2];
+  float xoff, yoff;
 };
 
 static void paint_overlay_create_texture(paint_overlay*);
@@ -70,7 +72,7 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
    *
    * See http://bost.ocks.org/mike/algorithms/
    */
-  paint_overlay* this = xmalloc(sizeof(paint_overlay));
+  paint_overlay* this = zxmalloc(sizeof(paint_overlay));
 
   unsigned point_size_fp =
     umin(canv->w / DESIRED_POINTS_PER_SCREENW,
@@ -226,13 +228,17 @@ void paint_overlay_delete(paint_overlay* this) {
 }
 
 static void paint_overlay_preprocess_impl(paint_overlay* this) {
-  glBindTexture(GL_TEXTURE_2D, this->fbtex);
-  glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-                   /* Need to offset Y because OpenGL's concept of the Y axis
-                    * is upside-down.
-                    */
-                   0, this->whole_screenh - this->src_screenh,
-                   this->src_screenw, this->src_screenh, 0);
+  if (this->src_screenw != this->fbtex_dim[0] ||
+      this->src_screenh != this->fbtex_dim[1]) {
+    glBindTexture(GL_TEXTURE_2D, this->fbtex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                 this->src_screenw, this->src_screenh, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    this->fbtex_dim[0] = this->src_screenw;
+    this->fbtex_dim[1] = this->src_screenh;
+  }
+
+  auxbuff_target_immediate(this->fbtex, this->src_screenw, this->src_screenh);
 }
 
 static void paint_overlay_postprocess_impl(paint_overlay* this) {
@@ -263,8 +269,6 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   uniform.screen_size[1] = this->screenh;
   uniform.screen_off[0] = this->xoff;
   uniform.screen_off[1] = this->yoff;
-  uniform.screen_shift[0] = 0.0f;
-  uniform.screen_shift[1] = this->screen_shift_y;
   shader_paint_overlay_activate(&uniform);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
   glPointSize(this->point_size * POINT_SIZE_MULT);
@@ -279,9 +283,6 @@ void paint_overlay_preprocess(paint_overlay* this,
                               const canvas* src, const canvas* whole) {
   this->src_screenw = src->w;
   this->src_screenh = src->h;
-  this->whole_screenh = whole->h;
-  this->screen_shift_y = ((signed)(this->screenh - whole->h)) /
-    (float)this->screenh;
   glm_do((void(*)(void*))paint_overlay_preprocess_impl, this);
 }
 

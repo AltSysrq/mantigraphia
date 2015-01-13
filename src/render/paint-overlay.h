@@ -68,8 +68,8 @@ paint_overlay* paint_overlay_new(const canvas*);
 void paint_overlay_delete(paint_overlay*);
 
 /**
- * Prepares the current state of the OpenGL framebuffer for post-processing.
- * This should be performed before the background is filled in.
+ * Prepares the current state of the OpenGL framebuffer for post-processing, so
+ * that further operations render into the postprocessing buffer.
  *
  * The input canvas is used to size the portion of the framebuffer which is
  * *read*, whereas the one given to the paint_overlay_new() determines the size

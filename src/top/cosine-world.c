@@ -49,6 +49,7 @@
 #include "world/vmap-painter.h"
 #include "world/nfa-turtle-vmap-painter.h"
 #include "gl/marshal.h"
+#include "gl/auxbuff.h"
 #include "render/context.h"
 #include "render/terrain-tilemap.h"
 #include "render/paint-overlay.h"
@@ -296,19 +297,23 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   canvas_init_thin(&after_paint_overlay,
                    dst->w/PAINT_SIZE_REDUCTION, dst->h/PAINT_SIZE_REDUCTION);
 
-  canvas_gl_clip_sub(&before_paint_overlay, dst);
-  skybox_render(&before_paint_overlay, this->sky, this->context);
-  render_terrain_tilemap(&before_paint_overlay, this->world, this->context);
-  render_env_vmap(&before_paint_overlay, this->vmap_renderer, this->context);
-  ump_join();
-  canvas_gl_clip_sub(&after_paint_overlay, dst);
   if (!this->overlay)
     this->overlay = paint_overlay_new(&after_paint_overlay);
   paint_overlay_preprocess(this->overlay, this->context,
                            &before_paint_overlay, dst);
+
+  glm_clear(GL_DEPTH_BUFFER_BIT);
+  skybox_render(&before_paint_overlay, this->sky, this->context);
+  render_terrain_tilemap(&before_paint_overlay, this->world, this->context);
+  render_env_vmap(&before_paint_overlay, this->vmap_renderer, this->context);
+  ump_join();
+
+  parchment_preprocess(this->bg, &after_paint_overlay);
+
   parchment_draw(&after_paint_overlay, this->bg, PAINT_SIZE_REDUCTION);
   paint_overlay_postprocess(this->overlay, this->context);
-  canvas_gl_clip_sub(dst, dst);
+  auxbuff_target(0, dst->w, dst->h);
+
   parchment_postprocess(this->bg, dst, &after_paint_overlay);
 }
 

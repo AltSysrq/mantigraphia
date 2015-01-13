@@ -63,6 +63,7 @@
 #include "graphics/glpencil.h"
 #include "gl/glinfo.h"
 #include "gl/marshal.h"
+#include "gl/auxbuff.h"
 #include "control/mouselook.h"
 #include "render/terrabuff.h"
 #include "game-state.h"
@@ -258,6 +259,7 @@ int main(int argc, char** argv) {
   ump_init(SDL_GetCPUCount()-1);
   glinfo_detect(wh);
   glm_init();
+  auxbuff_init(ww, wh);
   parchment_init();
   brush_load();
   fast_brush_load();
@@ -310,8 +312,6 @@ static game_state* update(game_state* state) {
 
 static void draw(canvas* canv, game_state* state,
                  SDL_Window* screen) {
-  glClear(GL_DEPTH_BUFFER_BIT);
-
   (*state->predraw)(state, canv);
   /* Todo: Run on separate thread */
   (*state->draw)(state, canv);

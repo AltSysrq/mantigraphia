@@ -41,8 +41,10 @@
 #include "../micromp.h"
 #include "../gl/marshal.h"
 #include "../gl/shaders.h"
+#include "../gl/auxbuff.h"
 #include "canvas.h"
 #include "parchment.h"
+#include "../defs.h"
 
 #define PARCHMENT_DIM 2048
 #define PARCHMENT_MASK (PARCHMENT_DIM-1)
@@ -50,6 +52,8 @@
 
 static GLuint texture;
 static GLuint postprocess_tex;
+static GLuint vbo;
+static unsigned postprocess_tex_dim[2];
 static glm_slab_group* glmsg;
 static void parchment_activate(void*);
 static void parchment_deactivate(void*);
@@ -101,6 +105,7 @@ void parchment_init(void) {
                              sizeof(shader_fixed_texture_vertex));
 
   glGenTextures(1, &postprocess_tex);
+  glGenBuffers(1, &vbo);
 }
 
 parchment* parchment_new(void) {
@@ -171,6 +176,25 @@ void parchment_draw(canvas* dst, const parchment* this,
   glm_finish_thread();
 }
 
+static void parchment_do_preprocess(const canvas* selection) {
+  if (selection->w != postprocess_tex_dim[0] ||
+      selection->h != postprocess_tex_dim[1]) {
+    glBindTexture(GL_TEXTURE_2D, postprocess_tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                 selection->w, selection->h, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    postprocess_tex_dim[0] = selection->w;
+    postprocess_tex_dim[1] = selection->h;
+  }
+
+  auxbuff_target_immediate(postprocess_tex, selection->w, selection->h);
+}
+
+void parchment_preprocess(const parchment* this,
+                          const canvas* selection) {
+  glm_do((void(*)(void*))parchment_do_preprocess, (void*)selection);
+}
+
 struct parchment_postprocess {
   const parchment* this;
   const canvas* canv, * selection;
@@ -178,6 +202,17 @@ struct parchment_postprocess {
 
 static void parchment_do_postprocess(struct parchment_postprocess* d) {
   shader_postprocess_uniform uniform;
+
+  shader_postprocess_vertex vertices[] = {
+    { { d->canv->w, 0.0f       }, { 1.0f, 1.0f } },
+    { { 0.0f,       0.0f       }, { 0.0f, 1.0f } },
+    { { d->canv->w, d->canv->h }, { 1.0f, 0.0f } },
+    { { 0.0f,       d->canv->h }, { 0.0f, 0.0f } },
+  };
+
+  glPushAttrib(GL_ENABLE_BIT);
+  glDisable(GL_DEPTH_TEST);
+
   uniform.framebuffer = 0;
   /* We want these to be integer divisons so that the result is an integer, and
    * the effect remains sharp (ie, to the pixel).
@@ -189,27 +224,20 @@ static void parchment_do_postprocess(struct parchment_postprocess* d) {
   uniform.pocket_size_scr[1] = uniform.pocket_size_px / (float)d->canv->h;
 
   glBindTexture(GL_TEXTURE_2D, postprocess_tex);
-  glCopyTexImage2D(
-    GL_TEXTURE_2D, 0, GL_RGB,
-    d->selection->ox, d->canv->h - d->selection->oy - d->selection->h,
-    d->selection->w, d->selection->h, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
   shader_postprocess_activate(&uniform);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
+               GL_STREAM_DRAW);
   shader_postprocess_configure_vbo();
 
-  glBegin(GL_QUADS);
-  glVertex2f(0.0f, 0.0f);
-  glTexCoord2f(1.0f, 1.0f);
-  glVertex2f(d->canv->w, 0.0f);
-  glTexCoord2f(1.0f, 0.0f);
-  glVertex2f(d->canv->w, d->canv->h);
-  glTexCoord2f(0.0f, 0.0f);
-  glVertex2f(0.0f, d->canv->h);
-  glTexCoord2f(0.0f, 1.0f);
-  glEnd();
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, lenof(vertices));
+
+  glPopAttrib();
 
   free(d);
 }

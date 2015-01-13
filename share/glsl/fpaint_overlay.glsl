@@ -2,7 +2,6 @@ uniform sampler2D framebuffer;
 uniform sampler2D brush;
 uniform vec2 screen_size;
 uniform vec2 screen_off;
-uniform vec2 screen_shift;
 varying vec4 selected_colour;
 varying vec2 stroke_centre;
 varying vec2 lumtc_scale;
@@ -16,7 +15,7 @@ void main() {
   vec2 atcoff, ltcoff, centre_offset, atc, lumtc;
 
   direct = texture2D(framebuffer,
-                     gl_FragCoord.xy / screen_size + screen_shift);
+                     gl_FragCoord.xy / screen_size);
   if (direct.a > 0.0f && direct.a <= 0.50f) {
     gl_FragColor.rgb = direct.rgb * GRAPHITE.rgb;
     gl_FragColor.a = GRAPHITE.a;

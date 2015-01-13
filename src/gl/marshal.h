@@ -155,6 +155,11 @@ void glm_done(void);
 void glm_do(void (*)(void*), void*);
 
 /**
+ * Arranges to call glClear() with the given value.
+ */
+void glm_clear(unsigned value);
+
+/**
  * Executes tasks enqueued for OpenGL marshalling. Returns after executing a
  * task enqueued by glm_do().
  */

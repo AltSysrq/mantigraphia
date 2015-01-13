@@ -47,6 +47,7 @@ gl/glinfo.c \
 gl/shader_loader.c \
 gl/shaders.c \
 gl/marshal.c \
+gl/auxbuff.c \
 world/terrain-tilemap.c \
 world/terrain.c \
 world/generate.c \
