@@ -1,6 +1,7 @@
 uniform sampler2D clouds;
 uniform vec2 cloud_offset_1;
 uniform vec2 cloud_offset_2;
+uniform float cloudiness;
 
 varying vec3 ray;
 
@@ -39,7 +40,7 @@ void main() {
      texture2D(clouds, intersection.xz / CLOUD_SCALE + cloud_offset_2).r)/2.0f
     : 0.0f;
 
-  if (cloud < 0.5f)
+  if (cloud < (1.0f - cloudiness))
     gl_FragColor = gl_Color;
   else
     gl_FragColor = mix(vec4(1.0f, 1.0f, 1.0f, 1.0f), gl_Color,

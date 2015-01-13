@@ -120,6 +120,9 @@ static void skybox_do_render(skybox_render_op* op) {
   uniform.cloud_offset_1[1] = basic_cloud_offset;
   uniform.cloud_offset_2[0] = basic_cloud_offset * 3.14f;
   uniform.cloud_offset_2[1] = basic_cloud_offset * 4.14f;
+  uniform.cloudiness = 0.5f + 0.1f * zo_float(
+    zo_cos(65536 * (context->month_integral + 1) / 10 +
+           context->month_fraction / (fraction_of(1) / 65536) / 10));
   uniform.clouds = 0;
 
   shader_skybox_activate(&uniform);

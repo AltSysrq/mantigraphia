@@ -156,4 +156,5 @@ shader(skybox) {
   uniform(tex2d, clouds)
   uniform(vec2, cloud_offset_1)
   uniform(vec2, cloud_offset_2)
+  uniform(float, cloudiness)
 }
