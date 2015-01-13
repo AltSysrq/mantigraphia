@@ -6,7 +6,7 @@ uniform float cloudiness;
 varying vec3 ray;
 
 const float METRE = 65536.0f;
-const float EARTH_RADIUS = 6378.1e1 * METRE;
+const float EARTH_RADIUS = 6378.1e3 * METRE;
 const float CLOUD_ALTITUDE = 1024 * METRE;
 const float CLOUD_RADIUS = EARTH_RADIUS + CLOUD_ALTITUDE;
 const float CLOUD_VISIBILITY = 8192 * METRE;
