@@ -95,8 +95,9 @@ static void skybox_do_render(skybox_render_op* op) {
 
   free(op);
 
-  glPushAttrib(GL_ENABLE_BIT);
+  glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT);
   glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
 
   glBindTexture(GL_TEXTURE_2D, this->clouds);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

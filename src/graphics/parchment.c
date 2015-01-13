@@ -210,8 +210,9 @@ static void parchment_do_postprocess(struct parchment_postprocess* d) {
     { { 0.0f,       d->canv->h }, { 0.0f, 0.0f } },
   };
 
-  glPushAttrib(GL_ENABLE_BIT);
+  glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT);
   glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
 
   uniform.framebuffer = 0;
   /* We want these to be integer divisons so that the result is an integer, and

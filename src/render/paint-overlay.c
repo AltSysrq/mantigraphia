@@ -244,10 +244,11 @@ static void paint_overlay_preprocess_impl(paint_overlay* this) {
 static void paint_overlay_postprocess_impl(paint_overlay* this) {
   shader_paint_overlay_uniform uniform;
 
-  glPushAttrib(GL_ENABLE_BIT);
+  glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_POINT_SPRITE);
   glEnable(GL_TEXTURE_2D);
   glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glBindTexture(GL_TEXTURE_2D, this->fbtex);
