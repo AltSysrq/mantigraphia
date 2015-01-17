@@ -30,6 +30,7 @@ math/coords.c \
 math/trigtab.c \
 math/rand.c \
 math/evaluator.c \
+math/poisson-disc.c \
 graphics/canvas.c \
 graphics/parchment.c \
 graphics/pencil.c \
