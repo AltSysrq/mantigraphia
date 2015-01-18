@@ -41,8 +41,11 @@ void main() {
     : 0.0f;
 
   if (cloud < (1.0f - cloudiness))
-    gl_FragColor = gl_Color;
+    gl_FragColor.rgb = gl_Color.rgb;
   else
-    gl_FragColor = mix(vec4(1.0f, 1.0f, 1.0f, 1.0f), gl_Color,
-                       distance_to_intersect / CLOUD_VISIBILITY);
+    gl_FragColor.rgb = mix(vec3(1.0f, 1.0f, 1.0f) *
+                           (1.0f - (cloud - (1.0f - cloudiness))*1.5f), gl_Color.rgb,
+                           distance_to_intersect / CLOUD_VISIBILITY);
+
+  gl_FragColor.a = 1.0f;
 }
