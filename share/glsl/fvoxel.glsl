@@ -1,15 +1,14 @@
-uniform sampler2D tex, palette;
-uniform float palette_t;
+uniform sampler2D tex, control;
 
 void main() {
-  vec3 tinput;
-  vec4 colour;
+  vec4 texs;
+  vec2 controls;
 
-  tinput = texture2D(tex,  gl_TexCoord[0].st).rgb;
-  colour = texture2D(palette, vec2(tinput.r, palette_t));
+  texs = texture2D(tex, gl_TexCoord[0].st);
+  controls = texture2D(control, gl_TexCoord[0].st).rg;
 
-  if (colour.a < tinput.b) discard;
+  if (texs.a <= controls.g) discard;
 
-  gl_FragColor.rgb = colour.rgb;
-  gl_FragColor.a = tinput.g;
+  gl_FragColor.rgb = texs.rgb;
+  gl_FragColor.a = controls.r;
 }

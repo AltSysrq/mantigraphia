@@ -94,9 +94,9 @@ resource.palette.oaktree_trunk = core.bind(core.new_palette) {
 }
 
 -- TODO: Real textures instead of noise
-function resource.texture.oaktree_trunk()
+function resource.texdata.oaktree_trunk()
   local rnd = 42
-  return core.new_texture(
+  return core.new_texdata(
     mg.tg_zip(mg.tg_uniform_noise(core.byte_array { 64, 128, 224 }, 1),
               mg.tg_uniform_noise(core.byte_array { 255 }, 3),
               mg.tg_uniform_noise(nil, 2)),
@@ -122,7 +122,7 @@ function oaktree_generate_leaf_texture(bias)
   local clipped = mg.tg_stencil(zero, colour, worley,
                                 mg.tg_fill(255-32), sphere)
 
-  return core.new_texture(
+  return core.new_texdata(
     mg.tg_zip(
       clipped,
       mg.tg_uniform_noise(core.byte_array { 255, 220, 200, 197 }, rnd),
@@ -130,9 +130,13 @@ function oaktree_generate_leaf_texture(bias)
     core.binary_mipmap_maximum, true)
 end
 
+resource.texture.oaktree_trunk = core.bind(core.new_texture) {
+  texdata = "oaktree_trunk",
+  palette = "oaktree_trunk",
+}
+
 resource.graphic_plane.oaktree_trunk = core.bind(core.new_graphic_plane) {
   texture = "oaktree_trunk",
-  palette = "oaktree_trunk",
 }
 
 resource.voxel_graphic.oaktree_trunk = core.bind(core.new_voxel_graphic) {
@@ -141,12 +145,16 @@ resource.voxel_graphic.oaktree_trunk = core.bind(core.new_voxel_graphic) {
 }
 
 for i = 1, 4 do
-  resource.texture["oaktree_leaf"..i] =
+  resource.texdata["oaktree_leaf"..i] =
     core.bind(oaktree_generate_leaf_texture)(32 + i*32)
+
+  resource.texture["oaktree_leaf"..i] = core.bind(core.new_texture) {
+    texdata = "oaktree_leaf"..i,
+    palette = "oaktree_leaf"
+  }
 
   resource.graphic_plane["oaktree_leaf"..i] = core.bind(core.new_graphic_plane) {
     texture = "oaktree_leaf" .. i,
-    palette = "oaktree_leaf",
   }
 
   resource.voxel_graphic["oaktree_leaf"..i] = core.bind(core.new_voxel_graphic) {

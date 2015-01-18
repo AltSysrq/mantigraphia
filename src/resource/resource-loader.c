@@ -34,8 +34,10 @@
 
 #include <glew.h>
 
+#include "../alloc.h"
 #include "../world/env-vmap.h"
 #include "../render/env-vmap-renderer.h"
+#include "../render/voxel-tex-interp.h"
 
 env_voxel_context_map res_voxel_context_map;
 static unsigned res_num_voxel_types = 1;
@@ -50,11 +52,15 @@ static env_voxel_graphic_plane res_graphic_planes[
 static unsigned res_num_graphic_planes;
 
 #define MAX_TEXTURES 1024
-static GLuint res_textures[MAX_TEXTURES];
-unsigned res_num_textures;
+#define TEXTURE_MM_NPX (64*64+32*32+16*16+8*8+4*4+2*2+1*1)
 
-static GLuint res_palettes[MAX_TEXTURES];
-unsigned res_num_palettes;
+static struct {
+  GLuint texture[2];
+  unsigned char selector[TEXTURE_MM_NPX];
+  unsigned char* palette;
+  unsigned palette_w, palette_h;
+} res_textures[MAX_TEXTURES];
+unsigned res_num_textures;
 
 static GLuint res_default_texture;
 
@@ -70,24 +76,27 @@ static void res_gen_default_texture(GLuint tex) {
 
 void rl_clear(void) {
   static int has_textures = 0;
+  unsigned i;
 
   res_num_voxel_types = 1;
   res_num_voxel_graphics = 1;
   res_num_graphic_planes = 1;
   res_num_textures = 1;
-  res_num_palettes = 1;
   memset(res_voxel_graphics, 0, sizeof(res_voxel_graphics));
   memset(&res_voxel_context_map, 0, sizeof(res_voxel_context_map));
   memset(res_voxel_graphics_array, 0, sizeof(res_voxel_graphics_array));
   memset(res_graphic_planes, 0, sizeof(res_graphic_planes));
 
   if (!has_textures) {
-    glGenTextures(1, &res_default_texture);
-    glGenTextures(MAX_TEXTURES-1, res_textures + 1);
-    glGenTextures(MAX_TEXTURES-1, res_palettes + 1);
-    res_gen_default_texture(res_default_texture);
+    for (i = 1; i < MAX_TEXTURES; ++i)
+      glGenTextures(2, res_textures[i].texture);
+
     has_textures = 1;
   }
+
+  for (i = 1; i < MAX_TEXTURES; ++i)
+    if (res_textures[i].palette)
+      free(res_textures[i].palette);
 }
 
 void rl_set_frozen(int is_frozen) {
@@ -149,7 +158,7 @@ unsigned rl_graphic_plane_new(void) {
   CKIX(res_num_graphic_planes, NUM_ENV_VOXEL_CONTEXTUAL_TYPES*3);
 
   res_graphic_planes[res_num_graphic_planes].texture = res_default_texture;
-  res_graphic_planes[res_num_graphic_planes].palette = res_default_texture;
+  res_graphic_planes[res_num_graphic_planes].control = res_default_texture;
   res_graphic_planes[res_num_graphic_planes].texture_scale[0][0] = 65536;
   res_graphic_planes[res_num_graphic_planes].texture_scale[0][1] = 0;
   res_graphic_planes[res_num_graphic_planes].texture_scale[1][0] = 0;
@@ -162,16 +171,8 @@ unsigned rl_graphic_plane_set_texture(unsigned plane, unsigned texture) {
   CKIX(plane, res_num_graphic_planes);
   CKIX(texture, res_num_textures);
 
-  res_graphic_planes[plane].texture = res_textures[texture];
-  return 1;
-}
-
-unsigned rl_graphic_plane_set_palette(unsigned plane, unsigned palette) {
-  CKNF();
-  CKIX(plane, res_num_graphic_planes);
-  CKIX(palette, res_num_palettes);
-
-  res_graphic_planes[plane].palette = res_palettes[palette];
+  res_graphic_planes[plane].texture = res_textures[texture].texture[0];
+  res_graphic_planes[plane].control = res_textures[texture].texture[1];
   return 1;
 }
 
@@ -191,57 +192,82 @@ unsigned rl_texture_new(void) {
   CKNF();
   CKIX(res_num_textures, MAX_TEXTURES);
 
-  res_gen_default_texture(res_textures[res_num_textures]);
+  res_gen_default_texture(res_textures[res_num_textures].texture[0]);
+  res_gen_default_texture(res_textures[res_num_textures].texture[1]);
+  res_textures[res_num_textures].palette = NULL;
   return res_num_textures++;
 }
 
-unsigned rl_texture_load64x64rgb(unsigned texture,
-                                 const void* d64,
-                                 const void* d32,
-                                 const void* d16,
-                                 const void* d8,
-                                 const void* d4,
-                                 const void* d2,
-                                 const void* d1) {
+unsigned rl_texture_load64x64rgbmm_NxMrgba(
+  unsigned texture,
+  const void* d64, const void* d32,
+  const void* d16, const void* d8,
+  const void* d4,  const void* d2,
+  const void* d1,
+  unsigned ncolours, unsigned ntimes,
+  const void* palette
+) {
+  unsigned char rgb_data[TEXTURE_MM_NPX*3];
+  unsigned char control_data[TEXTURE_MM_NPX*2];
+  unsigned char* levelptr;
+  unsigned level, ln;
+
   CKNF();
   CKIX(texture, res_num_textures);
 
-  glBindTexture(GL_TEXTURE_2D, res_textures[texture]);
+  levelptr = rgb_data;
+#define CPY(l) memcpy(levelptr, d##l, l*l*3); levelptr += l*l*3
+  CPY(64);
+  CPY(32);
+  CPY(16);
+  CPY(8);
+  CPY(4);
+  CPY(2);
+  CPY(1);
+#undef CPY
+
+  if (res_textures[texture].palette)
+    free(res_textures[texture].palette);
+
+  res_textures[texture].palette = xmalloc(ncolours * ntimes * 4);
+  memcpy(res_textures[texture].palette, palette, ncolours * ntimes * 4);
+  res_textures[texture].palette_w = ncolours;
+  res_textures[texture].palette_h = ntimes;
+
+  voxel_tex_demux(control_data, res_textures[texture].selector, rgb_data,
+                  TEXTURE_MM_NPX);
+
+  glBindTexture(GL_TEXTURE_2D, res_textures[texture].texture[1]);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-#define L(l,s)                                          \
-  glTexImage2D(GL_TEXTURE_2D, l, GL_RGB, s, s, 0,       \
-               GL_RGB, GL_UNSIGNED_BYTE, d##s)
-  L(0, 64);
-  L(1, 32);
-  L(2, 16);
-  L(3,  8);
-  L(4,  4);
-  L(5,  2);
-  L(6,  1);
-#undef L
+  for (level = 64, ln = 0, levelptr = control_data;
+       level;
+       levelptr += level*level*2, level /= 2, ++ln)
+    glTexImage2D(GL_TEXTURE_2D, ln, GL_RG, level, level, 0,
+                 GL_RG, GL_UNSIGNED_BYTE, levelptr);
 
   return 1;
 }
 
-unsigned rl_palette_new(void) {
-  CKNF();
-  CKIX(res_num_palettes, MAX_TEXTURES);
+void rl_update_textures(unsigned offset, unsigned stride,
+                        fraction t) {
+  unsigned char rgba[TEXTURE_MM_NPX*4];
+  unsigned char* levelptr;
+  unsigned tex, level, ln;
 
-  res_gen_default_texture(res_palettes[res_num_palettes]);
-  return res_num_palettes++;
-}
+  for (tex = offset + 1; tex < res_num_textures; tex += stride) {
+    if (!res_textures[tex].palette) continue;
 
-unsigned rl_palette_loadNxMrgba(unsigned palette,
-                                unsigned ncolours, unsigned ntimes,
-                                const void* data) {
-  CKNF();
-  CKIX(palette, res_num_palettes);
-  if (!ncolours || ncolours > 256) return 0;
-  if (ntimes < 10 || ntimes > 256) return 0;
+    voxel_tex_apply_palette(rgba, res_textures[tex].selector, TEXTURE_MM_NPX,
+                            res_textures[tex].palette,
+                            res_textures[tex].palette_w,
+                            res_textures[tex].palette_h,
+                            t);
 
-  glBindTexture(GL_TEXTURE_2D, res_palettes[palette]);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ncolours, ntimes, 0,
-               GL_RGBA, GL_UNSIGNED_BYTE, data);
-  return 1;
+    glBindTexture(GL_TEXTURE_2D, res_textures[tex].texture[0]);
+    for (levelptr = rgba, level = 64, ln = 0;
+         level;
+         levelptr += level*level*4, level /= 2, ++ln)
+      glTexImage2D(GL_TEXTURE_2D, ln, GL_RGBA, level, level, 0,
+                   GL_RGBA, GL_UNSIGNED_BYTE, levelptr);
+  }
 }

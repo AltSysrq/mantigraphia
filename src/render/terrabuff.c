@@ -445,6 +445,7 @@ static void interp_to_gl(void* ignored) {
   glTexImage2D(GL_TEXTURE_2D, 0, GL_R16,
                terrabuff_dst->w, terrabuff_this->scan, 0,
                GL_RED, GL_UNSIGNED_SHORT, terrabuff_interp);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 }
 
 static void render_rectangle_between(glm_slab* slab,

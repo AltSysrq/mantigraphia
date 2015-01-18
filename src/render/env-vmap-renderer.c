@@ -526,8 +526,6 @@ static void env_vmap_render_cell_render(
   shader_voxel_uniform uniform;
   unsigned i;
 
-  uniform.palette_t = context->month_integral / 9.0f +
-    context->month_fraction / (float)fraction_of(1) / 9.0f;
   uniform.torus_sz[0] = context->proj->torus_w;
   uniform.torus_sz[1] = context->proj->torus_h;
   uniform.yrot[0] = zo_float(context->proj->yrot_cos);
@@ -542,7 +540,7 @@ static void env_vmap_render_cell_render(
     uniform.camera_fractional[i] = context->proj->camera[i] & 0x0000FFFF;
   }
   uniform.tex = 0;
-  uniform.palette = 1;
+  uniform.control = 1;
 
   glBindBuffer(GL_ARRAY_BUFFER, cell->buffers[0]);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cell->buffers[1]);
@@ -554,9 +552,9 @@ static void env_vmap_render_cell_render(
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, cell->operations[i].graphic->palette);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, cell->operations[i].graphic->control);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glActiveTexture(GL_TEXTURE0);

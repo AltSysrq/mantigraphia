@@ -89,8 +89,7 @@ shader(voxel) {
   uniform(vec3, camera_integer)
   uniform(vec3, camera_fractional)
   uniform(tex2d, tex)
-  uniform(tex2d, palette)
-  uniform(float, palette_t)
+  uniform(tex2d, control)
   uniform(vec2, texture_scale_s)
   uniform(vec2, texture_scale_t)
 }

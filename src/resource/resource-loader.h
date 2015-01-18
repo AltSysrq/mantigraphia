@@ -28,6 +28,7 @@
 #ifndef RESOURCE_RESOURCE_LOADER_H_
 #define RESOURCE_RESOURCE_LOADER_H_
 
+#include "../math/frac.h"
 #include "../world/env-vmap.h"
 #include "../render/env-vmap-renderer.h"
 
@@ -65,6 +66,12 @@ void rl_clear(void);
  * resource set fail.
  */
 void rl_set_frozen(int);
+
+/**
+ * Updates every strideth texture, beginning with the offsetth texture,
+ * according to their palettes and the current time.
+ */
+void rl_update_textures(unsigned offset, unsigned stride, fraction t);
 
 
 /****** Functions below this point are llua-callable *******/
@@ -171,7 +178,19 @@ unsigned rl_graphic_plane_set_scale(unsigned plane,
  */
 unsigned rl_texture_new(void);
 /**
- * Edits 64x64 RGB texture.
+ * Edits 64x64 RGB texture by specifying both the control and palette data.
+ *
+ * The mipmap of the texture specifies control data as follows:
+ * - R is an index into the S axis of the palette (after logical expansion).
+ * - G controls the brush shape and direction (it is passed through to the
+ *   alpha channel of the outpt).
+ * - B controls visibility. A texel is visible if the B of the control texture
+ *   is greater than the A of the palette.
+ *
+ * The palette specifies the actual colours to use. It is logically expanded
+ * via interpolation to be 256 pixels wide. The S axis is used to select
+ * colours via the R channel of the mipmap texture; the T axis specifies
+ * variance by time.
  *
  * @param texture The texture to edit.
  * @param d64 The 64x64 level of the mipmap. Size 64*64*3 = 12288.
@@ -181,35 +200,19 @@ unsigned rl_texture_new(void);
  * @param d4 The 4x4 level of the mipmap. Size 4*4*3 = 48.
  * @param d2 The 2x2 level of the mipmap. Size 2*2*3 = 12.
  * @param d1 The 1x1 level of the mipmap. Size 1*1*3 = 3.
+ * @param ncolours The number of colours in the palette; ie, the size of the
+ * palette's S axis.
+ * @param ntimes The number of time-steps in the palette; ie, the size of the
+ * palette's T axis.
  * @return Whether successful.
  */
-unsigned rl_texture_load64x64rgb(unsigned texture,
-                                 const void* d64,
-                                 const void* d32,
-                                 const void* d16,
-                                 const void* d8,
-                                 const void* d4,
-                                 const void* d2,
-                                 const void* d1);
-/**
- * Allocates a new palette with unspecified content.
- *
- * @return The new palette index.
- */
-unsigned rl_palette_new(void);
-/**
- * Edits a NxM RGBA palette.
- *
- * @param palette The palette to edit.
- * @param ncoluors The number of colours (ie, the S axis) being specified.
- * Maximum 256.
- * @param ntimes The number of time-frames being specified. Minimum 10, maximum
- * 256.
- * @param data The RGBA data. Size ncolours*ntimes*4.
- * @return Whether successful.
- */
-unsigned rl_palette_loadNxMrgba(unsigned palette,
-                                unsigned ncolours, unsigned ntimes,
-                                const void* data);
+unsigned rl_texture_load64x64rgbmm_NxMrgba(
+  unsigned texture,
+  const void* d64, const void* d32,
+  const void* d16, const void* d8,
+  const void* d4, const void* d2,
+  const void* d1,
+  unsigned ncolours, unsigned ntimes,
+  const void* palette);
 
 #endif /* RESOURCE_RESOURCE_LOADER_H_ */
