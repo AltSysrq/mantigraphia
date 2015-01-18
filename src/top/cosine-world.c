@@ -129,7 +129,7 @@ game_state* cosine_world_new(unsigned seed) {
     0,0,0,0,
     0,0,0,0,
     2 * METRE,
-    1, 1
+    1, 0
   };
 
   const vc3 origin = { 0, 0, 0 };
