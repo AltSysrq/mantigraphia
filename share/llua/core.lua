@@ -48,8 +48,9 @@ core = {}
 resource = {
   graphic_plane = {},
   voxel_graphic = {},
-  texture = {},
+  texdata = {},
   palette = {},
+  texture = {},
   voxel = {},
   ntvp = {},
 }
@@ -221,21 +222,22 @@ function core.binary_mipmap_maximum(data)
   return mg.tg_mipmap_maximum(mg.isqrt(#data/3), data)
 end
 
---- Creates and loads a palette from a table.
+--- Creates a palette description from a table.
 --
 -- Convenience function for allocating a new palette and loading it with the
 -- texture defined by the given two-dimensional ARGB table.
 --
 -- @param tab A table suitable for core.rgba_string_from_argb_table()
--- @return The index of the new palette object.
+-- @return A table describing the converted palette.
 function core.new_palette(tab)
-  local palette = mg.rl_palette_new()
-  mg.rl_palette_loadNxMrgba(palette, #tab[1], #tab,
-                            core.rgba_string_from_argb_table(tab))
-  return palette
+  return {
+    data = core.rgba_string_from_argb_table(tab),
+    ncolours = #tab[1],
+    ntimes = #tab,
+  }
 end
 
---- Creates and loads a mipmapped texture from a table.
+--- Creates mipmapped texture data from a table.
 --
 -- Convenience function for allocating a new texture and loading it with the
 -- data from the given two-dimensional RGB table.
@@ -244,10 +246,9 @@ end
 -- @param mipmap A function which takes a two-dimensional table and returns
 -- a new two-dimensional table whose dimensions are half those of the input,
 -- and still compatible with core.rgb_string_from_argb_table().
--- @return The index of the new texture object.
 -- @param is_raw If true, input textures are assumed to already be byte arrays.
-function core.new_texture(t64, mipmap, is_raw)
-  local texture = mg.rl_texture_new()
+-- @return An array containing the mipmapped texture data.
+function core.new_texdata(t64, mipmap, is_raw)
   local t32 = mipmap(t64)
   local t16 = mipmap(t32)
   local t8  = mipmap(t16)
@@ -262,8 +263,30 @@ function core.new_texture(t64, mipmap, is_raw)
     cvt = core.rgb_string_from_argb_table
   end
 
-  mg.rl_texture_load64x64rgb(texture, cvt(t64), cvt(t32), cvt(t16),
-                             cvt(t8), cvt(t4), cvt(t2), cvt(t1))
+  return { cvt(t64), cvt(t32), cvt(t16), cvt(t8), cvt(t4), cvt(t2), cvt(t1) }
+end
+
+-- Constructs and loads a new texture object.
+--
+-- Parameters are passed in a single table for readability. The relevant
+-- parameters are:
+--
+-- - texdata. Specifies a key to resources.texdata from which to obtain the
+--   texture data (see core.new_texdata()).
+-- - palette. Specifies a key to resources.palettes from which to obain the
+--   palette data (see core.new_palette()).
+function core.new_texture(parms)
+  local texture = mg.rl_texture_new()
+  local td = resource.texdata[parms.texdata]()
+  local pd = resource.palette[parms.palette]()
+
+  mg.rl_texture_load64x64rgbmm_NxMrgba(
+    texture,
+    td[1], td[2], td[3],
+    td[4], td[5], td[6],
+    td[7],
+    pd.ncolours, pd.ntimes, pd.data)
+
   return texture
 end
 
@@ -283,7 +306,6 @@ end
 function core.new_graphic_plane(parms)
   local g = mg.rl_graphic_plane_new()
   mg.rl_graphic_plane_set_texture(g, resource.texture[parms.texture]())
-  mg.rl_graphic_plane_set_palette(g, resource.palette[parms.palette]())
   return g
 end
 

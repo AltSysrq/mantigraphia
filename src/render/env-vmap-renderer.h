@@ -47,24 +47,25 @@
  */
 typedef struct {
   /**
-   * The texture to use for rendering.
+   * The primary texture to use for rendering.
    *
-   * This is an RGB texture. The R component is used to index the S axis of the
-   * palette texture (the T axis representing calendar time, ie, to rotate
-   * through palettes). The G component determines the A component of the
-   * fragment. B is used to control transparency, and is tested against the A
-   * of the palette.
+   * This is an RGBA texture. The RGB components represent true colour; they
+   * are passed through to the final colour verbatim. The A component controls
+   * fragment visibility; a fragment is visible if the A component of this
+   * texture is greater than the G component of the control texture at the same
+   * location.
    */
   unsigned texture;
+
   /**
-   * The texture to use as a colour palette when rendering the main texture for
-   * this plane.
+   * The "control" texture to use for rendering.
    *
-   * This is an RGBA texture. The RGB components are directly copied into
-   * rendered fragments. A values determine fragment visibility; a fragment is
-   * visible if the palette A is greater than or equal to the texture B.
+   * This is an RG texture. The R component is passed through to the alpha
+   * value of the fragment (controlling brush shape and direction). The G
+   * component controls visibility according to the A value of the primary
+   * texture.
    */
-  unsigned palette;
+  unsigned control;
 
   /**
    * Factor by which texture coordinates for this plane shall be multiplied,
