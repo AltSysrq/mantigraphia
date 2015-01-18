@@ -10,7 +10,7 @@ const float EARTH_RADIUS = 6378.1e3 * METRE;
 const float CLOUD_ALTITUDE = 1024 * METRE;
 const float CLOUD_RADIUS = EARTH_RADIUS + CLOUD_ALTITUDE;
 const float CLOUD_VISIBILITY = 8192 * METRE;
-const float CLOUD_SCALE = 4096 * METRE;
+const float CLOUD_SCALE = 16384 * METRE;
 
 void main() {
   vec3 norm_ray = normalize(ray);

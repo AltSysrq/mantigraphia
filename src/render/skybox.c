@@ -107,7 +107,7 @@ static void skybox_do_render(skybox_render_op* op) {
 
   float basic_cloud_offset = - context->month_fraction / (float)fraction_of(1);
   basic_cloud_offset -= context->month_integral;
-  basic_cloud_offset /= 20.0f;
+  basic_cloud_offset /= 200.0f;
 
   uniform.screen_size[0] = dst->w;
   uniform.screen_size[1] = dst->h;
