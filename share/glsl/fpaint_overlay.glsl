@@ -43,6 +43,6 @@ void main() {
   if (lum <= r*0.5f) discard;
 
   selected.a = 1.0f;
-  selected.rgb *= 1.0f - 0.5f*lum;
+  selected.rgb *= 1.25f - 0.5f*lum;
   gl_FragColor = selected;
 }
