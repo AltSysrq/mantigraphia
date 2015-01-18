@@ -310,7 +310,6 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
 
   parchment_preprocess(this->bg, &after_paint_overlay);
 
-  parchment_draw(&after_paint_overlay, this->bg, PAINT_SIZE_REDUCTION);
   paint_overlay_postprocess(this->overlay, this->context);
   auxbuff_target(0, dst->w, dst->h);
 

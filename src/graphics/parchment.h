@@ -57,15 +57,6 @@ parchment* parchment_new(void);
 void parchment_delete(parchment*);
 
 /**
- * Draws the parchment to cover the entire screen with OpenGL.
- *
- * @param screen_size_reduction Divisor by which to divide relative motion (ie,
- * raw window deltas) to the drawable area.
- */
-void parchment_draw(canvas*, const parchment*,
-                    unsigned screen_size_reduction);
-
-/**
  * Reconfigures GL to capture draw operations into the parchment's postprocess
  * texture.
  */
