@@ -91,6 +91,7 @@ typedef struct {
   fraction month_fraction;
   int advancing_time, sprinting;
   coord_offset camera_y_off;
+  int use_paint_overlay, use_parchment;
 
   perspective proj;
 } cosine_world_state;
@@ -127,7 +128,8 @@ game_state* cosine_world_new(unsigned seed) {
     rendering_context_new(),
     0,0,0,0,
     0,0,0,0,
-    2 * METRE
+    2 * METRE,
+    1, 1
   };
 
   const vc3 origin = { 0, 0, 0 };
@@ -299,8 +301,14 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
 
   if (!this->overlay)
     this->overlay = paint_overlay_new(&after_paint_overlay);
-  paint_overlay_preprocess(this->overlay, this->context,
-                           &before_paint_overlay, dst);
+
+  if (this->use_paint_overlay)
+    paint_overlay_preprocess(this->overlay, this->context,
+                             &before_paint_overlay, dst);
+  else if (this->use_parchment)
+    parchment_preprocess(this->bg, &before_paint_overlay);
+  else
+    auxbuff_target(0, dst->w, dst->h);
 
   glm_clear(GL_DEPTH_BUFFER_BIT);
   skybox_render(&before_paint_overlay, this->sky, this->context);
@@ -308,12 +316,19 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   render_env_vmap(&before_paint_overlay, this->vmap_renderer, this->context);
   ump_join();
 
-  parchment_preprocess(this->bg, &after_paint_overlay);
+  if (this->use_paint_overlay) {
+    if (this->use_parchment)
+      parchment_preprocess(this->bg, &after_paint_overlay);
+    else
+      auxbuff_target(0, dst->w, dst->h);
 
-  paint_overlay_postprocess(this->overlay, this->context);
-  auxbuff_target(0, dst->w, dst->h);
+    paint_overlay_postprocess(this->overlay, this->context);
+  }
 
-  parchment_postprocess(this->bg, dst, &after_paint_overlay);
+  if (this->use_parchment) {
+    auxbuff_target(0, dst->w, dst->h);
+    parchment_postprocess(this->bg, dst, &after_paint_overlay);
+  }
 }
 
 static void cosine_world_key(cosine_world_state* this,
@@ -339,6 +354,16 @@ static void cosine_world_key(cosine_world_state* this,
 
   case SDLK_e:
     this->moving_right = down;
+    break;
+
+  case SDLK_n:
+    if (down)
+      this->use_paint_overlay = !this->use_paint_overlay;
+    break;
+
+  case SDLK_r:
+    if (down)
+      this->use_parchment = !this->use_parchment;
     break;
 
   case SDLK_F11:
