@@ -57,10 +57,6 @@
 
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
-#include "graphics/brush.h"
-#include "graphics/fast-brush.h"
-#include "graphics/glbrush.h"
-#include "graphics/glpencil.h"
 #include "gl/glinfo.h"
 #include "gl/marshal.h"
 #include "gl/auxbuff.h"
@@ -258,10 +254,6 @@ int main(int argc, char** argv) {
   glm_init();
   auxbuff_init(ww, wh);
   parchment_init();
-  brush_load();
-  fast_brush_load();
-  glbrush_load();
-  glpencil_load();
   mouselook_init(screen);
   terrabuff_init();
 

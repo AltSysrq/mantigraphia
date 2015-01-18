@@ -26,23 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-shader_source(fbrush)
-shader_source(fpencil)
 shader_source(fpaint_overlay)
-shader_source(fpointcircle)
 shader_source(fpostprocess)
-shader_source(fsplotch)
-shader_source(fsplotch_poly)
 shader_source(fskybox)
 shader_source(fterrabuff)
 shader_source(fvoxel)
-shader_source(vbrush)
 shader_source(vgenerictc)
-shader_source(vgenericctc)
 shader_source(vpaint_overlay)
-shader_source(vpencil)
-shader_source(vsplotch)
-shader_source(vsplotch_poly)
 shader_source(vterrabuff)
 shader_source(vskybox)
 shader_source(vvoxel)
@@ -69,48 +59,6 @@ shader(terrabuff) {
   uniform(float, xoff)
   uniform(vec2, screen_size)
   attrib(1, side)
-}
-
-shader(brush) {
-  composed_of(fbrush, vbrush)
-  with_texture_coordinates
-  uniform(tex2d, tex)
-  uniform(tex2d, palette)
-  uniform(float, decay)
-  uniform(float, noise)
-  attrib(2, info)
-}
-
-shader(splotch) {
-  composed_of(fsplotch, vsplotch)
-  attrib(3, parms)
-  uniform(tex2d, tex)
-  uniform(tex2d, palette)
-  uniform(float, noise)
-}
-
-shader(poly_splotch) {
-  composed_of(fsplotch_poly, vsplotch_poly)
-  with_texture_coordinates
-  attrib(3, parms)
-  uniform(tex2d, tex)
-  uniform(tex2d, palette)
-  uniform(float, noise)
-}
-
-shader(pointcircle) {
-  composed_of(fpointcircle, vgenericctc)
-  with_colour
-  no_uniforms
-}
-
-shader(pencil) {
-  composed_of(fpencil, vpencil)
-  with_colour
-  attrib(1, tcoord)
-  uniform(tex2d, thickness_tex)
-  uniform(float, line_thickness)
-  uniform(float, viewport_height)
 }
 
 shader(postprocess) {
