@@ -11,7 +11,7 @@ const vec4 GRAPHITE = vec4(0.5f,0.5f,0.5f,0.80f);
 
 void main() {
   vec4 selected, direct;
-  float r, theta, alpha, lum;
+  float r, lum;
   vec2 atcoff, ltcoff, centre_offset, atc, lumtc;
 
   direct = texture2D(framebuffer,
@@ -36,19 +36,13 @@ void main() {
                        centre_offset.y*angv.x + centre_offset.x*angv.y);
   centre_offset.y *= 2.0f;
   r = centre_offset.x*centre_offset.x + centre_offset.y*centre_offset.y;
-  /* This isn't actually an angle, but it's much cheaper than atan2(), and
-   * somehow still looks reasonable.
-   */
-  theta = centre_offset.x;
 
-  atc = atcoff + vec2(r/2.0f, theta/2.0f);
   lumtc = ltcoff + centre_offset*lumtc_scale + vec2(0.0f,0.5f);
-  alpha = texture2D(brush, atc).r;
   lum = texture2D(brush, lumtc).r;
 
-  if (alpha <= r*0.5f) discard;
+  if (lum <= r*0.5f) discard;
 
-  selected.a = alpha * 0.25f + 0.75f;
+  selected.a = 1.0f;
   selected.rgb *= 1.0f - 0.5f*lum;
   gl_FragColor = selected;
 }

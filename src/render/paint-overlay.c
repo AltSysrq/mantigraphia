@@ -162,13 +162,30 @@ static void paint_overlay_preprocess_impl(paint_overlay* this) {
 static void paint_overlay_postprocess_impl(paint_overlay* this) {
   shader_paint_overlay_uniform uniform;
 
-  glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT);
+  glPushAttrib(GL_ENABLE_BIT);
   glEnable(GL_POINT_SPRITE);
   glEnable(GL_TEXTURE_2D);
-  glDisable(GL_DEPTH_TEST);
-  glDepthMask(GL_FALSE);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  /* It might seem like it would be better to disable everything related to the
+   * depth buffer, since this effect is supposed to simply replace the whole
+   * contents of the screen.
+   *
+   * However, the effect has a lot of overlapping splotches. By keeping the
+   * depth test enabled (with GL_LESS, the default), each fragment will be
+   * written at most once. This will (hopefully) allow implementations to
+   * optimise away redundant fragments.
+   *
+   * This (plus not enabling GL_BLEND, though the latter never had any
+   * perceptable effect) improved performance on test systems as follows:
+   *
+   *   Desktop nVidia: 60 FPS => 60 FPS (already vsync-locked)
+   *   Mobile nVidia:  30 FPS => 30 FPS (probably faster, but vsync-locked)
+   *   Mobile Intel:   7.5 FPS => 15 FPS
+   *
+   * (All tests at 1920x1080 with no resolution reduction.)
+   */
+  glClear(GL_DEPTH_BUFFER_BIT);
+
   glBindTexture(GL_TEXTURE_2D, this->fbtex);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
