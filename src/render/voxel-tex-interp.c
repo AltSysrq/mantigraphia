@@ -50,8 +50,9 @@ void voxel_tex_demux(unsigned char*restrict control_rg,
 static void get_interp_pos(unsigned*restrict p0, fraction*restrict p0w,
                            unsigned*restrict p1, fraction*restrict p1w,
                            unsigned pmax,
-                           unsigned value) {
-  unsigned interval = 256 / pmax;
+                           unsigned value,
+                           unsigned base) {
+  unsigned interval = base / pmax;
 
   *p0 = value / interval;
   *p1 = umin(pmax-1, *p0 + 1);
@@ -68,10 +69,10 @@ static void interpolate(unsigned char* restrict dst_rgba,
                         fraction cw,
                         const unsigned char*restrict d_rgba,
                         fraction dw) {
-  *dst_rgba = fraction_umul(*a_rgba, aw)
-            + fraction_umul(*b_rgba, bw)
-            + fraction_umul(*c_rgba, cw)
-            + fraction_umul(*d_rgba, dw);
+  *dst_rgba = (fraction_umul(*a_rgba * 256, aw) +
+               fraction_umul(*b_rgba * 256, bw) +
+               fraction_umul(*c_rgba * 256, cw) +
+               fraction_umul(*d_rgba * 256, dw)) / 256;
 }
 
 static void interpolate4(unsigned char* restrict dst_rgba,
@@ -100,12 +101,13 @@ void voxel_tex_apply_palette(unsigned char*restrict dst_rgba,
   unsigned t0, t1, s0, s1, t0off, t1off;
   fraction t0w, t1w, s0w, s1w;
 
-  get_interp_pos(&t0, &t0w, &t1, &t1w, palette_h_px, fraction_umul(255, t));
+  get_interp_pos(&t0, &t0w, &t1, &t1w, palette_h_px,
+                 fraction_umul(65536, t), 65536);
   t0off = t0 * palette_w_px * 4;
   t1off = t1 * palette_w_px * 4;
 
   while (src_len_px--) {
-    get_interp_pos(&s0, &s0w, &s1, &s1w, palette_w_px, *src_r);
+    get_interp_pos(&s0, &s0w, &s1, &s1w, palette_w_px, *src_r * 256, 65536);
     interpolate4(dst_rgba,
                  palette_rgba + t0off + 4 * s0, fraction_umul(t0w, s0w),
                  palette_rgba + t0off + 4 * s1, fraction_umul(t0w, s1w),
