@@ -25,39 +25,46 @@
 -- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
--- TODO: These palettes need a lot of work, since they originally passed
--- through a rendering system that distorted the colours a lot.
-resource.palette.oaktree_leaf = core.bind(core.new_palette) {
-  -- M
-  { 0x00ffffff, 0xffffffff, 0xff003000, 0xffffffff,
-    0xff144010, 0xff144010, 0xff103408, 0xff103408, },
-  -- A
-  { 0x00ffffff, 0xffffffff, 0xff003000, 0xff003000,
-    0xff144010, 0xff144010, 0xff103408, 0xff103408, },
-  -- M
-  { 0x00003000, 0xff002000, 0xff004800, 0xff003000,
-    0xff1e6018, 0xff144010, 0xff184e0c, 0xff103408, },
-  -- J
-  { 0x00003000, 0xff003000, 0xff004800, 0xff004800,
-    0xff1e6018, 0xff1e6018, 0xff184e0c, 0xff184e0c, },
-  -- J
-  { 0x00003000, 0xff002000, 0xff004800, 0xff003000,
-    0xff1e6018, 0xff144010, 0xff184e0c, 0xff103408, },
-  -- A
-  { 0x00002000, 0xff002000, 0xff003000, 0xff003000,
-    0xff144010, 0xff144010, 0xff103408, 0xff103408, },
-  -- S
-  { 0x00002000, 0xff002000, 0xff003000, 0xff003000,
-    0xff144010, 0xff144010, 0xff103408, 0xff103408, },
-  -- O
-  { 0x00a00000, 0xffa00000, 0xffa00000, 0xffa02000,
-    0xffa04000, 0xffa06000, 0xffa08000, 0xffa0a000, },
-  -- N
-  { 0x00ffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-    0xff704020, 0xff705030, 0xff706040, 0xff707050, },
-  -- D
-  { 0x00ffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-    0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, },
+resource.palette.oaktree_leaf = core.bind(core.gen_palette_from_lanes) {
+  x = {
+    alpha = {   2,      1,      0,      0,      1,      0,      0,      0,      0,      0       },
+    heat = {    0,      1,      2,      0,      1,      2,      0,      1,      2,      0       },
+    g = {       0.7,    0.5,    0.7,    0.6,    0.8,    0.7,    0.9,    0.8,    1.0,    0.9     },
+    r = {       0.5,    0.7,    0.5,    0.8,    0.5,    0.9,    0.5,    1.0,    0.5,    0.75    },
+    agm = {     0.25,   0.1,    0.3,    0.2,    0.3,    0.5,    0.4,    0.2,    0.3,    0.4     },
+  },
+  --            M       A       M       J       J       A       S       O       N       D
+  y = {
+    snow = {    2,      1,      0,      0,      0,      0,      0,      0,      2,      3       },
+    live = {    1,      1,      1,      1,      1,      1,      1,      1,      0,      0       },
+    gsat = {    0.3,    0.4,    0.6,    0.5,    0.5,    0.4,    0.4,    0.4,    0.1,    0.0     },
+    rsat = {    0.1,    0.1,    0.1,    0.1,    0.1,    0.1,    0.2,    0.8,    0.1,    0.1     },
+    bsat = {    0.1,    0.1,    0.1,    0.1,    0.1,    0.1,    0.1,    0.0,    0.0,    0.0     },
+    autumn = {  false,  false,  false,  false,  false,  false,  false,  true,   false,  false   },
+  },
+  fun = function (p)
+    local r, g, b
+
+    if p.snow > p.heat then
+      r = 255
+      g = 255
+      b = 255
+    elseif p.autumn then
+      r = 255 * p.r * p.rsat / 1.0 / 1.0
+      g = r - 255 * p.agm / 1.0
+      b = 255 * p.bsat / 1.0
+    else
+      r = 255 * p.r * p.rsat / 1.0 / 1.0
+      g = 255 * p.g * p.gsat / 1.0 / 1.0
+      b = 255 * p.bsat / 1.0
+    end
+
+    if p.alpha > p.live then
+      return core.argb(0, r, g, b)
+    else
+      return core.argb(255, r, g, b)
+    end
+  end
 }
 
 resource.palette.oaktree_trunk = core.bind(core.new_palette) {
