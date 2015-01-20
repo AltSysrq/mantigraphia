@@ -131,7 +131,7 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
 }
 
 static void paint_overlay_create_texture(paint_overlay* this) {
-  unsigned i, min, max;
+  unsigned i, min, max, freq, amp;
   unsigned* brushtex_data;
   unsigned char* brushtex_data_bytes;
 
@@ -140,11 +140,10 @@ static void paint_overlay_create_texture(paint_overlay* this) {
   brushtex_data_bytes = (void*)brushtex_data + BRUSHTEX_SZ+BRUSHTEX_SZ;
 
   memset(brushtex_data, 0, sizeof(unsigned)*BRUSHTEX_SZ*BRUSHTEX_SZ);
-  perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 8, 128, 5);
-  perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 16, 64, 6);
-  perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 32, 32, 7);
-  perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 64, 16, 8);
-  perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ, 128, 8, 9);
+  for (freq = BRUSHTEX_SZ / 32, amp = 128; freq < BRUSHTEX_SZ;
+       freq *= 2, amp /= 2)
+    perlin_noise(brushtex_data, BRUSHTEX_SZ, BRUSHTEX_SZ,
+                 freq, amp, amp);
   min = ~0u;
   max = 0;
   for (i = 0; i < BRUSHTEX_SZ*BRUSHTEX_SZ; ++i) {
