@@ -67,6 +67,27 @@ static inline unsigned max_effective_point_size(void) {
     max_point_size / POINT_SIZE_MULT : 1;
 }
 
+static void swap_discs(poisson_disc_point* a,
+                       poisson_disc_point* b) {
+  poisson_disc_point tmp;
+
+  if (a != b) {
+    tmp = *a;
+    *a = *b;
+    *b = tmp;
+  }
+}
+
+static void shuffle_discs(poisson_disc_result* pdr) {
+  unsigned rnd = 715;
+  unsigned i, j;
+
+  for (i = 0; i < pdr->num_points - 1; ++i) {
+    j = i + lcgrand(&rnd) % (pdr->num_points - i);
+    swap_discs(pdr->points + i, pdr->points + j);
+  }
+}
+
 paint_overlay* paint_overlay_new(const canvas* canv) {
   paint_overlay* this = zxmalloc(sizeof(paint_overlay));
   shader_paint_overlay_vertex* vertices;
@@ -78,6 +99,11 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
     DESIRED_POINTS_PER_SCREENW,
     max_effective_point_size() * POISSON_DISC_FP,
     9312);
+
+  /* Shuffle the points to eliminate artefacts arising from the
+   * centre-outward generation of the distribution.
+   */
+  shuffle_discs(&pdr);
 
   vertices = xmalloc(pdr.num_points * sizeof(shader_paint_overlay_vertex));
   for (i = 0; i < pdr.num_points; ++i) {
