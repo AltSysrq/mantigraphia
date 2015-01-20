@@ -12,7 +12,7 @@ const vec4 GRAPHITE = vec4(0.5f,0.5f,0.5f,0.80f);
 void main() {
   vec4 selected, direct;
   float r, lum;
-  vec2 atcoff, ltcoff, centre_offset, atc, lumtc;
+  vec2 ltcoff, centre_offset, lumtc;
 
   direct = texture2D(framebuffer,
                      gl_FragCoord.xy / screen_size);
@@ -29,7 +29,6 @@ void main() {
    * others?), so we'll need to make due with a perlin noise source and make
    * actual brush shapes in the shader.
    */
-  atcoff = gl_FragCoord.st / screen_size.x * 4.0f;
   ltcoff = (gl_FragCoord.st + screen_off) / screen_size.x * 4.0f;
   centre_offset = gl_PointCoord.xy * 2.0f - vec2(1.0f, 1.0f);
   centre_offset = vec2(centre_offset.x*angv.x - centre_offset.y*angv.y,
