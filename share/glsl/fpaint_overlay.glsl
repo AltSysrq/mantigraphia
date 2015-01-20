@@ -2,6 +2,7 @@ uniform sampler2D framebuffer;
 uniform sampler2D brush;
 uniform vec2 screen_size;
 uniform vec2 screen_off;
+uniform float texture_freq;
 varying vec4 selected_colour;
 varying vec2 stroke_centre;
 varying vec2 lumtc_scale;
@@ -37,7 +38,7 @@ void main() {
   r = centre_offset.x*centre_offset.x + centre_offset.y*centre_offset.y;
 
   lumtc = ltcoff + centre_offset*lumtc_scale + vec2(0.0f,0.5f);
-  lum = texture2D(brush, lumtc).r;
+  lum = texture2D(brush, lumtc * texture_freq).r;
 
   if (lum <= r*0.5f) discard;
 

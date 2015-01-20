@@ -76,6 +76,7 @@ shader(paint_overlay) {
   uniform(tex2d, brush)
   uniform(vec2, screen_size)
   uniform(vec2, screen_off)
+  uniform(float, texture_freq)
 }
 
 shader(voxel) {

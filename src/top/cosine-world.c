@@ -371,6 +371,12 @@ static void cosine_world_key(cosine_world_state* this,
       this->use_parchment = !this->use_parchment;
     break;
 
+  case SDLK_t:
+    if (down && this->overlay)
+      paint_overlay_set_using_high_res_texture(
+        this->overlay, !paint_overlay_is_using_high_res_texture(this->overlay));
+    break;
+
   case SDLK_F11:
     evt->keysym.sym = SDLK_F6;
   case SDLK_F1:

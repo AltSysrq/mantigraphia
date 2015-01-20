@@ -49,14 +49,16 @@
 
 #define DESIRED_POINTS_PER_SCREENW 256
 #define BRUSHTEX_SZ 256
+#define BRUSHTEX_LOW_SZ 64
 #define POINT_SIZE_MULT 3
 
 struct paint_overlay_s {
-  GLuint vbo, fbtex, brushtex;
+  GLuint vbo, fbtex, brushtex_high, brushtex_low;
   unsigned num_points;
   unsigned point_size;
-  unsigned screenw, screenh, src_screenw, src_screenh;
   unsigned fbtex_dim[2];
+  unsigned screenw, screenh, src_screenw, src_screenh;
+  int using_high_brushtex;
   float xoff, yoff;
 };
 
@@ -123,6 +125,7 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
 
   paint_overlay_create_texture(this);
 
+  this->using_high_brushtex = 1;
   this->num_points = pdr.num_points;
   this->point_size = umax(pdr.point_size_fp / POISSON_DISC_FP, 1);
   this->screenw = canv->w;
@@ -131,7 +134,7 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
 }
 
 static void paint_overlay_create_texture(paint_overlay* this) {
-  unsigned i, min, max, freq, amp;
+  unsigned i, x, y, min, max, freq, amp;
   unsigned* brushtex_data;
   unsigned char* brushtex_data_bytes;
 
@@ -154,10 +157,24 @@ static void paint_overlay_create_texture(paint_overlay* this) {
   for (i = 0; i < BRUSHTEX_SZ*BRUSHTEX_SZ; ++i)
     brushtex_data_bytes[i] = (brushtex_data[i] - min) * 255 / (max-min);
 
-  glGenTextures(1, &this->brushtex);
-  glBindTexture(GL_TEXTURE_2D, this->brushtex);
+  glGenTextures(1, &this->brushtex_high);
+  glBindTexture(GL_TEXTURE_2D, this->brushtex_high);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
                BRUSHTEX_SZ, BRUSHTEX_SZ, 0,
+               GL_RED, GL_UNSIGNED_BYTE, brushtex_data_bytes);
+
+  for (y = 0; y < BRUSHTEX_LOW_SZ; ++y) {
+    for (x = 0; x < BRUSHTEX_LOW_SZ; ++x) {
+      brushtex_data_bytes[y*BRUSHTEX_LOW_SZ + x] =
+        brushtex_data_bytes[(y*BRUSHTEX_SZ/BRUSHTEX_LOW_SZ)*BRUSHTEX_SZ +
+                            (x*BRUSHTEX_SZ/BRUSHTEX_LOW_SZ)];
+    }
+  }
+
+  glGenTextures(1, &this->brushtex_low);
+  glBindTexture(GL_TEXTURE_2D, this->brushtex_low);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
+               BRUSHTEX_LOW_SZ, BRUSHTEX_LOW_SZ, 0,
                GL_RED, GL_UNSIGNED_BYTE, brushtex_data_bytes);
 
   free(brushtex_data);
@@ -166,7 +183,8 @@ static void paint_overlay_create_texture(paint_overlay* this) {
 void paint_overlay_delete(paint_overlay* this) {
   glDeleteBuffers(1, &this->vbo);
   glDeleteTextures(1, &this->fbtex);
-  glDeleteTextures(1, &this->brushtex);
+  glDeleteTextures(1, &this->brushtex_high);
+  glDeleteTextures(1, &this->brushtex_low);
   free(this);
 }
 
@@ -217,7 +235,8 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, this->brushtex);
+  glBindTexture(GL_TEXTURE_2D, this->using_high_brushtex?
+                this->brushtex_high : this->brushtex_low);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -230,6 +249,8 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   uniform.screen_size[1] = this->screenh;
   uniform.screen_off[0] = this->xoff;
   uniform.screen_off[1] = this->yoff;
+  uniform.texture_freq = this->using_high_brushtex?
+    1.0f : BRUSHTEX_SZ / BRUSHTEX_LOW_SZ;
   shader_paint_overlay_activate(&uniform);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
   glPointSize(this->point_size * POINT_SIZE_MULT);
@@ -257,4 +278,12 @@ void paint_overlay_postprocess(paint_overlay* this,
   this->yoff = (-(signed)this->screenh) * 314159 / 200000 *
     ((signed)context->proj->rxrot) / context->proj->fov;
   glm_do((void(*)(void*))paint_overlay_postprocess_impl, this);
+}
+
+int paint_overlay_is_using_high_res_texture(const paint_overlay* this) {
+  return this->using_high_brushtex;
+}
+
+void paint_overlay_set_using_high_res_texture(paint_overlay* this, int high) {
+  this->using_high_brushtex = high;
 }

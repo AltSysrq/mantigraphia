@@ -86,4 +86,14 @@ void paint_overlay_preprocess(paint_overlay*, const rendering_context*restrict,
 void paint_overlay_postprocess(paint_overlay*,
                                const rendering_context*restrict);
 
+/**
+ * Returns whether this paint overlay is using a high-resolution brush texture.
+ */
+int paint_overlay_is_using_high_res_texture(const paint_overlay*);
+
+/**
+ * Sets whether this paint overlay is using a high-resolution brush texture.
+ */
+void paint_overlay_set_using_high_res_texture(paint_overlay*, int);
+
 #endif /* RENDER_PAINT_OVERLAY_H_ */
