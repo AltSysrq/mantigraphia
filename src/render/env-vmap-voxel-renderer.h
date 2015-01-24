@@ -32,72 +32,13 @@
 #include "../world/env-vmap.h"
 #include "../graphics/canvas.h"
 #include "context.h"
+#include "env-voxel-graphic.h"
 
 /**
  * The number of tiles in each dimension comprising a single cell in an
  * env_vmap_voxel_renderer.
  */
 #define ENV_VMAP_VOXEL_RENDERER_CELL_SZ 64
-
-/**
- * Describes the parameters used to draw a graphic plane of a voxel.
- *
- * Graphic planes are considered equivalent only if they exist at the same
- * memory address.
- */
-typedef struct {
-  /**
-   * The primary texture to use for rendering.
-   *
-   * This is an RGBA texture. The RGB components represent true colour; they
-   * are passed through to the final colour verbatim. The A component controls
-   * fragment visibility; a fragment is visible if the A component of this
-   * texture is greater than the G component of the control texture at the same
-   * location.
-   */
-  unsigned texture;
-
-  /**
-   * The "control" texture to use for rendering.
-   *
-   * This is an RG texture. The R component is passed through to the alpha
-   * value of the fragment (controlling brush shape and direction). The G
-   * component controls visibility according to the A value of the primary
-   * texture.
-   */
-  unsigned control;
-
-  /**
-   * Factor by which texture coordinates for this plane shall be multiplied,
-   * allowing arbitrary affine transforms.
-   *
-   * tex.t = x * texture_scale[0][0] + y * texture_scale[0][1]
-   * tex.t = y * texture_scale[1][0] + x * texture_scale[1][1]
-   *
-   * This is 16.16 fixed-point, so 1.0 == 65536.
-   */
-  signed texture_scale[2][2];
-} env_voxel_graphic_plane;
-
-/**
- * Describes how a voxel (more specifically, a contextual voxel type) is
- * represented graphically.
- *
- * Two env_voxel_graphic values are considered equivalent only if they exist at
- * the same memory address.
- */
-typedef struct {
-  /**
-   * In the general case, voxels are rendered as three axis-aligned planes
-   * centred on the centre of the voxel. These indicate the parameters for the
-   * X, Y, and Z planes, respectively.
-   *
-   * These are pointers so that plane equivalence can be efficiently detected.
-   *
-   * NULL values indicate planes that should not be drawn.
-   */
-  const env_voxel_graphic_plane* planes[3];
-} env_voxel_graphic;
 
 /**
  * Internal structure storing precalculated information and heavyweight
