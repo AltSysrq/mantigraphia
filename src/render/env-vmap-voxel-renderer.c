@@ -43,9 +43,9 @@
 #include "../world/terrain-tilemap.h"
 #include "../world/env-vmap.h"
 #include "context.h"
-#include "env-vmap-renderer.h"
+#include "env-vmap-voxel-renderer.h"
 
-#define CELL_SZ ENV_VMAP_RENDERER_CELL_SZ
+#define CELL_SZ ENV_VMAP_VOXEL_RENDERER_CELL_SZ
 #define DRAW_DISTANCE 16 /* cells */
 
 /**
@@ -59,7 +59,7 @@ typedef struct {
    * set.
    */
   unsigned offset, length;
-} env_vmap_render_operation;
+} env_vmap_voxel_render_operation;
 
 /**
  * A render cell holds on-GPU precomputed data used to render some part
@@ -68,7 +68,7 @@ typedef struct {
  *
  * Render cells are created on-demand and destroyed when no longer needed.
  */
-struct env_vmap_render_cell_s {
+struct env_vmap_voxel_render_cell_s {
   /**
    * The level of detail of this cell (0 = maximum).
    */
@@ -81,13 +81,13 @@ struct env_vmap_render_cell_s {
    * The length of the operations array.
    */
   unsigned num_operations;
-  env_vmap_render_operation operations[FLEXIBLE_ARRAY_MEMBER];
+  env_vmap_voxel_render_operation operations[FLEXIBLE_ARRAY_MEMBER];
 };
 
 typedef struct {
-  env_vmap_renderer*restrict this;
+  env_vmap_voxel_renderer*restrict this;
   const rendering_context*restrict ctxt;
-} env_vmap_render_op;
+} env_vmap_voxel_render_op;
 
 typedef struct env_voxel_graphic_presence_s {
   const env_voxel_graphic_plane* graphic;
@@ -109,28 +109,29 @@ SPLAY_PROTOTYPE(env_voxel_graphic_presence_set, env_voxel_graphic_presence_s,
 SPLAY_GENERATE(env_voxel_graphic_presence_set, env_voxel_graphic_presence_s,
                set, compare_env_voxel_graphic_presence);
 
-static const env_voxel_graphic* env_vmap_renderer_get_graphic(
-  const env_vmap_renderer* this, coord x, coord y, coord z,
+static const env_voxel_graphic* env_vmap_voxel_renderer_get_graphic(
+  const env_vmap_voxel_renderer* this, coord x, coord y, coord z,
   unsigned char lod);
-static env_vmap_render_cell* env_vmap_render_cell_new(
-  const env_vmap_renderer* parent, coord x0, coord z0,
+static env_vmap_voxel_render_cell* env_vmap_voxel_render_cell_new(
+  const env_vmap_voxel_renderer* parent, coord x0, coord z0,
   unsigned char lod);
-static void env_vmap_render_cell_delete(env_vmap_render_cell*);
-static void render_env_vmap_impl(env_vmap_render_op*);
-static void env_vmap_render_cell_render(const env_vmap_render_cell*restrict,
-                                        const rendering_context*restrict);
+static void env_vmap_voxel_render_cell_delete(env_vmap_voxel_render_cell*);
+static void render_env_vmap_voxels_impl(env_vmap_voxel_render_op*);
+static void env_vmap_voxel_render_cell_render(
+  const env_vmap_voxel_render_cell*restrict,
+  const rendering_context*restrict);
 
-env_vmap_renderer* env_vmap_renderer_new(
+env_vmap_voxel_renderer* env_vmap_voxel_renderer_new(
   const env_vmap* vmap,
   const env_voxel_graphic*const graphics[NUM_ENV_VOXEL_CONTEXTUAL_TYPES],
   const vc3 base_coordinate,
   const void* base_object,
   coord (*get_y_offset)(const void*, coord, coord)
 ) {
-  size_t cells_sz = sizeof(env_vmap_render_cell*) *
+  size_t cells_sz = sizeof(env_vmap_voxel_render_cell*) *
     (vmap->xmax / CELL_SZ) * (vmap->zmax / CELL_SZ);
-  env_vmap_renderer* this = xmalloc(
-    offsetof(env_vmap_renderer, cells) +
+  env_vmap_voxel_renderer* this = xmalloc(
+    offsetof(env_vmap_voxel_renderer, cells) +
     cells_sz);
 
   this->vmap = vmap;
@@ -143,30 +144,30 @@ env_vmap_renderer* env_vmap_renderer_new(
   return this;
 }
 
-void env_vmap_renderer_delete(env_vmap_renderer* this) {
+void env_vmap_voxel_renderer_delete(env_vmap_voxel_renderer* this) {
   unsigned num_cells =
     this->vmap->xmax / CELL_SZ * this->vmap->zmax / CELL_SZ;
   unsigned i;
 
   for (i = 0; i < num_cells; ++i)
     if (this->cells[i])
-      env_vmap_render_cell_delete(this->cells[i]);
+      env_vmap_voxel_render_cell_delete(this->cells[i]);
 
   free(this);
 }
 
-void render_env_vmap(canvas* dst,
-                     env_vmap_renderer*restrict this,
-                     const rendering_context*restrict ctxt) {
-  env_vmap_render_op* op = xmalloc(sizeof(env_vmap_render_op));
+void render_env_vmap_voxels(canvas* dst,
+                            env_vmap_voxel_renderer*restrict this,
+                            const rendering_context*restrict ctxt) {
+  env_vmap_voxel_render_op* op = xmalloc(sizeof(env_vmap_voxel_render_op));
 
   op->this = this;
   op->ctxt = ctxt;
-  glm_do((void(*)(void*))render_env_vmap_impl, op);
+  glm_do((void(*)(void*))render_env_vmap_voxels_impl, op);
 }
 
-void render_env_vmap_impl(env_vmap_render_op* op) {
-  env_vmap_renderer* this = op->this;
+void render_env_vmap_voxels_impl(env_vmap_voxel_render_op* op) {
+  env_vmap_voxel_renderer* this = op->this;
   const rendering_context*restrict ctxt = op->ctxt;
   const rendering_context_invariant*restrict context = CTXTINV(ctxt);
   unsigned x, z, xmax, zmax, cx, cz;
@@ -209,12 +210,12 @@ void render_env_vmap_impl(env_vmap_render_op* op) {
 
         if (this->cells[z*xmax + x] &&
             this->cells[z*xmax + x]->lod != desired_lod) {
-          env_vmap_render_cell_delete(this->cells[z*xmax + x]);
+          env_vmap_voxel_render_cell_delete(this->cells[z*xmax + x]);
           this->cells[z*xmax + x] = NULL;
         }
 
         if (!this->cells[z*xmax + x])
-          this->cells[z*xmax + x] = env_vmap_render_cell_new(
+          this->cells[z*xmax + x] = env_vmap_voxel_render_cell_new(
             this, x*CELL_SZ, z*CELL_SZ, desired_lod);
 
         dot = dx * context->proj->yrot_sin +
@@ -233,10 +234,10 @@ void render_env_vmap_impl(env_vmap_render_op* op) {
          * the view anyway.)
          */
         if (dot <= 0 || d < 2)
-          env_vmap_render_cell_render(this->cells[z*xmax + x], ctxt);
+          env_vmap_voxel_render_cell_render(this->cells[z*xmax + x], ctxt);
       } else {
         if (this->cells[z*xmax + x]) {
-          env_vmap_render_cell_delete(this->cells[z*xmax + x]);
+          env_vmap_voxel_render_cell_delete(this->cells[z*xmax + x]);
           this->cells[z*xmax + x] = NULL;
         }
       }
@@ -251,7 +252,7 @@ void render_env_vmap_impl(env_vmap_render_op* op) {
  * results in cases where there is no majority component. Since this is only
  * used for graphics, this isn't really an issue.
  */
-static unsigned env_vmap_renderer_ll_majority_component(
+static unsigned env_vmap_voxel_renderer_ll_majority_component(
   unsigned long long bytes
 ) {
   unsigned m, n, b;
@@ -276,8 +277,8 @@ static unsigned env_vmap_renderer_ll_majority_component(
   return m;
 }
 
-static const env_voxel_graphic* env_vmap_renderer_get_graphic(
-  const env_vmap_renderer* this, coord x, coord y, coord z,
+static const env_voxel_graphic* env_vmap_voxel_renderer_get_graphic(
+  const env_vmap_voxel_renderer* this, coord x, coord y, coord z,
   unsigned char lod
 ) {
   const unsigned long long* cell;
@@ -292,7 +293,7 @@ static const env_voxel_graphic* env_vmap_renderer_get_graphic(
     cell = (unsigned long long*)
       (this->vmap->voxels + env_vmap_offset(this->vmap, x, y, z));
     return this->graphics[
-      env_vmap_renderer_ll_majority_component(*cell) <<
+      env_vmap_voxel_renderer_ll_majority_component(*cell) <<
       ENV_VOXEL_CONTEXT_BITS];
   }
 
@@ -300,8 +301,8 @@ static const env_voxel_graphic* env_vmap_renderer_get_graphic(
   abort();
 }
 
-static env_vmap_render_cell* env_vmap_render_cell_new(
-  const env_vmap_renderer* r, coord x0, coord z0,
+static env_vmap_voxel_render_cell* env_vmap_voxel_render_cell_new(
+  const env_vmap_voxel_renderer* r, coord x0, coord z0,
   unsigned char lod
 ) {
   /* Vertices are handed to the GPU all in one buffer, approximately in
@@ -366,7 +367,7 @@ static env_vmap_render_cell* env_vmap_render_cell_new(
   unsigned i, v, index_off;
   const env_voxel_graphic* graphic;
   env_voxel_graphic_presence gp_example, * gp;
-  env_vmap_render_cell* cell;
+  env_vmap_voxel_render_cell* cell;
 
   SPLAY_INIT(&graphics);
   memset(vertex_indices, ~0, sizeof(vertex_indices));
@@ -379,7 +380,7 @@ static env_vmap_render_cell* env_vmap_render_cell_new(
               r->vmap, x0+(x<<lod), y<<lod, z0+(z<<lod), lod))
           continue;
 
-        graphic = env_vmap_renderer_get_graphic(
+        graphic = env_vmap_voxel_renderer_get_graphic(
           r, x0+(x<<lod), y<<lod, z0+(z<<lod), lod);
         if (!graphic) continue;
 
@@ -444,8 +445,9 @@ static env_vmap_render_cell* env_vmap_render_cell_new(
   }
 
   /* Set up for pass 2 */
-  cell = xmalloc(offsetof(env_vmap_render_cell, operations) +
-                 graphic_presence_len * sizeof(env_vmap_render_operation));
+  cell = xmalloc(offsetof(env_vmap_voxel_render_cell, operations) +
+                 graphic_presence_len *
+                 sizeof(env_vmap_voxel_render_operation));
   cell->num_operations = graphic_presence_len;
   cell->lod = lod;
   glGenBuffers(2, cell->buffers);
@@ -470,7 +472,7 @@ static env_vmap_render_cell* env_vmap_render_cell_new(
               r->vmap, x0+(x<<lod), y<<lod, z0+(z<<lod), lod))
           continue;
 
-        graphic = env_vmap_renderer_get_graphic(
+        graphic = env_vmap_voxel_renderer_get_graphic(
           r, x0+(x<<lod), y<<lod, z0+(z<<lod), lod);
         if (!graphic) continue;
 
@@ -513,13 +515,15 @@ static env_vmap_render_cell* env_vmap_render_cell_new(
   return cell;
 }
 
-static void env_vmap_render_cell_delete(env_vmap_render_cell* this) {
+static void env_vmap_voxel_render_cell_delete(
+  env_vmap_voxel_render_cell* this
+) {
   glDeleteBuffers(2, this->buffers);
   free(this);
 }
 
-static void env_vmap_render_cell_render(
-  const env_vmap_render_cell*restrict cell,
+static void env_vmap_voxel_render_cell_render(
+  const env_vmap_voxel_render_cell*restrict cell,
   const rendering_context*restrict ctxt
 ) {
   const rendering_context_invariant*restrict context = CTXTINV(ctxt);

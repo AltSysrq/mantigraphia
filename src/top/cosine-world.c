@@ -53,7 +53,7 @@
 #include "render/context.h"
 #include "render/terrain-tilemap.h"
 #include "render/paint-overlay.h"
-#include "render/env-vmap-renderer.h"
+#include "render/env-vmap-voxel-renderer.h"
 #include "render/skybox.h"
 #include "control/mouselook.h"
 #include "resource/resource-loader.h"
@@ -82,7 +82,7 @@ typedef struct {
   paint_overlay* overlay;
   terrain_tilemap* world;
   env_vmap* vmap;
-  env_vmap_renderer* vmap_renderer;
+  env_vmap_voxel_renderer* vmap_voxel_renderer;
   skybox* sky;
   rendering_context*restrict context;
 
@@ -135,7 +135,7 @@ game_state* cosine_world_new(unsigned seed) {
   const vc3 origin = { 0, 0, 0 };
   cosine_world_state* this = xmalloc(sizeof(cosine_world_state));
   memcpy(this, &template, sizeof(template));
-  this->vmap_renderer = env_vmap_renderer_new(
+  this->vmap_voxel_renderer = env_vmap_voxel_renderer_new(
     this->vmap, (const env_voxel_graphic*const*)&res_voxel_graphics,
     origin, this->world,
     (coord(*)(const void*,coord,coord))terrain_base_y);
@@ -162,7 +162,7 @@ game_state* cosine_world_new(unsigned seed) {
 static void cosine_world_delete(cosine_world_state* this) {
   if (this->overlay) paint_overlay_delete(this->overlay);
   parchment_delete(this->bg);
-  env_vmap_renderer_delete(this->vmap_renderer);
+  env_vmap_voxel_renderer_delete(this->vmap_voxel_renderer);
   env_vmap_delete(this->vmap);
   terrain_tilemap_delete(this->world);
   skybox_delete(this->sky);
@@ -318,7 +318,8 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   glm_clear(GL_DEPTH_BUFFER_BIT);
   skybox_render(&before_paint_overlay, this->sky, this->context);
   render_terrain_tilemap(&before_paint_overlay, this->world, this->context);
-  render_env_vmap(&before_paint_overlay, this->vmap_renderer, this->context);
+  render_env_vmap_voxels(
+    &before_paint_overlay, this->vmap_voxel_renderer, this->context);
   ump_join();
 
   if (this->use_paint_overlay) {

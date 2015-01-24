@@ -25,8 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RENDER_ENV_MAP_RENDERER_H_
-#define RENDER_ENV_MAP_RENDERER_H_
+#ifndef RENDER_ENV_MAP_VOXEL_RENDERER_H_
+#define RENDER_ENV_MAP_VOXEL_RENDERER_H_
 
 #include "../math/coords.h"
 #include "../world/env-vmap.h"
@@ -35,9 +35,9 @@
 
 /**
  * The number of tiles in each dimension comprising a single cell in an
- * env_vmap_renderer.
+ * env_vmap_voxel_renderer.
  */
-#define ENV_VMAP_RENDERER_CELL_SZ 64
+#define ENV_VMAP_VOXEL_RENDERER_CELL_SZ 64
 
 /**
  * Describes the parameters used to draw a graphic plane of a voxel.
@@ -103,10 +103,11 @@ typedef struct {
  * Internal structure storing precalculated information and heavyweight
  * handles for rendering all or part of a vmap.
  */
-typedef struct env_vmap_render_cell_s env_vmap_render_cell;
+typedef struct env_vmap_voxel_render_cell_s env_vmap_voxel_render_cell;
 
 /**
- * Renders voxel maps.
+ * Renders voxel maps by simply rendering each voxel as a cube containing three
+ * surfaces, as described by env_voxel_graphic.
  *
  * This struct should be considered immutable by external code.
  */
@@ -143,16 +144,16 @@ typedef struct {
   /**
    * Internal state.
    */
-  env_vmap_render_cell* cells[FLEXIBLE_ARRAY_MEMBER];
-} env_vmap_renderer;
+  env_vmap_voxel_render_cell* cells[FLEXIBLE_ARRAY_MEMBER];
+} env_vmap_voxel_renderer;
 
 /**
- * Allocates a new env_vmap_renderer.
+ * Allocates a new env_vmap_voxel_renderer.
  *
  * @param vmap The vmap to be rendered by this renderer. Its X and Z dimensions
- * must be multiples of ENV_VMAP_RENDERER_CELL_SZ.
+ * must be multiples of ENV_VMAP_VOXEL_RENDERER_CELL_SZ.
  */
-env_vmap_renderer* env_vmap_renderer_new(
+env_vmap_voxel_renderer* env_vmap_voxel_renderer_new(
   const env_vmap* vmap,
   const env_voxel_graphic*const graphics[NUM_ENV_VOXEL_CONTEXTUAL_TYPES],
   const vc3 base_coordinate,
@@ -160,14 +161,14 @@ env_vmap_renderer* env_vmap_renderer_new(
   coord (*get_y_offset)(const void*, coord, coord));
 
 /**
- * Releases the resources held by the given env_vmap_renderer.
+ * Releases the resources held by the given env_vmap_voxel_renderer.
  */
-void env_vmap_renderer_delete(env_vmap_renderer*);
+void env_vmap_voxel_renderer_delete(env_vmap_voxel_renderer*);
 
 /**
  * Renders the vmap of the given renderer.
  */
-void render_env_vmap(canvas* dst, env_vmap_renderer*restrict,
-                     const rendering_context*restrict context);
+void render_env_vmap_voxels(canvas* dst, env_vmap_voxel_renderer*restrict,
+                            const rendering_context*restrict context);
 
 #endif /* RENDER_ENV_MAP_RENDERER_H_ */

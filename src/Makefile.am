@@ -52,7 +52,7 @@ render/terrabuff.c \
 render/terrain-tilemap-rnd.c \
 render/colour-palettes.c \
 render/paint-overlay.c \
-render/env-vmap-renderer.c \
+render/env-vmap-voxel-renderer.c \
 render/voxel-tex-interp.c \
 render/skybox.c \
 control/mouselook.c \
