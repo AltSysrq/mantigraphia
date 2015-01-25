@@ -69,6 +69,46 @@ typedef struct {
 } env_voxel_graphic_plane;
 
 /**
+ * Specifies how a voxel can be rendered in a "blob-like" manner.
+ *
+ * Two graphic blobs are equivalent if they have the same ordinal.
+ */
+typedef struct {
+  /**
+   * The identifier for this graphic blob within its context.
+   */
+  unsigned char ordinal;
+
+  /**
+   * The colour palette to use. This is an RGBA texture indexed by a fixed
+   * noise texture (S) and the current time (T).
+   */
+  unsigned palette;
+
+  /**
+   * The bias added to the noise for this blob type, 16.16 fixed-point. 0.0
+   * corresponds to S=0; 1.0 to S=1.
+   */
+  unsigned noise_bias;
+  /**
+   * The amplitude of the noise for this blob type, 16.16 fixed-point. 0.0
+   * eliminates all noise; 1.0 allows traversing the entire palette.
+   */
+  unsigned noise_amplitude;
+  /**
+   * The frequency, relative to the width of the screen, at which the noise
+   * texture repeats on the X axis, 16.16 fixed-point.
+   */
+  unsigned noise_xfreq;
+  /**
+   * The frequencey, relative to the width of the screen (width, so that the
+   * result is square), at which the noise texture repeats on the Y axis, 16.16
+   * fixed-point.
+   */
+  unsigned noise_yfreq;
+} env_voxel_graphic_blob;
+
+/**
  * Describes how a voxel (more specifically, a contextual voxel type) is
  * represented graphically.
  *
@@ -86,6 +126,14 @@ typedef struct {
    * NULL values indicate planes that should not be drawn.
    */
   const env_voxel_graphic_plane* planes[3];
+
+  /**
+   * Voxels may be rendered as "blobs" instead of intersecting planes, which
+   * generally produces better results for dense organic objects.
+   *
+   * The presence of this field generally suppresses usage of the planes above.
+   */
+  const env_voxel_graphic_blob* blob;
 } env_voxel_graphic;
 
 #endif /* RENDER_ENV_VOXEL_GRAPHIC_H */

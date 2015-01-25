@@ -59,15 +59,12 @@ resource.palette.oaktree_leaf = core.bind(core.gen_palette_from_lanes) {
       b = 255 * p.bsat / 1.0
     end
 
-    if p.alpha > p.live then
-      return core.argb(0, r, g, b)
-    else
-      return core.argb(255, r, g, b)
-    end
+    local a = core.chaos(p.x, p.y)
+    return core.argb(a, r, g, b)
   end
 }
 
-resource.palette.oaktree_trunk = core.bind(core.new_palette) {
+resource.texpalette.oaktree_trunk = core.bind(core.new_texpalette) {
   -- M
   { 0x00ffffff, 0xffffffff, 0xffffffff, 0xff302020, 0xff636357,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
@@ -110,33 +107,6 @@ function resource.texdata.oaktree_trunk()
     core.binary_mipmap_maximum, true)
 end
 
-function oaktree_generate_leaf_texture(bias)
-  local rnd = 751
-  local zero = mg.tg_fill(0)
-  local worley = zero
-  for i = 1, 32 do
-    local sx, sy
-    sx, rnd = mg.lcgrand(rnd)
-    sy, rnd = mg.lcgrand(rnd)
-    worley = mg.tg_max(
-      worley, mg.tg_similarity(sx % 64, sy % 64, zero, 0))
-  end
-
-  worley = mg.tg_normalise(worley, 255-32, 255-16)
-
-  local sphere = mg.tg_similarity(32, 32, zero, 0)
-  local colour = mg.tg_normalise(worley, bias, bias + 32)
-  local clipped = mg.tg_stencil(zero, colour, worley,
-                                mg.tg_fill(255-32), sphere)
-
-  return core.new_texdata(
-    mg.tg_zip(
-      clipped,
-      mg.tg_uniform_noise(core.byte_array { 255, 220, 200, 197 }, rnd),
-      mg.tg_uniform_noise(nil, rnd+1)),
-    core.binary_mipmap_maximum, true)
-end
-
 resource.texture.oaktree_trunk = core.bind(core.new_texture) {
   texdata = "oaktree_trunk",
   palette = "oaktree_trunk",
@@ -152,22 +122,12 @@ resource.voxel_graphic.oaktree_trunk = core.bind(core.new_voxel_graphic) {
 }
 
 for i = 1, 4 do
-  resource.texdata["oaktree_leaf"..i] =
-    core.bind(oaktree_generate_leaf_texture)(32 + i*32)
-
-  resource.texture["oaktree_leaf"..i] = core.bind(core.new_texture) {
-    texdata = "oaktree_leaf"..i,
-    palette = "oaktree_leaf"
-  }
-
-  resource.graphic_plane["oaktree_leaf"..i] = core.bind(core.new_graphic_plane) {
-    texture = "oaktree_leaf" .. i,
+  resource.graphic_blob["oaktree_leaf"..i] = core.bind(core.new_graphic_blob) {
+    palette = "oaktree_leaf",
   }
 
   resource.voxel_graphic["oaktree_leaf"..i] = core.bind(core.new_voxel_graphic) {
-    x = "oaktree_leaf" .. i,
-    y = "oaktree_leaf" .. i,
-    z = "oaktree_leaf" .. i,
+    blob = "oaktree_leaf"..i
   }
 
   resource.voxel["oaktree_leaf"..i] = function()

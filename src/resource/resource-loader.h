@@ -133,6 +133,14 @@ unsigned rl_voxel_graphic_new(void);
 unsigned rl_voxel_graphic_set_plane(unsigned graphic, unsigned axis,
                                     unsigned plane);
 /**
+ * Sets the graphic blob associated with the given voxel graphic.
+ *
+ * @param graphic The voxel graphic to modify (see rl_voxel_graphic_new()).
+ * @param blob The blob to assign (see rl_graphic_blob_new()).
+ * @return Whether successful.
+ */
+unsigned rl_voxel_graphic_set_blob(unsigned graphic, unsigned blob);
+/**
  * Allocates a new graphic plane.
  *
  * @return The index of the new graphic plane.
@@ -172,6 +180,37 @@ unsigned rl_graphic_plane_set_scale(unsigned plane,
                                     signed sxscale, signed syscale,
                                     signed txscale, signed tyscale);
 /**
+ * Allocates a new graphic blob with an unspecified palette.
+ *
+ * The initial noise parameters are bias=0.0, amp=1.0, xfreq=1.0, yfreq=1.0.
+ *
+ * @return The new graphic blob index.
+ */
+unsigned rl_graphic_blob_new(void);
+/**
+ * Sets the palette used by the given graphic blob.
+ *
+ * @param blob The graphic blob to edit (see rl_graphic_blob_new()).
+ * @param palette The palette to associate with the blob (see
+ * rl_palette_new()).
+ * @return Whether successful.
+ */
+unsigned rl_graphic_blob_set_palette(unsigned blob, unsigned palette);
+/**
+ * Configures the noise parameters for the given graphic blob.
+ *
+ * @param blob The graphic blob to edit (see rl_graphic_blob_new()).
+ * @param bias The 16.16 fixed-point noise bias.
+ * @param amp The 16.16 fixed-point noise amplitude.
+ * @param xfreq The 16.16 fixed-point noise frequency on the X axis, relative
+ * to screen width.
+ * @param yfreq The 16.16 fixed-point noise frequency on the Y axis, relative
+ * to screen width.
+ * @return Whether successful.
+ */
+unsigned rl_graphic_blob_set_noise(unsigned blob, unsigned bias, unsigned amp,
+                                   unsigned xfreq, unsigned yfreq);
+/**
  * Allocates a new texture with unspecified content.
  *
  * @return The new texture index.
@@ -204,6 +243,7 @@ unsigned rl_texture_new(void);
  * palette's S axis.
  * @param ntimes The number of time-steps in the palette; ie, the size of the
  * palette's T axis.
+ * @param palette The palette data. Size ncolours*ntimes*4.
  * @return Whether successful.
  */
 unsigned rl_texture_load64x64rgbmm_NxMrgba(
@@ -214,5 +254,28 @@ unsigned rl_texture_load64x64rgbmm_NxMrgba(
   const void* d1,
   unsigned ncolours, unsigned ntimes,
   const void* palette);
+/**
+ * Allocates a new palette texture with unspecified content.
+ *
+ * These palettes are unrelated to those related to
+ * rl_texture_load64x64rgbmm_NxMrgba().
+ *
+ * @return The new palette texture index.
+ */
+unsigned rl_palette_new(void);
+/**
+ * Edits the RGBA texture data of the given palette.
+ *
+ * @param palette The palette to edit.
+ * @param ncolours The number of colours in the palette; ie, the size of the
+ * palette's S axis.
+ * @param ntimes The number of time-steps in the palette; ie, the size of the
+ * palette's T axis.
+ * @param data The RGBA data, size ncolours*ntimes*4.
+ * @return Whether successful.
+ */
+unsigned rl_palette_loadMxNrgba(unsigned palette,
+                                unsigned ncolours, unsigned ntimes,
+                                const void* data);
 
 #endif /* RESOURCE_RESOURCE_LOADER_H_ */

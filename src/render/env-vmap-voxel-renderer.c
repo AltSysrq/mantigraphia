@@ -382,7 +382,7 @@ static env_vmap_voxel_render_vhive* env_vmap_voxel_render_vhive_new(
 
         graphic = env_vmap_voxel_renderer_get_graphic(
           r, x0+(x<<lod), y<<lod, z0+(z<<lod), lod);
-        if (!graphic) continue;
+        if (!graphic || graphic->blob) continue;
 
         if (graphic->planes[0]) {
 #define VERTEX(vx,vy,vz,p)                                              \

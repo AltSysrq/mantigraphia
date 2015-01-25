@@ -51,7 +51,11 @@ static env_voxel_graphic_plane res_graphic_planes[
   NUM_ENV_VOXEL_CONTEXTUAL_TYPES*3];
 static unsigned res_num_graphic_planes;
 
+static env_voxel_graphic_blob res_graphic_blobs[256];
+static unsigned res_num_graphic_blobs;
+
 #define MAX_TEXTURES 1024
+#define MAX_PALETTES 256
 #define TEXTURE_MM_NPX (64*64+32*32+16*16+8*8+4*4+2*2+1*1)
 
 static struct {
@@ -60,7 +64,10 @@ static struct {
   unsigned char* palette;
   unsigned palette_w, palette_h;
 } res_textures[MAX_TEXTURES];
-unsigned res_num_textures;
+static unsigned res_num_textures;
+
+static GLuint res_palettes[MAX_PALETTES];
+static unsigned res_num_palettes;
 
 static GLuint res_default_texture;
 
@@ -81,15 +88,20 @@ void rl_clear(void) {
   res_num_voxel_types = 1;
   res_num_voxel_graphics = 1;
   res_num_graphic_planes = 1;
+  res_num_graphic_blobs = 1;
   res_num_textures = 1;
+  res_num_palettes = 1;
   memset(res_voxel_graphics, 0, sizeof(res_voxel_graphics));
   memset(&res_voxel_context_map, 0, sizeof(res_voxel_context_map));
   memset(res_voxel_graphics_array, 0, sizeof(res_voxel_graphics_array));
   memset(res_graphic_planes, 0, sizeof(res_graphic_planes));
+  memset(res_graphic_blobs, 0, sizeof(res_graphic_blobs));
 
   if (!has_textures) {
     for (i = 1; i < MAX_TEXTURES; ++i)
       glGenTextures(2, res_textures[i].texture);
+
+    glGenTextures(MAX_PALETTES-1, res_palettes + 1);
 
     has_textures = 1;
   }
@@ -153,6 +165,14 @@ unsigned rl_voxel_graphic_set_plane(unsigned graphic, unsigned axis,
   return 1;
 }
 
+unsigned rl_voxel_graphic_set_blob(unsigned graphic, unsigned blob) {
+  CKNF();
+  CKIX(graphic, res_num_voxel_graphics);
+  CKIX(blob, res_num_graphic_blobs);
+  res_voxel_graphics_array[graphic].blob = res_graphic_blobs + blob;
+  return 1;
+}
+
 unsigned rl_graphic_plane_new(void) {
   CKNF();
   CKIX(res_num_graphic_planes, NUM_ENV_VOXEL_CONTEXTUAL_TYPES*3);
@@ -185,6 +205,40 @@ unsigned rl_graphic_plane_set_scale(unsigned plane, signed sx, signed sy,
   res_graphic_planes[plane].texture_scale[0][1] = sy;
   res_graphic_planes[plane].texture_scale[1][0] = tx;
   res_graphic_planes[plane].texture_scale[1][1] = ty;
+  return 1;
+}
+
+unsigned rl_graphic_blob_new(void) {
+  CKNF();
+  CKIX(res_num_graphic_blobs, 256);
+
+  res_graphic_blobs[res_num_graphic_blobs].ordinal = res_num_graphic_blobs-1;
+  res_graphic_blobs[res_num_graphic_blobs].palette = res_default_texture;
+  res_graphic_blobs[res_num_graphic_blobs].noise_bias = 0;
+  res_graphic_blobs[res_num_graphic_blobs].noise_amplitude = 65536;
+  res_graphic_blobs[res_num_graphic_blobs].noise_xfreq = 65536;
+  res_graphic_blobs[res_num_graphic_blobs].noise_yfreq = 65536;
+  return res_num_graphic_blobs++;
+}
+
+unsigned rl_graphic_blob_set_palette(unsigned blob, unsigned palette) {
+  CKNF();
+  CKIX(blob, res_num_graphic_blobs);
+  CKIX(palette, res_num_palettes);
+
+  res_graphic_blobs[blob].palette = res_palettes[palette];
+  return 1;
+}
+
+unsigned rl_graphic_blob_set_noise(unsigned blob, unsigned bias, unsigned amp,
+                                   unsigned xfreq, unsigned yfreq) {
+  CKNF();
+  CKIX(blob, res_num_graphic_blobs);
+
+  res_graphic_blobs[blob].noise_bias = bias;
+  res_graphic_blobs[blob].noise_amplitude = amp;
+  res_graphic_blobs[blob].noise_xfreq = xfreq;
+  res_graphic_blobs[blob].noise_yfreq = yfreq;
   return 1;
 }
 
@@ -245,6 +299,27 @@ unsigned rl_texture_load64x64rgbmm_NxMrgba(
     glTexImage2D(GL_TEXTURE_2D, ln, GL_RG, level, level, 0,
                  GL_RG, GL_UNSIGNED_BYTE, levelptr);
 
+  return 1;
+}
+
+unsigned rl_palette_new(void) {
+  CKNF();
+  CKIX(res_num_palettes, MAX_PALETTES);
+
+  res_gen_default_texture(res_palettes[res_num_palettes]);
+  return res_num_palettes++;
+}
+
+unsigned rl_palette_loadMxNrgba(unsigned palette,
+                                unsigned ncolours, unsigned ntimes,
+                                const void* data) {
+  CKNF();
+  CKIX(palette, res_num_palettes);
+
+  glBindTexture(GL_TEXTURE_2D, res_palettes[palette]);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ncolours, ntimes, 0,
+               GL_RGBA, GL_UNSIGNED_BYTE, data);
   return 1;
 }
 
