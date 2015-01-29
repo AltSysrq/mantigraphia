@@ -8,7 +8,7 @@ AM_INIT_AUTOMAKE([1.11])
 AM_SILENT_RULES(yes)
 AC_CONFIG_MACRO_DIR([m4])
 LT_PREREQ([1.5])
-LT_INIT([dlopen])
+LT_INIT([disable-shared])
 AM_CONFIG_HEADER([config.h])
 PKG_PROG_PKG_CONFIG()
 
