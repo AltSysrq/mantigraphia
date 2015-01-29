@@ -45,11 +45,11 @@
 #include "context.h"
 #include "env-vmap-voxel-renderer.h"
 
-#define CELL_SZ ENV_VMAP_VOXEL_RENDERER_CELL_SZ
-#define DRAW_DISTANCE 16 /* cells */
+#define VHIVE_SZ ENV_VMAP_VOXEL_RENDERER_VHIVE_SZ
+#define DRAW_DISTANCE 16 /* vhives */
 
 /**
- * A render operation is a set of polygons inside a render cell which share the
+ * A render operation is a set of polygons inside a render vhive which share the
  * same graphic plane.
  */
 typedef struct {
@@ -62,19 +62,19 @@ typedef struct {
 } env_vmap_voxel_render_operation;
 
 /**
- * A render cell holds on-GPU precomputed data used to render some part
+ * A render vhive holds on-GPU precomputed data used to render some part
  * (possibly all) of an env_vmap. It is composed of zero or more operations;
  * all operations share the same vertex and index buffers.
  *
- * Render cells are created on-demand and destroyed when no longer needed.
+ * Render vhives are created on-demand and destroyed when no longer needed.
  */
-struct env_vmap_voxel_render_cell_s {
+struct env_vmap_voxel_render_vhive_s {
   /**
-   * The level of detail of this cell (0 = maximum).
+   * The level of detail of this vhive (0 = maximum).
    */
   unsigned char lod;
   /**
-   * The vertex and index buffers for this cell.
+   * The vertex and index buffers for this vhive.
    */
   GLuint buffers[2];
   /**
@@ -112,13 +112,13 @@ SPLAY_GENERATE(env_voxel_graphic_presence_set, env_voxel_graphic_presence_s,
 static const env_voxel_graphic* env_vmap_voxel_renderer_get_graphic(
   const env_vmap_voxel_renderer* this, coord x, coord y, coord z,
   unsigned char lod);
-static env_vmap_voxel_render_cell* env_vmap_voxel_render_cell_new(
+static env_vmap_voxel_render_vhive* env_vmap_voxel_render_vhive_new(
   const env_vmap_voxel_renderer* parent, coord x0, coord z0,
   unsigned char lod);
-static void env_vmap_voxel_render_cell_delete(env_vmap_voxel_render_cell*);
+static void env_vmap_voxel_render_vhive_delete(env_vmap_voxel_render_vhive*);
 static void render_env_vmap_voxels_impl(env_vmap_voxel_render_op*);
-static void env_vmap_voxel_render_cell_render(
-  const env_vmap_voxel_render_cell*restrict,
+static void env_vmap_voxel_render_vhive_render(
+  const env_vmap_voxel_render_vhive*restrict,
   const rendering_context*restrict);
 
 env_vmap_voxel_renderer* env_vmap_voxel_renderer_new(
@@ -128,30 +128,30 @@ env_vmap_voxel_renderer* env_vmap_voxel_renderer_new(
   const void* base_object,
   coord (*get_y_offset)(const void*, coord, coord)
 ) {
-  size_t cells_sz = sizeof(env_vmap_voxel_render_cell*) *
-    (vmap->xmax / CELL_SZ) * (vmap->zmax / CELL_SZ);
+  size_t vhives_sz = sizeof(env_vmap_voxel_render_vhive*) *
+    (vmap->xmax / VHIVE_SZ) * (vmap->zmax / VHIVE_SZ);
   env_vmap_voxel_renderer* this = xmalloc(
-    offsetof(env_vmap_voxel_renderer, cells) +
-    cells_sz);
+    offsetof(env_vmap_voxel_renderer, vhives) +
+    vhives_sz);
 
   this->vmap = vmap;
   this->graphics = graphics;
   memcpy(this->base_coordinate, base_coordinate, sizeof(vc3));
   this->base_object = base_object;
   this->get_y_offset = get_y_offset;
-  memset(this->cells, 0, cells_sz);
+  memset(this->vhives, 0, vhives_sz);
 
   return this;
 }
 
 void env_vmap_voxel_renderer_delete(env_vmap_voxel_renderer* this) {
-  unsigned num_cells =
-    this->vmap->xmax / CELL_SZ * this->vmap->zmax / CELL_SZ;
+  unsigned num_vhives =
+    this->vmap->xmax / VHIVE_SZ * this->vmap->zmax / VHIVE_SZ;
   unsigned i;
 
-  for (i = 0; i < num_cells; ++i)
-    if (this->cells[i])
-      env_vmap_voxel_render_cell_delete(this->cells[i]);
+  for (i = 0; i < num_vhives; ++i)
+    if (this->vhives[i])
+      env_vmap_voxel_render_vhive_delete(this->vhives[i]);
 
   free(this);
 }
@@ -178,10 +178,10 @@ void render_env_vmap_voxels_impl(env_vmap_voxel_render_op* op) {
 
   free(op);
 
-  xmax = this->vmap->xmax / CELL_SZ;
-  zmax = this->vmap->zmax / CELL_SZ;
-  cx = context->proj->camera[0] / TILE_SZ / CELL_SZ;
-  cz = context->proj->camera[2] / TILE_SZ / CELL_SZ;
+  xmax = this->vmap->xmax / VHIVE_SZ;
+  zmax = this->vmap->zmax / VHIVE_SZ;
+  cx = context->proj->camera[0] / TILE_SZ / VHIVE_SZ;
+  cz = context->proj->camera[2] / TILE_SZ / VHIVE_SZ;
 
   for (z = 0; z < zmax; ++z) {
     for (x = 0; x < xmax; ++x) {
@@ -204,41 +204,41 @@ void render_env_vmap_voxels_impl(env_vmap_voxel_render_op* op) {
         else
           desired_lod = 3;
 
-        /* We want to keep cells prepared even if they won't be rendered this
+        /* We want to keep vhives prepared even if they won't be rendered this
          * frame, since the angle the camera is facing can change rapidly.
          */
 
-        if (this->cells[z*xmax + x] &&
-            this->cells[z*xmax + x]->lod != desired_lod) {
-          env_vmap_voxel_render_cell_delete(this->cells[z*xmax + x]);
-          this->cells[z*xmax + x] = NULL;
+        if (this->vhives[z*xmax + x] &&
+            this->vhives[z*xmax + x]->lod != desired_lod) {
+          env_vmap_voxel_render_vhive_delete(this->vhives[z*xmax + x]);
+          this->vhives[z*xmax + x] = NULL;
         }
 
-        if (!this->cells[z*xmax + x])
-          this->cells[z*xmax + x] = env_vmap_voxel_render_cell_new(
-            this, x*CELL_SZ, z*CELL_SZ, desired_lod);
+        if (!this->vhives[z*xmax + x])
+          this->vhives[z*xmax + x] = env_vmap_voxel_render_vhive_new(
+            this, x*VHIVE_SZ, z*VHIVE_SZ, desired_lod);
 
         dot = dx * context->proj->yrot_sin +
               dz * context->proj->yrot_cos;
-        /* Only render cells that are actually visible.
+        /* Only render vhives that are actually visible.
          *
          * The (d<2) condition serves two purposes. First, it is a "fudge
          * factor" to account for the fact that the calculations are based on
-         * the corners of the cells instead of the centre. Second, it causes
-         * cells "behind" the camera to be drawn when very close, which means
-         * that even at somewhat high altitutes, one cannot see the cells not
+         * the corners of the vhives instead of the centre. Second, it causes
+         * vhives "behind" the camera to be drawn when very close, which means
+         * that even at somewhat high altitutes, one cannot see the vhives not
          * being drawn.
          *
-         * (One can still go high enough to see those cells, but this shouldn't
+         * (One can still go high enough to see those vhives, but this shouldn't
          * be too much of an issue, since the plan is to obscure that part of
          * the view anyway.)
          */
         if (dot <= 0 || d < 2)
-          env_vmap_voxel_render_cell_render(this->cells[z*xmax + x], ctxt);
+          env_vmap_voxel_render_vhive_render(this->vhives[z*xmax + x], ctxt);
       } else {
-        if (this->cells[z*xmax + x]) {
-          env_vmap_voxel_render_cell_delete(this->cells[z*xmax + x]);
-          this->cells[z*xmax + x] = NULL;
+        if (this->vhives[z*xmax + x]) {
+          env_vmap_voxel_render_vhive_delete(this->vhives[z*xmax + x]);
+          this->vhives[z*xmax + x] = NULL;
         }
       }
     }
@@ -301,7 +301,7 @@ static const env_voxel_graphic* env_vmap_voxel_renderer_get_graphic(
   abort();
 }
 
-static env_vmap_voxel_render_cell* env_vmap_voxel_render_cell_new(
+static env_vmap_voxel_render_vhive* env_vmap_voxel_render_vhive_new(
   const env_vmap_voxel_renderer* r, coord x0, coord z0,
   unsigned char lod
 ) {
@@ -326,7 +326,7 @@ static env_vmap_voxel_render_cell* env_vmap_voxel_render_cell_new(
    *   size of this tree is also tracked.
    *
    * Pass 1: Discovery
-   * The voxels covered by this cell are iterated in (Z,X,Y) order. If a voxel
+   * The voxels covered by this vhive are iterated in (Z,X,Y) order. If a voxel
    * plane has an associated graphic, the graphic splay tree is traversed, and
    * a new node created if there isn't one already. If the plane requires
    * vertices that don't have indices yet, they are generated at the end of the
@@ -335,7 +335,7 @@ static env_vmap_voxel_render_cell* env_vmap_voxel_render_cell_new(
    *
    * After the discovery pass, the number of vertices, indices, and operations
    * is known exactly, so memory for the index buffer can be allocated, as well
-   * as the cell itself. Ranges within the index buffer are assigned to each
+   * as the vhive itself. Ranges within the index buffer are assigned to each
    * operation.
    *
    * Pass 2: Index Generation
@@ -350,11 +350,11 @@ static env_vmap_voxel_render_cell* env_vmap_voxel_render_cell_new(
    * one concurrent invocation of the function per process, so the temporary
    * data can just live in the data segment as static variables.
    */
-#define NVXZ (CELL_SZ+1) /* +1 for terminal fencepost */
+#define NVXZ (VHIVE_SZ+1) /* +1 for terminal fencepost */
 #define NVY (ENV_VMAP_H+1)
   static unsigned vertex_indices[NVXZ][NVXZ][NVY][3];
   static shader_voxel_vertex vertex_data[NVXZ*NVXZ*NVY*6];
-  static unsigned index_data[CELL_SZ*CELL_SZ*ENV_VMAP_H*18];
+  static unsigned index_data[VHIVE_SZ*VHIVE_SZ*ENV_VMAP_H*18];
   static env_voxel_graphic_presence graphic_presence[
     NUM_ENV_VOXEL_CONTEXTUAL_TYPES];
 
@@ -367,14 +367,14 @@ static env_vmap_voxel_render_cell* env_vmap_voxel_render_cell_new(
   unsigned i, v, index_off;
   const env_voxel_graphic* graphic;
   env_voxel_graphic_presence gp_example, * gp;
-  env_vmap_voxel_render_cell* cell;
+  env_vmap_voxel_render_vhive* vhive;
 
   SPLAY_INIT(&graphics);
   memset(vertex_indices, ~0, sizeof(vertex_indices));
 
   /* PASS 1 */
-  for (z = 0; z < (unsigned)(CELL_SZ >> lod); ++z) {
-    for (x = 0; x < (unsigned)(CELL_SZ >> lod); ++x) {
+  for (z = 0; z < (unsigned)(VHIVE_SZ >> lod); ++z) {
+    for (x = 0; x < (unsigned)(VHIVE_SZ >> lod); ++x) {
       for (y = 0; y < (unsigned)(ENV_VMAP_H >> lod); ++y) {
         if (lod && !env_vmap_is_visible(
               r->vmap, x0+(x<<lod), y<<lod, z0+(z<<lod), lod))
@@ -445,19 +445,19 @@ static env_vmap_voxel_render_cell* env_vmap_voxel_render_cell_new(
   }
 
   /* Set up for pass 2 */
-  cell = xmalloc(offsetof(env_vmap_voxel_render_cell, operations) +
+  vhive = xmalloc(offsetof(env_vmap_voxel_render_vhive, operations) +
                  graphic_presence_len *
                  sizeof(env_vmap_voxel_render_operation));
-  cell->num_operations = graphic_presence_len;
-  cell->lod = lod;
-  glGenBuffers(2, cell->buffers);
+  vhive->num_operations = graphic_presence_len;
+  vhive->lod = lod;
+  glGenBuffers(2, vhive->buffers);
 
   index_off = 0;
   i = 0;
   SPLAY_FOREACH(gp, env_voxel_graphic_presence_set, &graphics) {
-    cell->operations[i].graphic = gp->graphic;
-    cell->operations[i].offset = index_off;
-    cell->operations[i].length = 6 * gp->num_tiles;
+    vhive->operations[i].graphic = gp->graphic;
+    vhive->operations[i].offset = index_off;
+    vhive->operations[i].length = 6 * gp->num_tiles;
     gp->index_offset = index_off;
 
     index_off += 6 * gp->num_tiles;
@@ -465,8 +465,8 @@ static env_vmap_voxel_render_cell* env_vmap_voxel_render_cell_new(
   }
 
   /* PASS 2 */
-  for (z = 0; z < (unsigned)(CELL_SZ >> lod); ++z) {
-    for (x = 0; x < (unsigned)(CELL_SZ >> lod); ++x) {
+  for (z = 0; z < (unsigned)(VHIVE_SZ >> lod); ++z) {
+    for (x = 0; x < (unsigned)(VHIVE_SZ >> lod); ++x) {
       for (y = 0; y < (unsigned)(ENV_VMAP_H >> lod); ++y) {
         if (lod && !env_vmap_is_visible(
               r->vmap, x0+(x<<lod), y<<lod, z0+(z<<lod), lod))
@@ -505,25 +505,25 @@ static env_vmap_voxel_render_cell* env_vmap_voxel_render_cell_new(
   }
 
   /* Send stuff to GL and we're done */
-  glBindBuffer(GL_ARRAY_BUFFER, cell->buffers[0]);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cell->buffers[1]);
+  glBindBuffer(GL_ARRAY_BUFFER, vhive->buffers[0]);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vhive->buffers[1]);
   glBufferData(GL_ARRAY_BUFFER, vertex_data_len * sizeof(vertex_data[0]),
                vertex_data,  GL_STATIC_DRAW);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, required_indices * sizeof(unsigned),
                index_data, GL_STATIC_DRAW);
 
-  return cell;
+  return vhive;
 }
 
-static void env_vmap_voxel_render_cell_delete(
-  env_vmap_voxel_render_cell* this
+static void env_vmap_voxel_render_vhive_delete(
+  env_vmap_voxel_render_vhive* this
 ) {
   glDeleteBuffers(2, this->buffers);
   free(this);
 }
 
-static void env_vmap_voxel_render_cell_render(
-  const env_vmap_voxel_render_cell*restrict cell,
+static void env_vmap_voxel_render_vhive_render(
+  const env_vmap_voxel_render_vhive*restrict vhive,
   const rendering_context*restrict ctxt
 ) {
   const rendering_context_invariant*restrict context = CTXTINV(ctxt);
@@ -546,17 +546,17 @@ static void env_vmap_voxel_render_cell_render(
   uniform.tex = 0;
   uniform.control = 1;
 
-  glBindBuffer(GL_ARRAY_BUFFER, cell->buffers[0]);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cell->buffers[1]);
+  glBindBuffer(GL_ARRAY_BUFFER, vhive->buffers[0]);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vhive->buffers[1]);
 
-  for (i = 0; i < cell->num_operations; ++i) {
-    glBindTexture(GL_TEXTURE_2D, cell->operations[i].graphic->texture);
+  for (i = 0; i < vhive->num_operations; ++i) {
+    glBindTexture(GL_TEXTURE_2D, vhive->operations[i].graphic->texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, cell->operations[i].graphic->control);
+    glBindTexture(GL_TEXTURE_2D, vhive->operations[i].graphic->control);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -564,18 +564,18 @@ static void env_vmap_voxel_render_cell_render(
     glActiveTexture(GL_TEXTURE0);
 
     uniform.texture_scale_s[0] =
-      cell->operations[i].graphic->texture_scale[0][0] / 65536.0f;
+      vhive->operations[i].graphic->texture_scale[0][0] / 65536.0f;
     uniform.texture_scale_s[1] =
-      cell->operations[i].graphic->texture_scale[0][1] / 65536.0f;
+      vhive->operations[i].graphic->texture_scale[0][1] / 65536.0f;
     uniform.texture_scale_t[0] =
-      cell->operations[i].graphic->texture_scale[1][0] / 65536.0f;
+      vhive->operations[i].graphic->texture_scale[1][0] / 65536.0f;
     uniform.texture_scale_t[1] =
-      cell->operations[i].graphic->texture_scale[1][1] / 65536.0f;
+      vhive->operations[i].graphic->texture_scale[1][1] / 65536.0f;
 
     shader_voxel_activate(&uniform);
     shader_voxel_configure_vbo();
-    glDrawElements(GL_TRIANGLES, cell->operations[i].length,
+    glDrawElements(GL_TRIANGLES, vhive->operations[i].length,
                    GL_UNSIGNED_INT,
-                   (GLvoid*)(cell->operations[i].offset * sizeof(unsigned)));
+                   (GLvoid*)(vhive->operations[i].offset * sizeof(unsigned)));
   }
 }

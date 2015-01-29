@@ -148,6 +148,16 @@ typedef unsigned short env_voxel_contextual_type;
  * The vmap also stores approximate maximum draw distance per voxel. This is a
  * two-bit field which is not directly addressable, and has lower resolution
  * than the vmap as a whole.
+ *
+ * Terminology notes:
+ * voxel: A single entry in a vmap, ie, the value at a discrete coordinate.
+ * cell: A 2x2x2 group of voxels with 2-voxel alignment.
+ * supercell: A 4x4x4 group of voxels with 4-voxel alignment.
+ * hive: A region of voxels in the vmap deliniated by some bounding box in the
+ *       X,Z plane (ie, it covers the entire Y axis in that region). Both ends
+ *       of a hive are supercell-aligned. There are multiple types of hives
+ *       used by different components; they are distinguished by being prefixed
+ *       to indicate their use (ie, vhive is used for voxel-style rendering).
  */
 typedef struct {
   /**

@@ -35,16 +35,16 @@
 #include "env-voxel-graphic.h"
 
 /**
- * The number of tiles in each dimension comprising a single cell in an
+ * The number of tiles in each dimension comprising a single vhive in an
  * env_vmap_voxel_renderer.
  */
-#define ENV_VMAP_VOXEL_RENDERER_CELL_SZ 64
+#define ENV_VMAP_VOXEL_RENDERER_VHIVE_SZ 64
 
 /**
  * Internal structure storing precalculated information and heavyweight
  * handles for rendering all or part of a vmap.
  */
-typedef struct env_vmap_voxel_render_cell_s env_vmap_voxel_render_cell;
+typedef struct env_vmap_voxel_render_vhive_s env_vmap_voxel_render_vhive;
 
 /**
  * Renders voxel maps by simply rendering each voxel as a cube containing three
@@ -85,14 +85,14 @@ typedef struct {
   /**
    * Internal state.
    */
-  env_vmap_voxel_render_cell* cells[FLEXIBLE_ARRAY_MEMBER];
+  env_vmap_voxel_render_vhive* vhives[FLEXIBLE_ARRAY_MEMBER];
 } env_vmap_voxel_renderer;
 
 /**
  * Allocates a new env_vmap_voxel_renderer.
  *
  * @param vmap The vmap to be rendered by this renderer. Its X and Z dimensions
- * must be multiples of ENV_VMAP_VOXEL_RENDERER_CELL_SZ.
+ * must be multiples of ENV_VMAP_VOXEL_RENDERER_VHIVE_SZ.
  */
 env_vmap_voxel_renderer* env_vmap_voxel_renderer_new(
   const env_vmap* vmap,
