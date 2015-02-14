@@ -43,6 +43,7 @@
 #include "../world/terrain-tilemap.h"
 #include "../world/env-vmap.h"
 #include "context.h"
+#include "env-vmap-render-common.h"
 #include "env-vmap-voxel-renderer.h"
 
 #define VHIVE_SZ ENV_VMAP_VOXEL_RENDERER_VHIVE_SZ
@@ -109,9 +110,6 @@ SPLAY_PROTOTYPE(env_voxel_graphic_presence_set, env_voxel_graphic_presence_s,
 SPLAY_GENERATE(env_voxel_graphic_presence_set, env_voxel_graphic_presence_s,
                set, compare_env_voxel_graphic_presence);
 
-static const env_voxel_graphic* env_vmap_voxel_renderer_get_graphic(
-  const env_vmap_voxel_renderer* this, coord x, coord y, coord z,
-  unsigned char lod);
 static env_vmap_voxel_render_vhive* env_vmap_voxel_render_vhive_new(
   const env_vmap_voxel_renderer* parent, coord x0, coord z0,
   unsigned char lod);
@@ -245,62 +243,6 @@ void render_env_vmap_voxels_impl(env_vmap_voxel_render_op* op) {
   }
 }
 
-/* This uses an O(n) algorithm to find the majority component as an
- * approximation of the statistical mode of a cell (read in as a single qword).
- *
- * Note that processors of different endianness will produce slightly different
- * results in cases where there is no majority component. Since this is only
- * used for graphics, this isn't really an issue.
- */
-static unsigned env_vmap_voxel_renderer_ll_majority_component(
-  unsigned long long bytes
-) {
-  unsigned m, n, b;
-
-  if (!bytes) return 0;
-
-  m = bytes & 0xFF;
-  n = 1;
-#define BYTE()                                  \
-  bytes >>= 8;                                  \
-  b = bytes & 0xFF;                             \
-  if (m == b) ++n;                              \
-  else if (!--n) m = b, n = 1
-  BYTE(); /* 1 */
-  BYTE(); /* 2 */
-  BYTE(); /* 3 */
-  BYTE(); /* 4 */
-  BYTE(); /* 5 */
-  BYTE(); /* 6 */
-  BYTE(); /* 7 */
-#undef BYTE
-  return m;
-}
-
-static const env_voxel_graphic* env_vmap_voxel_renderer_get_graphic(
-  const env_vmap_voxel_renderer* this, coord x, coord y, coord z,
-  unsigned char lod
-) {
-  const unsigned long long* cell;
-
-  switch (lod) {
-  case 0:
-    return this->graphics[env_vmap_expand_type(this->vmap, x, y, z)];
-
-  case 1:
-  case 2:
-  case 3:
-    cell = (unsigned long long*)
-      (this->vmap->voxels + env_vmap_offset(this->vmap, x, y, z));
-    return this->graphics[
-      env_vmap_voxel_renderer_ll_majority_component(*cell) <<
-      ENV_VOXEL_CONTEXT_BITS];
-  }
-
-  /* unreachable */
-  abort();
-}
-
 static env_vmap_voxel_render_vhive* env_vmap_voxel_render_vhive_new(
   const env_vmap_voxel_renderer* r, coord x0, coord z0,
   unsigned char lod
@@ -380,8 +322,8 @@ static env_vmap_voxel_render_vhive* env_vmap_voxel_render_vhive_new(
               r->vmap, x0+(x<<lod), y<<lod, z0+(z<<lod), lod))
           continue;
 
-        graphic = env_vmap_voxel_renderer_get_graphic(
-          r, x0+(x<<lod), y<<lod, z0+(z<<lod), lod);
+        graphic = env_vmap_renderer_get_graphic(
+          r->graphics, r->vmap, x0+(x<<lod), y<<lod, z0+(z<<lod), lod);
         if (!graphic || graphic->blob) continue;
 
         if (graphic->planes[0]) {
@@ -472,8 +414,9 @@ static env_vmap_voxel_render_vhive* env_vmap_voxel_render_vhive_new(
               r->vmap, x0+(x<<lod), y<<lod, z0+(z<<lod), lod))
           continue;
 
-        graphic = env_vmap_voxel_renderer_get_graphic(
-          r, x0+(x<<lod), y<<lod, z0+(z<<lod), lod);
+        graphic = env_vmap_renderer_get_graphic(
+          r->graphics, r->vmap,
+          x0+(x<<lod), y<<lod, z0+(z<<lod), lod);
         if (!graphic || graphic->blob) continue;
 
 #define DOPLANE(p)                                              \
