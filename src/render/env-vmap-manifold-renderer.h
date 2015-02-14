@@ -38,7 +38,7 @@
  * The number of tiles in each dimension comprising a single mhive in an
  * env_vmap_manifold_renderer.
  */
-#define ENV_VMAP_MANIFOLD_RENDERER_MHIVE_SZ 64
+#define ENV_VMAP_MANIFOLD_RENDERER_MHIVE_SZ 32
 
 /**
  * Internal structure storing precalculated information and heavyweight
