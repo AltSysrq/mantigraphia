@@ -97,9 +97,8 @@ static void put_point(terrabuff* dst, const vc3 centre,
   coord tx, tz;
   coord_offset sox, soz;
   unsigned long long altitude_sum = 0;
-  unsigned red_sum = 0, green_sum = 0, blue_sum = 0, alpha_sum = 0;
   unsigned sample_cnt = 0;
-  simd4 colour;
+  ssepi colour, sum;
   int clamped = 0;
 
   point[0] = centre[0] - zo_sinms(slice_to_angle(slice), distance);
@@ -107,6 +106,7 @@ static void put_point(terrabuff* dst, const vc3 centre,
   tx = (point[0] >> level) & (world->xmax*TILE_SZ - 1);
   tz = (point[2] >> level) & (world->zmax*TILE_SZ - 1);
   sample_len >>= level;
+  sum = sse_piof1(0);
 
   for (soz = -sample_len; soz <= sample_len; soz += TILE_SZ) {
     for (sox = -sample_len; sox <= sample_len; sox += TILE_SZ) {
@@ -119,10 +119,7 @@ static void put_point(terrabuff* dst, const vc3 centre,
                               (tx + sox) & (world->xmax*TILE_SZ - 1),
                               (tz + soz) & (world->zmax*TILE_SZ - 1),
                               get_colour_palettes(context)->terrain);
-      red_sum   += simd_vs(colour, 0);
-      green_sum += simd_vs(colour, 1);
-      blue_sum  += simd_vs(colour, 2);
-      alpha_sum += simd_vs(colour, 3);
+      sum = sse_addpi(sum, colour);
       ++sample_cnt;
     }
   }
@@ -145,9 +142,10 @@ static void put_point(terrabuff* dst, const vc3 centre,
   if (clamped)
     projected[1] = 65536;
 
+  sum = sse_divpi(sum, sse_piof1(sample_cnt));
   terrabuff_put(dst, projected,
-                argb(alpha_sum / sample_cnt, red_sum / sample_cnt,
-                     green_sum / sample_cnt, blue_sum / sample_cnt),
+                argb(SSE_VS(sum, 3), SSE_VS(sum, 0),
+                     SSE_VS(sum, 1), SSE_VS(sum, 2)),
                 xmax);
 }
 

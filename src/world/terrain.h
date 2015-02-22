@@ -30,7 +30,7 @@
 
 #include "terrain-tilemap.h"
 #include "../math/coords.h"
-#include "../math/simd.h"
+#include "../math/sse.h"
 
 /**
  * The base terrain types, used for bits 7..2 of the tile type byte. The lower
@@ -92,7 +92,7 @@ void terrain_basic_normal(vo3 normal, const terrain_tilemap*, coord tx, coord tz
  * The given palette determines the base colours for each tile type, and must
  * be compatible with the `terrain` field of the colour_palettes struct.
  */
-simd4 terrain_colour(const terrain_tilemap*, coord x, coord z,
-                     const simd4* palette);
+ssepi terrain_colour(const terrain_tilemap*, coord x, coord z,
+                     const ssepi* palette);
 
 #endif /* WORLD_TERRAIN_H_ */
