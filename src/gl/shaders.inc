@@ -35,7 +35,7 @@ shader_source(vgenerictc)
 shader_source(vpaint_overlay)
 shader_source(vterrabuff)
 shader_source(vskybox)
-shader_source(vvoxel)
+shader_source(gen_vvoxel)
 
 shader(fixed_texture) {
   fixed_function
@@ -80,7 +80,7 @@ shader(paint_overlay) {
 }
 
 shader(voxel) {
-  composed_of(fvoxel, vvoxel)
+  composed_of(fvoxel, gen_vvoxel)
   with_texture_coordinates
   uniform(vec2, torus_sz)
   uniform(vec2, yrot)
