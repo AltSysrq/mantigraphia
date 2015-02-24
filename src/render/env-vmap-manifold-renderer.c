@@ -240,9 +240,9 @@ void render_env_vmap_manifolds_impl(env_vmap_manifold_render_op* op) {
 #define MAX_FACES 65535
 #define MAX_FACES_PER_VERTEX 12
 #define MAX_EDGES_PER_VERTEX 8
-#define NVX (3+MHIVE_SZ)
+#define NVX (5+MHIVE_SZ)
 #define NVY (1+ENV_VMAP_H)
-#define NVZ (3+MHIVE_SZ)
+#define NVZ (5+MHIVE_SZ)
 
 typedef struct {
   unsigned short vertices[4];
@@ -547,7 +547,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
    *
    * This is rather dependent on ENV_VMAP_H being 32.
    */
-  static unsigned has_graphic_blob[2+MHIVE_SZ][2+MHIVE_SZ];
+  static unsigned has_graphic_blob[4+MHIVE_SZ][4+MHIVE_SZ];
   unsigned short num_vertices;
   unsigned short num_faces;
   unsigned num_triangulated_indices;
@@ -600,43 +600,43 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
   }
 
   /* Build bitset of grahpic blob presence */
-  for (cz = -1; cz <= MHIVE_SZ>>lod; ++cz) {
+  for (cz = -2; cz <= 1+(MHIVE_SZ>>lod); ++cz) {
     z = (z0 + (cz<<lod)) & zmask;
     if (z >= r->vmap->zmax) {
-      memset(has_graphic_blob[cz+1], 0, sizeof(has_graphic_blob[cz+1]));
+      memset(has_graphic_blob[cz+2], 0, sizeof(has_graphic_blob[cz+2]));
       continue;
     }
 
-    for (cx = -1; cx <= MHIVE_SZ>>lod; ++cx) {
-      has_graphic_blob[cz+1][cx+1] = 0;
+    for (cx = -2; cx <= 1+(MHIVE_SZ>>lod); ++cx) {
+      has_graphic_blob[cz+2][cx+2] = 0;
 
       x = (x0 + (cx<<lod)) & xmask;
       if (x >= r->vmap->xmax) continue;
 
-       for (cy = 0; cy < ENV_VMAP_H>>lod; ++cy) {
+      for (cy = 0; cy < ENV_VMAP_H>>lod; ++cy) {
         y = cy<<lod;
         graphic = env_vmap_manifold_renderer_get_graphic_blob(
           r->graphics, r->vmap, x, y, z, lod);
         if (graphic) {
-          has_graphic_blob[cz+1][cx+1] |= 1 << cy;
+          has_graphic_blob[cz+2][cx+2] |= 1 << cy;
         }
       }
     }
   }
 
   /* Generate faces */
-  for (cz = -1; cz <= MHIVE_SZ>>lod; ++cz) {
+  for (cz = -2; cz <= 1+(MHIVE_SZ>>lod); ++cz) {
     z = (z0 + (cz<<lod)) & zmask;
     if (z >= r->vmap->zmax) continue;
 
-    for (cx = -1; cx <= MHIVE_SZ>>lod; ++cx) {
+    for (cx = -2; cx <= 1+(MHIVE_SZ>>lod); ++cx) {
       x = (x0 + (cx<<lod)) & xmask;
       if (x >= r->vmap->xmax) continue;
       /* Skip the inner loop if we know there's nothing in this column */
-      if (!has_graphic_blob[cz+1][cx+1]) continue;
+      if (!has_graphic_blob[cz+2][cx+2]) continue;
 
       for (cy = 0; cy < ENV_VMAP_H>>lod; ++cy) {
-        if (!(has_graphic_blob[cz+1][cx+1] & (1 << cy))) continue;
+        if (!(has_graphic_blob[cz+2][cx+2] & (1 << cy))) continue;
         y = cy<<lod;
 
         graphic = NULL;
@@ -646,10 +646,10 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
           ocy = cy + voxel_checks[ck].oy;
           ocz = cz + voxel_checks[ck].oz;
 
-          if (ocx < -1 || ocx >  MHIVE_SZ>>lod ||
-              ocy <  0 || ocy >= ENV_VMAP_H ||
-              ocz < -1 || ocz >  MHIVE_SZ>>lod ||
-              (has_graphic_blob[ocz+1][ocx+1] & (1 << ocy)))
+          if (ocx < -2 || ocx >  1+(MHIVE_SZ>>lod) ||
+              ocy <  0 || ocy >= ENV_VMAP_H        ||
+              ocz < -2 || ocz >  1+(MHIVE_SZ>>lod) ||
+              (has_graphic_blob[ocz+2][ocx+2] & (1 << ocy)))
             continue;
 
           /* Need a face here */
@@ -662,8 +662,8 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
 
           faces[num_faces].graphic = graphic->ordinal;
           faces[num_faces].is_extraneous =
-            (-1 == cx || MHIVE_SZ>>lod == cx ||
-             -1 == cz || MHIVE_SZ>>lod == cz);
+            (cx <= -1 || cx >= MHIVE_SZ>>lod ||
+             cz <= -1 || cz >= MHIVE_SZ>>lod);
           if (!faces[num_faces].is_extraneous)
             graphic_blobs[graphic->ordinal] = graphic;
 
@@ -673,15 +673,15 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
             vcz = cz + voxel_checks[ck].v[cv].rz;
 
             /* Generate the vertex if needed */
-            if (0xFFFF == vertex_indices[vcz+1][vcx+1][vcy]) {
+            if (0xFFFF == vertex_indices[vcz+2][vcx+2][vcy]) {
               /* Abort if insufficient space */
               if (num_vertices >= MAX_VERTICES)
                 goto face_generation_done;
 
-              if (!~base_y[vcz+1][vcx+1]) {
+              if (!~base_y[vcz+2][vcx+2]) {
                 vx = (((vcx<<lod) + x0) & xmask) * TILE_SZ;
                 vz = (((vcz<<lod) + z0) & zmask) * TILE_SZ;
-                base_y[vcz+1][vcx+1] = (*r->get_y_offset)(
+                base_y[vcz+2][vcx+2] = (*r->get_y_offset)(
                   r->base_object, vx, vz);
               }
 
@@ -691,12 +691,12 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
                */
               vertices[num_vertices] =
                 sse_psof((vcx<<lod) * TILE_SZ,
-                         (vcy<<lod) * TILE_SZ + base_y[vcz+1][vcx+1],
+                         (vcy<<lod) * TILE_SZ + base_y[vcz+2][vcx+2],
                          (vcz<<lod) * TILE_SZ, 1.0f);
-              vertex_indices[vcz+1][vcx+1][vcy] = num_vertices++;
+              vertex_indices[vcz+2][vcx+2][vcy] = num_vertices++;
             }
 
-            faces[num_faces].vertices[cv] = vertex_indices[vcz+1][vcx+1][vcy];
+            faces[num_faces].vertices[cv] = vertex_indices[vcz+2][vcx+2][vcy];
           }
 
           /* Ensure vertex adjacencies are recorded */
