@@ -25,7 +25,7 @@ uniform vec3 camera_integer, camera_fractional;
 
 const float METRE = 65536.0f;
 
-float torus_dist(float a, float wrap) {
+float torus_dist(in float a, in float wrap) {
   if (abs(a) < wrap/2) return a;
   if (a < 0) return wrap + /* negative */ a;
   return a - wrap;
@@ -37,7 +37,7 @@ vec3 vc3dist(vec3 a, vec3 b) {
               torus_dist(a.z - b.z, torus_sz.y));
 }
 
-vec3 perspective_xlate(vec3 src) {
+vec3 perspective_xlate(in vec3 src) {
   vec3 src_clamped, tx, rty;
   float yz;
 
@@ -56,7 +56,7 @@ vec3 perspective_xlate(vec3 src) {
               rty.z * rxrot.x + rty.y * rxrot.y);
 }
 
-vec3 perspective_proj_rel(vec3 src) {
+vec3 perspective_proj_rel(in vec3 src) {
   float scaled_z;
   vec3 rtx;
 
@@ -66,7 +66,7 @@ vec3 perspective_proj_rel(vec3 src) {
   return vec3(soff.x + rtx.x, soff.y - rtx.y, -rtx.z);
 }
 
-vec4 perspective_proj(vec4 src) {
+vec4 perspective_proj(in vec4 src) {
   vec3 r = perspective_proj_rel(perspective_xlate(src.xyz));
   return vec4(r.x, r.y, r.z, 1.0f);
 }
