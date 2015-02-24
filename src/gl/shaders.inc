@@ -26,12 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+shader_source(fmanifold)
 shader_source(fpaint_overlay)
 shader_source(fpostprocess)
 shader_source(fskybox)
 shader_source(fterrabuff)
 shader_source(fvoxel)
 shader_source(vgenerictc)
+shader_source(gen_vmanifold)
 shader_source(vpaint_overlay)
 shader_source(vterrabuff)
 shader_source(vskybox)
@@ -105,4 +107,16 @@ shader(skybox) {
   uniform(vec2, cloud_offset_1)
   uniform(vec2, cloud_offset_2)
   uniform(float, cloudiness)
+}
+
+shader(manifold) {
+  composed_of(fmanifold, gen_vmanifold)
+  padding(1, padding)
+  uniform(vec2, torus_sz)
+  uniform(vec2, yrot)
+  uniform(vec2, rxrot)
+  uniform(float, zscale)
+  uniform(vec2, soff)
+  uniform(vec3, camera_integer)
+  uniform(vec3, camera_fractional)
 }

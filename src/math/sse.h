@@ -269,6 +269,11 @@ static inline ssepi sse_piof(signed a, signed b, signed c, signed d) {
   return r;
 }
 
+static inline sseps sse_psof(float a, float b, float c, float d) {
+  sseps r = SSE_INITV4(a, b, c, d);
+  return r;
+}
+
 static inline ssepi sse_piof1(signed a) {
   return sse_piof(a, a, a, a);
 }
