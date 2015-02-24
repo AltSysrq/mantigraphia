@@ -278,4 +278,8 @@ static inline ssepi sse_piof1(signed a) {
   return sse_piof(a, a, a, a);
 }
 
+static inline sseps sse_psof1(float a) {
+  return sse_psof(a, a, a, a);
+}
+
 #endif /* MATH_SSE_H_ */

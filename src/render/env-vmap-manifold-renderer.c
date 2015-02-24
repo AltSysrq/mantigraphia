@@ -238,6 +238,8 @@ void render_env_vmap_manifolds_impl(env_vmap_manifold_render_op* op) {
 
 #define MAX_VERTICES 65535
 #define MAX_FACES 65535
+#define MAX_FACES_PER_VERTEX 12
+#define MAX_EDGES_PER_VERTEX 8
 #define NVX (3+MHIVE_SZ)
 #define NVY (1+ENV_VMAP_H)
 #define NVZ (3+MHIVE_SZ)
@@ -259,6 +261,236 @@ static const env_voxel_graphic_blob* env_vmap_manifold_renderer_get_graphic_blob
   g = env_vmap_renderer_get_graphic(graphics, vmap, x, y, z, lod);
   if (!g) return NULL;
   return g->blob;
+}
+
+static unsigned record_vertex_link(
+  unsigned short vertex_adjacency[MAX_VERTICES][MAX_EDGES_PER_VERTEX],
+  unsigned short a,
+  unsigned short b
+) {
+  unsigned i;
+
+  for (i = 0; ; ++i) {
+    assert(i < lenof(vertex_adjacency[a]));
+    /* If the link already exists, we know it's mutual, so stop immediately. */
+    if (b == vertex_adjacency[a][i]) return 0;
+    /* Check for free slot */
+    if (0xFFFF == vertex_adjacency[a][i])
+      break;
+  }
+  vertex_adjacency[a][i] = b;
+
+  for (i = 0; ; ++i) {
+    assert(i < lenof(vertex_adjacency[b]));
+    if (0xFFFF == vertex_adjacency[b][i])
+      break;
+  }
+  vertex_adjacency[b][i] = a;
+
+  return 1;
+}
+
+static void catmull_clark_subdivide(
+  sseps vertices[MAX_VERTICES],
+  unsigned short vertex_adjacency[MAX_VERTICES][MAX_EDGES_PER_VERTEX],
+  manifold_face faces[MAX_FACES],
+  unsigned num_orig_vertices,
+  unsigned num_orig_faces
+) {
+  /*
+    See also
+    http://en.wikipedia.org/wiki/Catmull%E2%80%93Clark_subdivision_surface
+
+    The steps in this implementation are as follow:
+
+    - Face points. Face vertices are addressed by original face index, starting
+      at num_orig_vertices and extending to num_orig_vertices+num_orig_faces.
+      Each face point is positioned at the average of the four original
+      vertices comprising its face. Original vertices are associated with lists
+      of new midpoints via the new_face_vertices table; entries of ~0 in this
+      table are unused.
+
+    - Edge splitting. For each original edge, a new vertex is generated whose
+      position is the average of the original vertices of the edge, and the new
+      face vertices shared by those two original vertices. Missing face
+      vertices are assumed zero, since this will only happen for extraneous
+      faces, so the denominator of the average is always 4. Split edges are
+      recorded in edge_splits, which is parallel to vertex_adjacency on
+      0..num_orig_vertices. As with vertex_adjacency, unused entries are
+      indicated with ~0u.
+
+    - Original point adjustment. For each original point, the number of new
+      associated face vertices for that vertex is counted, resulting in a
+      denominator N. The average F of all these face points is calculated, as
+      well as the average R of all newly adjacent midpoints. The point is moved
+      to the location (F + 2R + (n-3)P)/n, where P is the original location.
+
+    - Face duplication and spreading. For each face at index i, the elements in
+      faces from i*4 up to (i+1)*4 are set to exact copies of the input face.
+      The faces are spread like this so as to get better utilisation of OpenGL
+      vertex shader caching, since subdivided faces will share vertices.
+
+    - Face separation. For each face at location i*4+k, the following is done:
+
+      - Rotate the vertex array of the face k elements left, and name the four
+        elements A,B,C,D.
+      - Leave A unchanged.
+      - Replace B with the midpoint of edge AB.
+      - Replace C with the face point of face i.
+      - Replace D with the midpoint of edge DA.
+      - Record the new BC, CD adjacencies. The new AB, AD adjacencies will be
+        recorded implicitly by copying the used portion of new_face_vertices
+        onto the head of vertex_adjacency.
+   */
+  static unsigned short new_face_vertices[MAX_VERTICES][MAX_FACES_PER_VERTEX];
+  static unsigned short edge_splits[MAX_VERTICES][MAX_EDGES_PER_VERTEX];
+
+  const sseps one   = sse_psof1(1.0f), two  = sse_psof1(2.0f),
+              three = sse_psof1(3.0f), four = sse_psof1(4.0f),
+              zero  = sse_psof1(0.0f);
+  sseps vf, vfn, vr, vrn, vp;
+  unsigned num_vertices = num_orig_vertices;
+  unsigned i, j, k, l, v;
+
+  memset(new_face_vertices, ~0,
+         num_orig_vertices * sizeof(new_face_vertices[0]));
+  memset(edge_splits, ~0,
+         num_orig_vertices * sizeof(edge_splits[0]));
+
+  /* Face vertices */
+  for (i = 0; i < num_orig_faces; ++i) {
+    vp = zero;
+    for (j = 0; j < 4; ++j) {
+      v = faces[i].vertices[j];
+      vp = sse_addps(vp, vertices[v]);
+      for (k = 0; ; ++k) {
+        assert(k < lenof(new_face_vertices[v]));
+        if (0xFFFF == new_face_vertices[v][k]) {
+          new_face_vertices[v][k] = num_vertices;
+          break;
+        }
+      }
+    }
+    vp = sse_divps(vp, four);
+    vertices[num_vertices++] = vp;
+  }
+
+  /* Edge splits */
+  for (i = 0; i < num_orig_vertices; ++i) {
+    for (j = 0; j < lenof(vertex_adjacency[i]); ++j) {
+      if (0xFFFF == vertex_adjacency[i][j]) break;
+      /* Make sure we haven't already split this edge */
+      if (0xFFFF != edge_splits[i][j]) continue;
+
+      /* Ok, split this edge */
+      v = vertex_adjacency[i][j];
+      vp = vertices[i];
+      vp = sse_addps(vp, vertices[v]);
+      vrn = two;
+      for (k = 0; k < lenof(new_face_vertices[i]); ++k) {
+        if (0xFFFF == new_face_vertices[i][k]) break;
+        for (l = 0; l < lenof(new_face_vertices[v]); ++l) {
+          if (0xFFFF == new_face_vertices[v][l]) break;
+          vp = sse_addps(vp, vertices[new_face_vertices[i][k]]);
+          vrn = sse_addps(vrn, one);
+        }
+      }
+
+      vertices[num_vertices] = sse_divps(vp, vrn);
+
+      /* Record split */
+      edge_splits[i][j] = num_vertices;
+      for (k = 0; k < lenof(vertex_adjacency[v]); ++k) {
+        if (i == vertex_adjacency[v][k]) {
+          edge_splits[v][k] = num_vertices;
+          break;
+        }
+      }
+
+      ++num_vertices;
+    }
+  }
+
+  /* Original point adjustment */
+  for (i = 0; i < num_orig_vertices; ++i) {
+    vp = vertices[i];
+
+    vf = zero;
+    vfn = zero;
+    for (j = 0; j < lenof(new_face_vertices[i]); ++j) {
+      if (0xFFFF == new_face_vertices[i][j]) break;
+
+      vf = sse_addps(vf, vertices[new_face_vertices[i][j]]);
+      vfn = sse_addps(vfn, one);
+    }
+    vf = sse_divps(vf, vfn);
+
+    vr = zero;
+    vrn = zero;
+    for (j = 0; j < lenof(edge_splits[i]); ++j) {
+      if (0xFFFF == edge_splits[i][j]) break;
+
+      vr = sse_addps(vr, vertices[edge_splits[i][j]]);
+      vrn = sse_addps(vrn, one);
+    }
+    vr = sse_divps(vr, vrn);
+
+    vertices[i] = sse_divps(
+      sse_addps(vf, sse_addps(sse_mulps(two, vr),
+                              sse_mulps(sse_subps(vfn, three), vp))),
+      vfn);
+  }
+
+  /* Initialise new adjacencies */
+  memset(vertex_adjacency + num_orig_vertices, ~0,
+         (num_vertices - num_orig_vertices) * sizeof(vertex_adjacency[0]));
+
+  /* Duplicate/spread and separate faces */
+  for (i = num_orig_faces - 1; i < num_orig_faces; --i) {
+    for (j = 3; j < 4; --j) {
+      faces[i*4+j] = faces[i];
+
+#define A (faces[i*4+j].vertices[(j+0)&3])
+#define B (faces[i*4+j].vertices[(j+1)&3])
+#define C (faces[i*4+j].vertices[(j+2)&3])
+#define D (faces[i*4+j].vertices[(j+3)&3])
+      /* Replace B with the edge point between A and B */
+      for (k = 0; ; ++k) {
+        assert(k < lenof(vertex_adjacency[A]));
+        if (B == vertex_adjacency[A][k])
+          break;
+      }
+      B = edge_splits[A][k];
+
+      /* Replace C with the midpoint created for this original face */
+      C = num_orig_vertices + i;
+
+      /* Replace D with the edge point between A and D */
+      for (k = 0; ; ++k) {
+        assert(k < lenof(vertex_adjacency[A]));
+        if (D == vertex_adjacency[A][k])
+          break;
+      }
+      D = edge_splits[A][k];
+
+      /* Record B->C, C->B, C->D, D->C links */
+      record_vertex_link(vertex_adjacency, B, C);
+      record_vertex_link(vertex_adjacency, C, D);
+#undef D
+#undef C
+#undef B
+#undef A
+    }
+  }
+
+  /* Record links from original vertices to edge midpoints */
+  memset(vertex_adjacency, ~0, num_orig_vertices * sizeof(vertex_adjacency[0]));
+  for (i = 0; i < num_orig_vertices; ++i) {
+    for (k = 0; k < lenof(edge_splits[i]); ++k) {
+      if (0xFFFF == edge_splits[i][k]) break;
+      record_vertex_link(vertex_adjacency, i, edge_splits[i][k]);
+    }
+  }
 }
 
 static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
@@ -307,7 +539,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
   static coord base_y[NVZ][NVX];
   static sseps vertices[MAX_VERTICES];
   static unsigned short vertex_indices[NVZ][NVX][NVY];
-  static unsigned short vertex_adjacency[MAX_VERTICES][6];
+  static unsigned short vertex_adjacency[MAX_VERTICES][MAX_EDGES_PER_VERTEX];
   static manifold_face faces[MAX_FACES];
   static unsigned short triangulated_indices[MAX_FACES*6];
   /* A bitset indicating whether each voxel in the column [z][x] has a graphic
@@ -319,10 +551,12 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
   unsigned short num_vertices;
   unsigned short num_faces;
   unsigned num_triangulated_indices;
+  unsigned num_edges;
+  unsigned num_subdivision_iterations;
 
   signed cx, cy, cz, ocx, ocy, ocz, vcx, vcy, vcz;
   coord x, y, z, xmask, zmask, vx, vz;
-  unsigned ck, cv, i, op, haystack, needle;
+  unsigned ck, cv, i, op;
   const env_voxel_graphic_blob* graphic_blobs[256];
   const env_voxel_graphic_blob* graphic;
   unsigned num_graphic_blobs;
@@ -356,6 +590,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
   num_vertices = 0;
   num_faces = 0;
   num_triangulated_indices = 0;
+  num_edges = 0;
 
   if (r->vmap->is_toroidal) {
     xmask = r->vmap->xmax - 1;
@@ -466,33 +701,14 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
 
           /* Ensure vertex adjacencies are recorded */
           for (cv = 0; cv < 4; ++cv) {
-            haystack = faces[num_faces].vertices[cv];
-
-            needle = faces[num_faces].vertices[(cv+1) & 3];
-            for (i = 0; ; ++i) {
-              assert(i < lenof(vertex_adjacency[haystack]));
-
-              if (needle == vertex_adjacency[haystack][i])
-                break;
-
-              if (0xFFFF == vertex_adjacency[haystack][i]) {
-                vertex_adjacency[haystack][i] = needle;
-                break;
-              }
-            }
-
-            needle = faces[num_faces].vertices[(cv-1) & 3];
-            for (i = 0; ; ++i) {
-              assert(i < lenof(vertex_adjacency[haystack]));
-
-              if (needle == vertex_adjacency[haystack][i])
-                break;
-
-              if (0xFFFF == vertex_adjacency[haystack][i]) {
-                vertex_adjacency[haystack][i] = needle;
-                break;
-              }
-            }
+            num_edges += record_vertex_link(
+              vertex_adjacency,
+              faces[num_faces].vertices[cv],
+              faces[num_faces].vertices[(cv+1) & 3]);
+            num_edges += record_vertex_link(
+              vertex_adjacency,
+              faces[num_faces].vertices[cv],
+              faces[num_faces].vertices[(cv-1) & 3]);
           }
 
           ++num_faces;
@@ -503,7 +719,24 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
 
   face_generation_done:
 
-  /* TODO: Subdivision */
+  for (num_subdivision_iterations = 0;
+       (signed)num_subdivision_iterations < 2 - lod &&
+         num_vertices + num_edges + num_faces < MAX_VERTICES &&
+         num_faces * 4 < MAX_FACES;
+       ++num_subdivision_iterations) {
+    catmull_clark_subdivide(vertices, vertex_adjacency, faces,
+                            num_vertices, num_faces);
+    /* Each iteration creates:
+     * - One vertex per face
+     * - One vertex per edge
+     * - One edge per edge (ie, all edges are split in two)
+     * - Four edges per face
+     * - Three new faces per face (ie, all faces are split in four)
+     */
+    num_vertices += num_edges + num_faces;
+    num_edges = 4 * num_faces + 2 * num_edges;
+    num_faces *= 4;
+  }
 
   num_graphic_blobs = 0;
   for (i = 0; i < lenof(graphic_blobs); ++i)
