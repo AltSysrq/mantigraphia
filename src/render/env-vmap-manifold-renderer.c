@@ -650,11 +650,16 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
           ocy = cy + voxel_checks[ck].oy;
           ocz = cz + voxel_checks[ck].oz;
 
-          if (ocx < -2 || ocx >  1+(MHIVE_SZ>>lod) ||
-              ocy <  0 || ocy >= ENV_VMAP_H        ||
-              ocz < -2 || ocz >  1+(MHIVE_SZ>>lod) ||
-              (has_graphic_blob[ocz+2][ocx+2] & (1 << ocy)))
-            continue;
+          /* The Y extrema always get faces, so always continue if at such an
+           * extreme.
+           */
+          if (ocy >= 0 && ocy < ENV_VMAP_H) {
+            /* Else, see whether a face needs to be inserted here. */
+            if (ocx < -2 || ocx >  1+(MHIVE_SZ>>lod) ||
+                ocz < -2 || ocz >  1+(MHIVE_SZ>>lod) ||
+                (has_graphic_blob[ocz+2][ocx+2] & (1 << ocy)))
+              continue;
+          }
 
           /* Need a face here */
           /* First make sure there's room */
