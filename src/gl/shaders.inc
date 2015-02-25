@@ -119,4 +119,10 @@ shader(manifold) {
   uniform(vec2, soff)
   uniform(vec3, camera_integer)
   uniform(vec3, camera_fractional)
+  uniform(float, noise_amplitude)
+  uniform(float, noise_bias)
+  uniform(tex2d, noisetex)
+  uniform(tex2d, palette)
+  uniform(float, palette_t)
+  uniform(vec2, noise_freq)
 }

@@ -27,7 +27,6 @@
 
 resource.palette.oaktree_leaf = core.bind(core.gen_palette_from_lanes) {
   x = {
-    alpha = {   2,      1,      0,      0,      1,      0,      0,      0,      0,      0       },
     heat = {    0,      1,      2,      0,      1,      2,      0,      1,      2,      0       },
     g = {       0.7,    0.5,    0.7,    0.6,    0.8,    0.7,    0.9,    0.8,    1.0,    0.9     },
     r = {       0.5,    0.7,    0.5,    0.8,    0.5,    0.9,    0.5,    1.0,    0.5,    0.75    },
@@ -36,7 +35,6 @@ resource.palette.oaktree_leaf = core.bind(core.gen_palette_from_lanes) {
   --            M       A       M       J       J       A       S       O       N       D
   y = {
     snow = {    2,      1,      0,      0,      0,      0,      0,      0,      2,      3       },
-    live = {    1,      1,      1,      1,      1,      1,      1,      1,      0,      0       },
     gsat = {    0.3,    0.4,    0.6,    0.5,    0.5,    0.4,    0.4,    0.4,    0.1,    0.0     },
     rsat = {    0.1,    0.1,    0.1,    0.1,    0.1,    0.1,    0.2,    0.8,    0.1,    0.1     },
     bsat = {    0.1,    0.1,    0.1,    0.1,    0.1,    0.1,    0.1,    0.0,    0.0,    0.0     },
@@ -59,7 +57,7 @@ resource.palette.oaktree_leaf = core.bind(core.gen_palette_from_lanes) {
       b = 255 * p.bsat / 1.0
     end
 
-    local a = core.chaos(p.x, p.y)
+    local a = 255 --core.chaos(p.x, p.y) % 64 + 191
     return core.argb(a, r, g, b)
   end
 }
@@ -124,6 +122,12 @@ resource.voxel_graphic.oaktree_trunk = core.bind(core.new_voxel_graphic) {
 for i = 1, 4 do
   resource.graphic_blob["oaktree_leaf"..i] = core.bind(core.new_graphic_blob) {
     palette = "oaktree_leaf",
+    noise = {
+      bias = 0.2 * (i-1),
+      amp = 0.3,
+      xfreq = 1.0,
+      yfreq = 1.0,
+    },
   }
 
   resource.voxel_graphic["oaktree_leaf"..i] = core.bind(core.new_voxel_graphic) {
