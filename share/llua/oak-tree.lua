@@ -62,7 +62,7 @@ resource.palette.oaktree_leaf = core.bind(core.gen_palette_from_lanes) {
   end
 }
 
-resource.texpalette.oaktree_trunk = core.bind(core.new_texpalette) {
+resource.palette.oaktree_trunk = core.bind(core.new_palette) {
   -- M
   { 0x00ffffff, 0xffffffff, 0xffffffff, 0xff302020, 0xff636357,
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
@@ -95,28 +95,18 @@ resource.texpalette.oaktree_trunk = core.bind(core.new_texpalette) {
     0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
 }
 
--- TODO: Real textures instead of noise
-function resource.texdata.oaktree_trunk()
-  local rnd = 42
-  return core.new_texdata(
-    mg.tg_zip(mg.tg_uniform_noise(core.byte_array { 64, 128, 224 }, 1),
-              mg.tg_uniform_noise(core.byte_array { 255 }, 3),
-              mg.tg_uniform_noise(nil, 2)),
-    core.binary_mipmap_maximum, true)
-end
-
-resource.texture.oaktree_trunk = core.bind(core.new_texture) {
-  texdata = "oaktree_trunk",
+resource.graphic_blob.oaktree_trunk = core.bind(core.new_graphic_blob) {
   palette = "oaktree_trunk",
-}
-
-resource.graphic_plane.oaktree_trunk = core.bind(core.new_graphic_plane) {
-  texture = "oaktree_trunk",
+  noise = {
+    bias = 0.0,
+    amp = 1.0,
+    xfreq = 0.25,
+    yfreq = 0.25,
+  }
 }
 
 resource.voxel_graphic.oaktree_trunk = core.bind(core.new_voxel_graphic) {
-  x = "oaktree_trunk",
-  z = "oaktree_trunk",
+  blob = "oaktree_trunk",
 }
 
 for i = 1, 4 do
