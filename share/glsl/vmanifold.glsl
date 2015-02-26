@@ -15,6 +15,6 @@ void main() {
   texc.s += gl_Vertex.z / METRE / 4.0f;
   texc *= noise_freq;
   gl_TexCoord[0] = vec4(texc.s, texc.t, 0.0f, 1.0f);
-  scaled_noise_amplitude = min(1.0f, noise_amplitude -
-                               noise_amplitude * abs(proj.z) / METRE / 256.0f);
+  scaled_noise_amplitude = noise_amplitude - noise_amplitude * clamp(
+    abs(proj.z) / METRE / 256.0f, 0.0f, 1.0f);
 }
