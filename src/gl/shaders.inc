@@ -111,7 +111,6 @@ shader(skybox) {
 
 shader(manifold) {
   composed_of(fmanifold, gen_vmanifold)
-  padding(1, padding)
   uniform(vec2, torus_sz)
   uniform(vec2, yrot)
   uniform(vec2, rxrot)

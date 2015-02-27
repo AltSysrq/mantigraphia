@@ -301,8 +301,8 @@ static unsigned record_vertex_link(
   return 1;
 }
 
-static sseps perturb(sseps v, unsigned perturbation) {
-  sseps p;
+static ssepi perturb(ssepi v, unsigned perturbation) {
+  ssepi p;
   unsigned chaos = 0;
   signed short xp, yp, zp;
 
@@ -314,14 +314,14 @@ static sseps perturb(sseps v, unsigned perturbation) {
   xp = lcgrand(&chaos);
   yp = lcgrand(&chaos);
   zp = lcgrand(&chaos);
-  p = sse_psof(xp, yp, zp, 0.0f);
-  p *= sse_psof1(perturbation);
-  p /= sse_psof1(32768.0f);
+  p = sse_piof(xp, yp, zp, 0);
+  p *= sse_piof1(perturbation);
+  p = sse_sradi(p, 15);
   return p;
 }
 
 static void catmull_clark_subdivide(
-  sseps vertices[MAX_VERTICES],
+  ssepi vertices[MAX_VERTICES],
   unsigned short vertex_adjacency[MAX_VERTICES][MAX_EDGES_PER_VERTEX],
   manifold_face faces[MAX_FACES],
   const env_voxel_graphic_blob*const* graphics,
@@ -377,10 +377,10 @@ static void catmull_clark_subdivide(
   static unsigned short new_face_vertices[MAX_VERTICES][MAX_FACES_PER_VERTEX];
   static unsigned short edge_splits[MAX_VERTICES][MAX_EDGES_PER_VERTEX];
 
-  const sseps one   = sse_psof1(1.0f), two  = sse_psof1(2.0f),
-              three = sse_psof1(3.0f), four = sse_psof1(4.0f),
-              zero  = sse_psof1(0.0f);
-  sseps vf, vfn, vr, vrn, vp;
+  const ssepi one   = sse_piof1(1), two  = sse_piof1(2),
+              three = sse_piof1(3), four = sse_piof1(4),
+              zero  = sse_piof1(0);
+  ssepi vf, vfn, vr, vrn, vp;
   unsigned num_vertices = num_orig_vertices;
   unsigned i, j, k, l, v;
 
@@ -394,7 +394,7 @@ static void catmull_clark_subdivide(
     vp = zero;
     for (j = 0; j < 4; ++j) {
       v = faces[i].vertices[j];
-      vp = sse_addps(vp, vertices[v]);
+      vp = sse_addpi(vp, vertices[v]);
       for (k = 0; ; ++k) {
         assert(k < lenof(new_face_vertices[v]));
         if (0xFFFF == new_face_vertices[v][k]) {
@@ -403,8 +403,9 @@ static void catmull_clark_subdivide(
         }
       }
     }
-    vp = sse_divps(vp, four);
-    vp += perturb(vp, graphics[faces[i].graphic]->perturbation >> level);
+    vp = sse_divpi(vp, four);
+    vp = sse_addpi(
+      vp, perturb(vp, graphics[faces[i].graphic]->perturbation >> level));
     vertices[num_vertices++] = vp;
   }
 
@@ -418,7 +419,7 @@ static void catmull_clark_subdivide(
       /* Ok, split this edge */
       v = vertex_adjacency[i][j];
       vp = vertices[i];
-      vp = sse_addps(vp, vertices[v]);
+      vp = sse_addpi(vp, vertices[v]);
       vrn = two;
       for (k = 0; k < lenof(new_face_vertices[i]); ++k) {
         if (0xFFFF == new_face_vertices[i][k]) break;
@@ -426,13 +427,13 @@ static void catmull_clark_subdivide(
           if (0xFFFF == new_face_vertices[v][l]) break;
 
           if (new_face_vertices[i][k] == new_face_vertices[v][l]) {
-            vp = sse_addps(vp, vertices[new_face_vertices[i][k]]);
-            vrn = sse_addps(vrn, one);
+            vp = sse_addpi(vp, vertices[new_face_vertices[i][k]]);
+            vrn = sse_addpi(vrn, one);
           }
         }
       }
 
-      vertices[num_vertices] = sse_divps(vp, vrn);
+      vertices[num_vertices] = sse_divpi(vp, vrn);
 
       /* Record split */
       edge_splits[i][j] = num_vertices;
@@ -456,24 +457,24 @@ static void catmull_clark_subdivide(
     for (j = 0; j < lenof(new_face_vertices[i]); ++j) {
       if (0xFFFF == new_face_vertices[i][j]) break;
 
-      vf = sse_addps(vf, vertices[new_face_vertices[i][j]]);
-      vfn = sse_addps(vfn, one);
+      vf = sse_addpi(vf, vertices[new_face_vertices[i][j]]);
+      vfn = sse_addpi(vfn, one);
     }
-    vf = sse_divps(vf, vfn);
+    vf = sse_divpi(vf, vfn);
 
     vr = zero;
     vrn = zero;
     for (j = 0; j < lenof(edge_splits[i]); ++j) {
       if (0xFFFF == edge_splits[i][j]) break;
 
-      vr = sse_addps(vr, vertices[edge_splits[i][j]]);
-      vrn = sse_addps(vrn, one);
+      vr = sse_addpi(vr, vertices[edge_splits[i][j]]);
+      vrn = sse_addpi(vrn, one);
     }
-    vr = sse_divps(vr, vrn);
+    vr = sse_divpi(vr, vrn);
 
-    vertices[i] = sse_divps(
-      sse_addps(vf, sse_addps(sse_mulps(two, vr),
-                              sse_mulps(sse_subps(vfn, three), vp))),
+    vertices[i] = sse_divpi(
+      sse_addpi(vf, sse_addpi(sse_mulpi(two, vr),
+                              sse_mulpi(sse_subpi(vfn, three), vp))),
       vfn);
   }
 
@@ -573,7 +574,8 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
     order; values of ~0 indicate an empty slot.
    */
   static coord base_y[NVZ][NVX];
-  static sseps vertices[MAX_VERTICES];
+  static ssepi vertices[MAX_VERTICES];
+  static float glvertices[MAX_VERTICES][3];
   static unsigned short vertex_indices[NVZ][NVX][NVY];
   static unsigned short vertex_adjacency[MAX_VERTICES][MAX_EDGES_PER_VERTEX];
   static manifold_face faces[MAX_FACES];
@@ -732,7 +734,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
                * in by the vertex shader.
                */
               vertices[num_vertices] =
-                sse_psof((vcx<<lod) * TILE_SZ + COORD_BIAS,
+                sse_piof((vcx<<lod) * TILE_SZ + COORD_BIAS,
                          (vcy<<lod) * TILE_SZ + base_y[vcz+2][vcx+2],
                          (vcz<<lod) * TILE_SZ + COORD_BIAS, 1.0f);
               vertex_indices[vcz+2][vcx+2][vcy] = num_vertices++;
@@ -782,6 +784,12 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
     num_faces *= 4;
   }
 
+  for (i = 0; i < num_vertices; ++i) {
+    glvertices[i][0] = SSE_VS(vertices[i], 0);
+    glvertices[i][1] = SSE_VS(vertices[i], 1);
+    glvertices[i][2] = SSE_VS(vertices[i], 2);
+  }
+
   num_graphic_blobs = 0;
   for (i = 0; i < lenof(graphic_blobs); ++i)
     if (graphic_blobs[i])
@@ -823,8 +831,8 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
 
   glBindBuffer(GL_ARRAY_BUFFER, mhive->buffers[0]);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mhive->buffers[1]);
-  glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(vertices[0]),
-               vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(glvertices[0]),
+               glvertices, GL_STATIC_DRAW);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                num_triangulated_indices * sizeof(triangulated_indices[0]),
                triangulated_indices, GL_STATIC_DRAW);
