@@ -197,14 +197,12 @@ void render_env_vmap_manifolds_impl(env_vmap_manifold_render_op* op) {
       d = umax(abs(dx), abs(dz));
 
       if (d < DRAW_DISTANCE) {
-        if (d <= 2)
+        if (d <= DRAW_DISTANCE/4)
           desired_lod = 0;
-        else if (d <= 4)
-          desired_lod = 1;
         else if (d < DRAW_DISTANCE/2)
-          desired_lod = 2;
+          desired_lod = 1;
         else
-          desired_lod = 3;
+          desired_lod = 2;
 
         /* We want to keep mhives prepared even if they won't be rendered this
          * frame, since the angle the camera is facing can change rapidly.
