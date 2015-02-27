@@ -402,8 +402,11 @@ static void catmull_clark_subdivide(
         if (0xFFFF == new_face_vertices[i][k]) break;
         for (l = 0; l < lenof(new_face_vertices[v]); ++l) {
           if (0xFFFF == new_face_vertices[v][l]) break;
-          vp = sse_addps(vp, vertices[new_face_vertices[i][k]]);
-          vrn = sse_addps(vrn, one);
+
+          if (new_face_vertices[i][k] == new_face_vertices[v][l]) {
+            vp = sse_addps(vp, vertices[new_face_vertices[i][k]]);
+            vrn = sse_addps(vrn, one);
+          }
         }
       }
 
