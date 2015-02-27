@@ -53,6 +53,15 @@
 #define MHIVE_SZ ENV_VMAP_MANIFOLD_RENDERER_MHIVE_SZ
 #define DRAW_DISTANCE 16 /* mhives */
 #define NOISETEX_SZ 64
+/* Offset x,z coordinates by this amount so that all calculations occur with
+ * the same number of bits of precision.
+ *
+ * The base offset 4*MHIVE_SZ*METRE shifts extra bits away. The other
+ * 2*MHIVE_SZ*METRE are there so negative coordinates can't shift them back in,
+ * while giving enough space so that positive coordinates outside the mhive
+ * don't shift more bits out.
+ */
+#define COORD_BIAS (6 * MHIVE_SZ * METRE)
 
 static GLuint noisetex;
 
@@ -699,9 +708,9 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
                * in by the vertex shader.
                */
               vertices[num_vertices] =
-                sse_psof((vcx<<lod) * TILE_SZ,
+                sse_psof((vcx<<lod) * TILE_SZ + COORD_BIAS,
                          (vcy<<lod) * TILE_SZ + base_y[vcz+2][vcx+2],
-                         (vcz<<lod) * TILE_SZ, 1.0f);
+                         (vcz<<lod) * TILE_SZ + COORD_BIAS, 1.0f);
               vertex_indices[vcz+2][vcx+2][vcy] = num_vertices++;
             }
 
@@ -864,6 +873,8 @@ static void env_vmap_manifold_render_mhive_render(
   for (i = 0; i < 3; ++i) {
     effective_camera = context->proj->camera[i];
     effective_camera -= mhive->base_coordinate[i];
+    if (1 != i)
+      effective_camera += COORD_BIAS;
     switch (i) {
     case 0:
       effective_camera &= context->proj->torus_w - 1;
