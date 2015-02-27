@@ -53,15 +53,6 @@
 #define MHIVE_SZ ENV_VMAP_MANIFOLD_RENDERER_MHIVE_SZ
 #define DRAW_DISTANCE 16 /* mhives */
 #define NOISETEX_SZ 64
-/* Offset x,z coordinates by this amount so that all calculations occur with
- * the same number of bits of precision.
- *
- * The base offset 4*MHIVE_SZ*METRE shifts extra bits away. The other
- * 2*MHIVE_SZ*METRE are there so negative coordinates can't shift them back in,
- * while giving enough space so that positive coordinates outside the mhive
- * don't shift more bits out.
- */
-#define COORD_BIAS (6 * MHIVE_SZ * METRE)
 
 static GLuint noisetex;
 
@@ -559,10 +550,17 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
 
     Each face is a quad, wound in counter-clockwise order when viewed from the
     adjacent cell with no graphic blob. In order for subdivision to work
-    correctly, faces are generated for voxels one coordinate _outside_ the
-    mhive; these faces are considered extraneous, and are not included in
+    correctly, faces are generated for voxels two coordinates _outside_ the
+    mhive. These faces are considered extraneous, and should not be included in
     rendering proper, since their subdivision is not fully defined, and they
-    are rendered by other mhives anyway.
+    are rendered by other mhives anyway. However, due to precision issues in
+    the subdivision (likely because it isn't truly a manifold, eg, it can be
+    self intersecting or have degenerate shared edges), excluding all
+    extraneous faces results in occasional gaps; to patch around this, the
+    nearer extraneous face is rendered anyway. This trades the gaps for
+    occasional Z-fighting since the extraneous face will take a slightly
+    different path, but this is not generally noticeable after the paint
+    overlay effect has been applied.
 
     Faces are generated into the `faces` array linearly, and are not spatially
     addressible; they do not store their own adjacencies. They do track the
@@ -706,8 +704,8 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
 
           faces[num_faces].graphic = graphic->ordinal;
           faces[num_faces].is_extraneous =
-            (cx <= -1 || cx >= MHIVE_SZ>>lod ||
-             cz <= -1 || cz >= MHIVE_SZ>>lod);
+            (cx <= -2 || cx >= 1+(MHIVE_SZ>>lod) ||
+             cz <= -2 || cz >= 1+(MHIVE_SZ>>lod));
           if (!faces[num_faces].is_extraneous)
             graphic_blobs[graphic->ordinal] = graphic;
 
@@ -734,9 +732,9 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
                * in by the vertex shader.
                */
               vertices[num_vertices] =
-                sse_piof((vcx<<lod) * TILE_SZ + COORD_BIAS,
+                sse_piof((vcx<<lod) * TILE_SZ,
                          (vcy<<lod) * TILE_SZ + base_y[vcz+2][vcx+2],
-                         (vcz<<lod) * TILE_SZ + COORD_BIAS, 1.0f);
+                         (vcz<<lod) * TILE_SZ, 1);
               vertex_indices[vcz+2][vcx+2][vcy] = num_vertices++;
             }
 
@@ -907,8 +905,6 @@ static void env_vmap_manifold_render_mhive_render(
   for (i = 0; i < 3; ++i) {
     effective_camera = context->proj->camera[i];
     effective_camera -= mhive->base_coordinate[i];
-    if (1 != i)
-      effective_camera += COORD_BIAS;
     switch (i) {
     case 0:
       effective_camera &= context->proj->torus_w - 1;
