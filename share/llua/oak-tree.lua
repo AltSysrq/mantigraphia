@@ -102,7 +102,8 @@ resource.graphic_blob.oaktree_trunk = core.bind(core.new_graphic_blob) {
     amp = 1.0,
     xfreq = 0.25,
     yfreq = 0.25,
-  }
+  },
+  perturbation = 0.2
 }
 
 resource.voxel_graphic.oaktree_trunk = core.bind(core.new_voxel_graphic) {
@@ -118,6 +119,7 @@ for i = 1, 4 do
       xfreq = 1.0,
       yfreq = 1.0,
     },
+    perturbation = 0.3
   }
 
   resource.voxel_graphic["oaktree_leaf"..i] = core.bind(core.new_voxel_graphic) {

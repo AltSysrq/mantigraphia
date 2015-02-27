@@ -211,6 +211,15 @@ unsigned rl_graphic_blob_set_palette(unsigned blob, unsigned palette);
 unsigned rl_graphic_blob_set_noise(unsigned blob, unsigned bias, unsigned amp,
                                    unsigned xfreq, unsigned yfreq);
 /**
+ * Configures the perturbation factor for the given graphic blob.
+ *
+ * @param blob The graphic blob to edit (see rl_graphic_blob_new()).
+ * @param perturbation The perturbation, in space units, by which blob faces
+ * are perturbed during subdivision. The default is zero.
+ * @return Whether successful.
+ */
+unsigned rl_graphic_blob_set_perturbation(unsigned blob, unsigned perturbation);
+/**
  * Allocates a new texture with unspecified content.
  *
  * @return The new texture index.

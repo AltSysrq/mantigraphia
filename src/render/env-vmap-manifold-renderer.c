@@ -301,12 +301,33 @@ static unsigned record_vertex_link(
   return 1;
 }
 
+static sseps perturb(sseps v, unsigned perturbation) {
+  sseps p;
+  unsigned chaos = 0;
+  signed short xp, yp, zp;
+
+  chaos = chaos_accum(chaos, ((int)SSE_VS(v, 0)) % (MHIVE_SZ*METRE));
+  chaos = chaos_accum(chaos, ((int)SSE_VS(v, 1)) % (MHIVE_SZ*METRE));
+  chaos = chaos_accum(chaos, ((int)SSE_VS(v, 2)) % (MHIVE_SZ*METRE));
+  chaos = chaos_of(chaos);
+
+  xp = lcgrand(&chaos);
+  yp = lcgrand(&chaos);
+  zp = lcgrand(&chaos);
+  p = sse_psof(xp, yp, zp, 0.0f);
+  p *= sse_psof1(perturbation);
+  p /= sse_psof1(32768.0f);
+  return p;
+}
+
 static void catmull_clark_subdivide(
   sseps vertices[MAX_VERTICES],
   unsigned short vertex_adjacency[MAX_VERTICES][MAX_EDGES_PER_VERTEX],
   manifold_face faces[MAX_FACES],
+  const env_voxel_graphic_blob*const* graphics,
   unsigned num_orig_vertices,
-  unsigned num_orig_faces
+  unsigned num_orig_faces,
+  unsigned level
 ) {
   /*
     See also
@@ -383,6 +404,7 @@ static void catmull_clark_subdivide(
       }
     }
     vp = sse_divps(vp, four);
+    vp += perturb(vp, graphics[faces[i].graphic]->perturbation >> level);
     vertices[num_vertices++] = vp;
   }
 
@@ -571,7 +593,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
   signed cx, cy, cz, ocx, ocy, ocz, vcx, vcy, vcz;
   coord x, y, z, xmask, zmask, vx, vz;
   unsigned ck, cv, i, op;
-  const env_voxel_graphic_blob* graphic_blobs[256];
+  const env_voxel_graphic_blob* graphic_blobs[256], * all_graphic_blobs[256];
   const env_voxel_graphic_blob* graphic;
   unsigned num_graphic_blobs;
 
@@ -633,6 +655,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
           r->graphics, r->vmap, x, y, z, lod);
         if (graphic) {
           has_graphic_blob[cz+2][cx+2] |= 1 << cy;
+          all_graphic_blobs[graphic->ordinal] = graphic;
         }
       }
     }
@@ -744,7 +767,9 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
          num_faces * 4 < MAX_FACES;
        ++num_subdivision_iterations) {
     catmull_clark_subdivide(vertices, vertex_adjacency, faces,
-                            num_vertices, num_faces);
+                            all_graphic_blobs,
+                            num_vertices, num_faces,
+                            num_subdivision_iterations);
     /* Each iteration creates:
      * - One vertex per face
      * - One vertex per edge

@@ -218,6 +218,7 @@ unsigned rl_graphic_blob_new(void) {
   res_graphic_blobs[res_num_graphic_blobs].noise_amplitude = 65536;
   res_graphic_blobs[res_num_graphic_blobs].noise_xfreq = 65536;
   res_graphic_blobs[res_num_graphic_blobs].noise_yfreq = 65536;
+  res_graphic_blobs[res_num_graphic_blobs].perturbation = 0;
   return res_num_graphic_blobs++;
 }
 
@@ -239,6 +240,15 @@ unsigned rl_graphic_blob_set_noise(unsigned blob, unsigned bias, unsigned amp,
   res_graphic_blobs[blob].noise_amplitude = amp;
   res_graphic_blobs[blob].noise_xfreq = xfreq;
   res_graphic_blobs[blob].noise_yfreq = yfreq;
+  return 1;
+}
+
+unsigned rl_graphic_blob_set_perturbation(unsigned blob,
+                                          unsigned perturbation) {
+  CKNF();
+  CKIX(blob, res_num_graphic_blobs);
+
+  res_graphic_blobs[blob].perturbation = perturbation;
   return 1;
 }
 

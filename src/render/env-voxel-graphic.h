@@ -106,6 +106,11 @@ typedef struct {
    * fixed-point.
    */
   unsigned noise_yfreq;
+  /**
+   * Distance, in space units, by which faces should be perturbed when
+   * subdividing the blobs.
+   */
+  unsigned perturbation;
 } env_voxel_graphic_blob;
 
 /**

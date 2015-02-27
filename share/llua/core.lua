@@ -335,6 +335,8 @@ end
 -- - noise. Optional. Table containing keys bias, amp, xfreq, yfreq, indicating
 --   the noise configuration for this blob.
 --
+-- - perturbation. Optional. Integer indicating perturbation to set on the blob.
+--
 -- @param parms A table of parameters, as described above.
 -- @return The new graphic blob.
 function core.new_graphic_blob(parms)
@@ -343,6 +345,9 @@ function core.new_graphic_blob(parms)
   if parms.noise then
     mg.rl_graphic_blob_set_noise(b, parms.noise.bias, parms.noise.amp,
                                  parms.noise.xfreq, parms.noise.yfreq)
+  end
+  if parms.perturbation then
+    mg.rl_graphic_blob_set_perturbation(b, parms.perturbation)
   end
   return b
 end

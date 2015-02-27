@@ -140,6 +140,8 @@ functions = {
   rl_graphic_blob_set_noise = resource_loader(uint(32):min(1),
                                               uint(32), uint(32),
                                               uint(32), uint(32)),
+  rl_graphic_blob_set_perturbation = resource_loader(uint(32):min(1),
+                                                     uint(32):max(65536)),
   rl_texture_new = resource_loader(),
   rl_texture_load64x64rgbmm_NxMrgba =
     resource_loader(uint(32):min(1),
