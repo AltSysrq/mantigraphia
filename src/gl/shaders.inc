@@ -26,16 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+shader_source(fmanifold)
 shader_source(fpaint_overlay)
 shader_source(fpostprocess)
 shader_source(fskybox)
 shader_source(fterrabuff)
 shader_source(fvoxel)
 shader_source(vgenerictc)
+shader_source(gen_vmanifold)
 shader_source(vpaint_overlay)
 shader_source(vterrabuff)
 shader_source(vskybox)
-shader_source(vvoxel)
+shader_source(gen_vvoxel)
 
 shader(fixed_texture) {
   fixed_function
@@ -80,7 +82,7 @@ shader(paint_overlay) {
 }
 
 shader(voxel) {
-  composed_of(fvoxel, vvoxel)
+  composed_of(fvoxel, gen_vvoxel)
   with_texture_coordinates
   uniform(vec2, torus_sz)
   uniform(vec2, yrot)
@@ -105,4 +107,21 @@ shader(skybox) {
   uniform(vec2, cloud_offset_1)
   uniform(vec2, cloud_offset_2)
   uniform(float, cloudiness)
+}
+
+shader(manifold) {
+  composed_of(fmanifold, gen_vmanifold)
+  uniform(vec2, torus_sz)
+  uniform(vec2, yrot)
+  uniform(vec2, rxrot)
+  uniform(float, zscale)
+  uniform(vec2, soff)
+  uniform(vec3, camera_integer)
+  uniform(vec3, camera_fractional)
+  uniform(float, noise_amplitude)
+  uniform(float, noise_bias)
+  uniform(tex2d, noisetex)
+  uniform(tex2d, palette)
+  uniform(float, palette_t)
+  uniform(vec2, noise_freq)
 }

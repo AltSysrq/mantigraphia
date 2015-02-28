@@ -53,7 +53,7 @@
 #include "render/context.h"
 #include "render/terrain-tilemap.h"
 #include "render/paint-overlay.h"
-#include "render/env-vmap-voxel-renderer.h"
+#include "render/env-vmap-manifold-renderer.h"
 #include "render/skybox.h"
 #include "control/mouselook.h"
 #include "resource/resource-loader.h"
@@ -71,7 +71,7 @@
 #define PAINT_SIZE_REDUCTION 1
 
 typedef struct {
-  game_state vtab;
+  game_state self;
   unsigned seed;
   int is_running;
   coord x, z;
@@ -82,9 +82,9 @@ typedef struct {
   paint_overlay* overlay;
   terrain_tilemap* world;
   env_vmap* vmap;
-  env_vmap_voxel_renderer* vmap_voxel_renderer;
   skybox* sky;
   rendering_context*restrict context;
+  env_vmap_manifold_renderer* vmap_manifold_renderer;
 
   int moving_forward, moving_backward, moving_left, moving_right;
   unsigned month_integral;
@@ -106,36 +106,26 @@ static void cosine_world_init_world(cosine_world_state*);
 static void cosine_world_delete(cosine_world_state*);
 
 game_state* cosine_world_new(unsigned seed) {
-  cosine_world_state template = {
-    { (game_state_update_t) cosine_world_update,
-      (game_state_predraw_t)cosine_world_predraw,
-      (game_state_draw_t)   cosine_world_draw,
-      (game_state_key_t)    cosine_world_key,
-      NULL,
-      (game_state_mmotion_t)cosine_world_mmotion,
-      NULL, NULL, NULL,
-    },
-    seed,
-    1,
-    0, 0, 0, 0,
-    { 0, 0 },
-    parchment_new(),
-    NULL,
-    terrain_tilemap_new(SIZE, SIZE, SIZE/256, SIZE/256),
-    env_vmap_new(SIZE, SIZE, 1, &res_voxel_context_map),
-    NULL,
-    skybox_new(seed + 7512),
-    rendering_context_new(),
-    0,0,0,0,
-    0,0,0,0,
-    2 * METRE,
-    1, 0
-  };
-
   const vc3 origin = { 0, 0, 0 };
-  cosine_world_state* this = xmalloc(sizeof(cosine_world_state));
-  memcpy(this, &template, sizeof(template));
-  this->vmap_voxel_renderer = env_vmap_voxel_renderer_new(
+  cosine_world_state* this = zxmalloc(sizeof(cosine_world_state));
+
+  this->self.update = (game_state_update_t)cosine_world_update;
+  this->self.predraw = (game_state_predraw_t)cosine_world_predraw;
+  this->self.draw = (game_state_draw_t)cosine_world_draw;
+  this->self.key = (game_state_key_t)cosine_world_key;
+  this->self.mmotion = (game_state_mmotion_t)cosine_world_mmotion;
+  this->seed = seed;
+  this->is_running = 1;
+  this->bg = parchment_new();
+  this->world = terrain_tilemap_new(SIZE, SIZE, SIZE/256, SIZE/256);
+  this->vmap = env_vmap_new(SIZE, SIZE, 1);
+  this->sky = skybox_new(seed + 7512);
+  this->context = rendering_context_new();
+  this->camera_y_off = 7 * METRE / 4;
+  this->use_paint_overlay = 1;
+  this->use_parchment = 0;
+
+  this->vmap_manifold_renderer = env_vmap_manifold_renderer_new(
     this->vmap, (const env_voxel_graphic*const*)&res_voxel_graphics,
     origin, this->world,
     (coord(*)(const void*,coord,coord))terrain_base_y);
@@ -151,7 +141,6 @@ game_state* cosine_world_new(unsigned seed) {
   if (lluas_get_error_status())
     errx(EX_SOFTWARE, "Lluas not OK, aborting");
   rl_set_frozen(1);
-  rl_update_textures(0, 1, 0);
 
   cosine_world_init_world(this);
   mouselook_set(1);
@@ -162,7 +151,7 @@ game_state* cosine_world_new(unsigned seed) {
 static void cosine_world_delete(cosine_world_state* this) {
   if (this->overlay) paint_overlay_delete(this->overlay);
   parchment_delete(this->bg);
-  env_vmap_voxel_renderer_delete(this->vmap_voxel_renderer);
+  env_vmap_manifold_renderer_delete(this->vmap_manifold_renderer);
   env_vmap_delete(this->vmap);
   terrain_tilemap_delete(this->world);
   skybox_delete(this->sky);
@@ -286,10 +275,6 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   perspective_init(proj, &render_dst, FOV);
 
   rendering_context_set(this->context, &context_inv);
-
-  rl_update_textures(this->frame_no % 8, 8,
-                     fraction_of(10) * this->month_integral +
-                     this->month_fraction / 10);
 }
 
 static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
@@ -318,8 +303,8 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   glm_clear(GL_DEPTH_BUFFER_BIT);
   skybox_render(&before_paint_overlay, this->sky, this->context);
   render_terrain_tilemap(&before_paint_overlay, this->world, this->context);
-  render_env_vmap_voxels(
-    &before_paint_overlay, this->vmap_voxel_renderer, this->context);
+  render_env_vmap_manifolds(
+    &before_paint_overlay, this->vmap_manifold_renderer, this->context);
   ump_join();
 
   if (this->use_paint_overlay) {

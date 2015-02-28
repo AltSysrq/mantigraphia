@@ -37,8 +37,8 @@ core = {}
 -- within each sub-table which allocate the resource and return the resource's
 -- index, eg,
 --
---   function resource.graphic_plane.mymodule_myplane()
---     local v = mg.rl_graphic_plane_new()
+--   function resource.graphic_blob.mymodule_myblob()
+--     local v = mg.rl_graphic_blob_new()
 --     -- configure v
 --     return v
 --   end
@@ -46,11 +46,10 @@ core = {}
 -- When resources are to be loaded, the functions in every sub-table are
 -- memoised, and then the root types (eg, voxels) are forced.
 resource = {
-  graphic_plane = {},
+  graphic_blob = {},
   voxel_graphic = {},
-  texdata = {},
+  valtex = {},
   palette = {},
-  texture = {},
   voxel = {},
   ntvp = {},
 }
@@ -183,135 +182,57 @@ function core.gentable2d(rows, cols, fun)
   return result
 end
 
---- Mipmaps a table using the "nearest" algorithm.
+--- Constructs and loads a new palette object.
 --
--- Produces a mipmapped version of the input table by simply dropping
--- intermediate values.
---
--- Example:
--- ```
--- local m = core.mipmap_nearest {
---   {  1,  2,  3,  4 },
---   {  5,  6,  7,  8 },
---   {  9, 10, 11, 12 },
---   { 13, 14, 15, 16 },
--- }
--- m == { { 1, 3 }, { 9, 11 } }
--- ```
---
--- @param An assumed rectangular two-dimensional table whose dimensions should
--- be even numbers.
--- @return A two-dimensional table whose dimensions are half those of the input
--- table's, where output[y][x] == input[y*2][x*2].
-function core.mipmap_nearest(tab)
-  local rows = #tab / 2
-  local cols = #tab[1] / 2
-  local result = {}
-  for y = 1, rows do
-    local inrow = tab[y*2]
-    local outrow = {}
-    for x = 1, cols do
-      outrow[x] = inrow[x*2]
-    end
-    result[y] = outrow
-  end
-
-  return result
+-- @param data A rectangular table containing RGBA pixel values.
+-- @return The new palette object.
+function core.new_palette(data)
+  local p = mg.rl_palette_new()
+  mg.rl_palette_loadMxNrgba(p, #data[1], #data,
+                            core.rgba_string_from_argb_table(data))
+  return p
 end
 
---- Front-end to mg.tg_mipmap_maximum
+--- Constructs and loads a new value texture object.
 --
--- Passes through to mg.tg_mipmap_maximum after automatically determining the
--- current size.
-function core.binary_mipmap_maximum(data)
-  return mg.tg_mipmap_maximum(mg.isqrt(#data/3), data)
-end
-
---- Creates a palette description from a table.
---
--- Convenience function for allocating a new palette and loading it with the
--- texture defined by the given two-dimensional ARGB table.
---
--- @param tab A table suitable for core.rgba_string_from_argb_table()
--- @return A table describing the converted palette.
-function core.new_palette(tab)
-  return {
-    data = core.rgba_string_from_argb_table(tab),
-    ncolours = #tab[1],
-    ntimes = #tab,
-  }
-end
-
---- Creates mipmapped texture data from a table.
---
--- Convenience function for allocating a new texture and loading it with the
--- data from the given two-dimensional RGB table.
---
--- @param tab An ARGB table with the exact dimensions of 64x64.
--- @param mipmap A function which takes a two-dimensional table and returns
--- a new two-dimensional table whose dimensions are half those of the input,
--- and still compatible with core.rgb_string_from_argb_table().
--- @param is_raw If true, input textures are assumed to already be byte arrays.
--- @return An array containing the mipmapped texture data.
-function core.new_texdata(t64, mipmap, is_raw)
-  local t32 = mipmap(t64)
-  local t16 = mipmap(t32)
-  local t8  = mipmap(t16)
-  local t4  = mipmap(t8)
-  local t2  = mipmap(t4)
-  local t1  = mipmap(t2)
-
-  local cvt
-  if is_raw then
-    cvt = function(x) return x end
-  else
-    cvt = core.rgb_string_from_argb_table
-  end
-
-  return { cvt(t64), cvt(t32), cvt(t16), cvt(t8), cvt(t4), cvt(t2), cvt(t1) }
-end
-
--- Constructs and loads a new texture object.
---
--- Parameters are passed in a single table for readability. The relevant
--- parameters are:
---
--- - texdata. Specifies a key to resources.texdata from which to obtain the
---   texture data (see core.new_texdata()).
--- - palette. Specifies a key to resources.palettes from which to obain the
---   palette data (see core.new_palette()).
-function core.new_texture(parms)
-  local texture = mg.rl_texture_new()
-  local td = resource.texdata[parms.texdata]()
-  local pd = resource.palette[parms.palette]()
-
-  mg.rl_texture_load64x64rgbmm_NxMrgba(
-    texture,
-    td[1], td[2], td[3],
-    td[4], td[5], td[6],
-    td[7],
-    pd.ncolours, pd.ntimes, pd.data)
-
-  return texture
+-- @param data A byte string of length 4096 specifying the data for the valtex.
+-- @return The new valtex object.
+function core.new_valtex(data)
+  local v = mg.rl_valtex_new()
+  mg.rl_valtex_load64x64r(v, data)
+  return v
 end
 
 --- Creates a new graphic plane with the specified properties.
 --
--- Parameters are passed in in a single table for readability. The relevant
+-- Parameters are passed in a single table for readability The relevant
 -- parameters are:
 --
--- - texture. Specifies a key to resource.texture from which to obtain the
---   texture to use with the graphic plane.
+-- - valtex. Specifies a key to resource.valtex from which to obtain the
+--   value texture for use with this blob.
 --
 -- - palette. Specifies a key to resource.palette from which to obtain the
---   palette to use with the graphic plane.
+--   palette for use with this blob.
 --
--- @parm parms A table of parameters, as described above.
--- @return The new graphic plane.
-function core.new_graphic_plane(parms)
-  local g = mg.rl_graphic_plane_new()
-  mg.rl_graphic_plane_set_texture(g, resource.texture[parms.texture]())
-  return g
+-- - noise. Optional. Table containing keys bias, amp, xfreq, yfreq, indicating
+--   the noise configuration for this blob.
+--
+-- - perturbation. Optional. Integer indicating perturbation to set on the blob.
+--
+-- @param parms A table of parameters, as described above.
+-- @return The new graphic blob.
+function core.new_graphic_blob(parms)
+  local b = mg.rl_graphic_blob_new()
+  mg.rl_graphic_blob_set_valtex(b, resource.valtex[parms.valtex]())
+  mg.rl_graphic_blob_set_palette(b, resource.palette[parms.palette]())
+  if parms.noise then
+    mg.rl_graphic_blob_set_noise(b, parms.noise.bias, parms.noise.amp,
+                                 parms.noise.xfreq, parms.noise.yfreq)
+  end
+  if parms.perturbation then
+    mg.rl_graphic_blob_set_perturbation(b, parms.perturbation)
+  end
+  return b
 end
 
 --- Creates a new voxel graphic with the specified properties.
@@ -319,22 +240,15 @@ end
 -- Parameters are passed in a single table for readability. The relevant
 -- parameters are:
 --
--- - x, y, z. Optional. If present, specify a key to resource.graphic_plane
---   from which to obtain the graphic plane to use with each plane of the
---   graphic.
+-- - blob. Optional. If present, specifies a key to resource.graphic_blob from
+--   which to obtain the graphic blob to use with this graphic.
 --
 -- @param parms A table of parameters, as described above.
 -- @return The new voxel graphic.
 function core.new_voxel_graphic(parms)
   local g = mg.rl_voxel_graphic_new()
-  if parms.x then
-    mg.rl_voxel_graphic_set_plane(g, 0, resource.graphic_plane[parms.x]())
-  end
-  if parms.y then
-    mg.rl_voxel_graphic_set_plane(g, 1, resource.graphic_plane[parms.y]())
-  end
-  if parms.z then
-    mg.rl_voxel_graphic_set_plane(g, 2, resource.graphic_plane[parms.z]())
+  if parms.blob then
+    mg.rl_voxel_graphic_set_blob(g, resource.graphic_blob[parms.blob]())
   end
   return g
 end
@@ -374,6 +288,15 @@ function core.bind(fun)
     return function()
       return fun(table.unpack(args))
     end
+  end
+end
+
+--- Composes the two given functions.
+--
+-- compose(a,b)(args) == a(b(args))
+function core.compose(a, b)
+  return function(...)
+    return a(b(...))
   end
 end
 
@@ -494,7 +417,8 @@ end
 -- Each element is generated by calling parms.fun with a table for each
 -- coordinate; this table has the contents of parms.x and parms.y flattened
 -- together, with an element from each list chosen according to the position in
--- the table.
+-- the table. Additionally, fields named x and y are added to this table,
+-- indicating the position of the particular pixel being generated.
 function core.gen_2d_table_from_lanes(parms)
   local nx, ny = 0, 0
 
@@ -518,6 +442,9 @@ function core.gen_2d_table_from_lanes(parms)
       for k, l in pairs(parms.x) do
         p[k] = l[x]
       end
+
+      p.x = x
+      p.y = y
 
       row[x] = parms.fun(p)
     end

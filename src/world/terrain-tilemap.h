@@ -46,6 +46,7 @@
  * granularities will bitshift this value up.
  */
 #define TILE_SZ METRE
+#define TILE_SZ_BITS METRE_BITS
 /**
  * In order to save space, vertical coordinates in tiles are specified at a
  * lower granularity. They can be converted to world coordinates by multiplying

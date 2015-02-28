@@ -165,4 +165,11 @@ void perlin_noise(unsigned* dst, unsigned w, unsigned h,
                   unsigned freq, unsigned amp,
                   unsigned seed);
 
+/**
+ * Like perlin_noise(), but does all work on the current thread.
+ */
+void perlin_noise_st(unsigned* dst, unsigned w, unsigned h,
+                     unsigned freq, unsigned amp,
+                     unsigned seed);
+
 #endif /* MATH_RAND_H_ */

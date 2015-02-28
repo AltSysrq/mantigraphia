@@ -64,6 +64,26 @@ tg_tex8 tg_uniform_noise(const unsigned char* raw_src, unsigned rnd) {
   return tg_temp;
 }
 
+tg_tex8 tg_perlin_noise(unsigned freq, unsigned amp, unsigned seed) {
+  unsigned values[TG_TEXSIZE], i;
+
+  memset(values, 0, sizeof(values));
+  perlin_noise_st(values, TG_TEXDIM, TG_TEXDIM, freq, amp, seed);
+  for (i =  0; i < TG_TEXSIZE; ++i)
+    tg_temp[i] = values[i];
+
+  return tg_temp;
+}
+
+tg_tex8 tg_sum(tg_tex8 a, tg_tex8 b) {
+  unsigned i;
+
+  for (i = 0; i < TG_TEXSIZE; ++i)
+    tg_temp[i] = a[i] + b[i];
+
+  return tg_temp;
+}
+
 tg_tex8 tg_similarity(signed cx, signed cy, tg_tex8 control,
                       signed base) {
   signed px, py, dx, dy, d, val;

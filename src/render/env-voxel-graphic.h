@@ -29,44 +29,53 @@
 #define RENDER_ENV_VOXEL_GRAPHIC_H
 
 /**
- * Describes the parameters used to draw a graphic plane of a voxel.
+ * Specifies how a voxel can be rendered in a "blob-like" manner.
  *
- * Graphic planes are considered equivalent only if they exist at the same
- * memory address.
+ * Two graphic blobs are equivalent if they have the same ordinal.
  */
 typedef struct {
   /**
-   * The primary texture to use for rendering.
-   *
-   * This is an RGBA texture. The RGB components represent true colour; they
-   * are passed through to the final colour verbatim. The A component controls
-   * fragment visibility; a fragment is visible if the A component of this
-   * texture is greater than the G component of the control texture at the same
-   * location.
+   * The identifier for this graphic blob within its context.
    */
-  unsigned texture;
+  unsigned char ordinal;
 
   /**
-   * The "control" texture to use for rendering.
-   *
-   * This is an RG texture. The R component is passed through to the alpha
-   * value of the fragment (controlling brush shape and direction). The G
-   * component controls visibility according to the A value of the primary
-   * texture.
+   * The colour palette to use. This is an RGBA texture indexed by a fixed
+   * noise texture (S) and the current time (T).
    */
-  unsigned control;
+  unsigned palette;
+  /**
+   * The noise texture to use. This is a single-channel texture.
+   */
+  unsigned noise;
 
   /**
-   * Factor by which texture coordinates for this plane shall be multiplied,
-   * allowing arbitrary affine transforms.
-   *
-   * tex.t = x * texture_scale[0][0] + y * texture_scale[0][1]
-   * tex.t = y * texture_scale[1][0] + x * texture_scale[1][1]
-   *
-   * This is 16.16 fixed-point, so 1.0 == 65536.
+   * The bias added to the noise for this blob type, 16.16 fixed-point. 0.0
+   * corresponds to S=0; 1.0 to S=1.
    */
-  signed texture_scale[2][2];
-} env_voxel_graphic_plane;
+  unsigned noise_bias;
+  /**
+   * The amplitude of the noise for this blob type, 16.16 fixed-point. 0.0
+   * eliminates all noise; 1.0 allows traversing the entire palette.
+   */
+  unsigned noise_amplitude;
+  /**
+   * The frequency, relative to the width of the screen, at which the noise
+   * texture repeats on the X axis, 16.16 fixed-point.
+   */
+  unsigned noise_xfreq;
+  /**
+   * The frequencey, relative to the width of the screen (width, so that the
+   * result is square), at which the noise texture repeats on the Y axis, 16.16
+   * fixed-point.
+   */
+  unsigned noise_yfreq;
+  /**
+   * Distance, in space units, by which faces should be perturbed when
+   * subdividing the blobs.
+   */
+  unsigned perturbation;
+} env_voxel_graphic_blob;
 
 /**
  * Describes how a voxel (more specifically, a contextual voxel type) is
@@ -77,15 +86,12 @@ typedef struct {
  */
 typedef struct {
   /**
-   * In the general case, voxels are rendered as three axis-aligned planes
-   * centred on the centre of the voxel. These indicate the parameters for the
-   * X, Y, and Z planes, respectively.
+   * Voxels may be rendered as "blobs" instead of intersecting planes, which
+   * generally produces better results for dense organic objects.
    *
-   * These are pointers so that plane equivalence can be efficiently detected.
-   *
-   * NULL values indicate planes that should not be drawn.
+   * The presence of this field generally suppresses usage of the planes above.
    */
-  const env_voxel_graphic_plane* planes[3];
+  const env_voxel_graphic_blob* blob;
 } env_voxel_graphic;
 
 #endif /* RENDER_ENV_VOXEL_GRAPHIC_H */

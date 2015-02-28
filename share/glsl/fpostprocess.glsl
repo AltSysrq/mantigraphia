@@ -3,7 +3,7 @@ uniform float pocket_size_px;
 uniform vec2 pocket_size_scr;
 uniform vec2 px_offset;
 
-float intensity(vec4 colour) {
+float intensity(in vec4 colour) {
   return max(max(colour.r, colour.g), colour.b);
 }
 

@@ -28,7 +28,7 @@
 #ifndef RENDER_COLOUR_PALETTES_H_
 #define RENDER_COLOUR_PALETTES_H_
 
-#include "../math/simd.h"
+#include "../math/sse.h"
 #include "../graphics/canvas.h"
 #include "../world/terrain.h"
 #include "context.h"
@@ -36,7 +36,7 @@
 #define NUM_GRASS_COLOUR_VARIANTS 8
 
 typedef struct {
-  simd4 terrain[4*7];
+  ssepi terrain[4*7];
   canvas_pixel oak_leaf[8];
   canvas_pixel oak_trunk[10];
   canvas_pixel cherry_leaf[8];

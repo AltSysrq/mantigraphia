@@ -30,7 +30,7 @@
 #endif
 
 #include "../math/coords.h"
-#include "../math/simd.h"
+#include "../math/sse.h"
 #include "terrain-tilemap.h"
 #include "terrain.h"
 
@@ -74,36 +74,41 @@ coord terrain_graphical_y(const terrain_tilemap* world, coord wx, coord wz,
   }
 }
 
-static simd4 colour_of(const terrain_tilemap* world,
+static ssepi colour_of(const terrain_tilemap* world,
                        coord x, coord z,
-                       const simd4* terrain_colours) {
+                       const ssepi* terrain_colours) {
   return terrain_colours[
     world->type[
       terrain_tilemap_offset(world, x, z)]];
 }
 
-simd4 terrain_colour(const terrain_tilemap* world,
+ssepi terrain_colour(const terrain_tilemap* world,
                      coord wx, coord wz,
-                     const simd4* terrain_colours) {
+                     const ssepi* terrain_colours) {
   signed ox = wx % TILE_SZ, oz = wz % TILE_SZ;
   coord x = wx / TILE_SZ;
   coord z = wz / TILE_SZ;
   coord x2 = (x+1) & (world->xmax-1), z2 = (z+1) & (world->zmax-1);
-  simd4 c00 = colour_of(world, x, z, terrain_colours),
+  ssepi c00 = colour_of(world, x, z, terrain_colours),
         c01 = colour_of(world, x, z2, terrain_colours),
         c10 = colour_of(world, x2, z, terrain_colours),
         c11 = colour_of(world, x2, z2, terrain_colours);
-  simd4 c0, c1;
+  ssepi c0, c1;
+  ssepi tileszv, oxv, ozv;
 
-  c0 = simd_divvs(simd_addvv(simd_mulvs(c00, TILE_SZ-ox),
-                             simd_mulvs(c10, ox)),
-                  TILE_SZ);
-  c1 = simd_divvs(simd_addvv(simd_mulvs(c01, TILE_SZ-ox),
-                             simd_mulvs(c11, ox)),
-                  TILE_SZ);
-  return simd_divvs(simd_addvv(simd_mulvs(c0, TILE_SZ-oz),
-                               simd_mulvs(c1, oz)),
-                    TILE_SZ);
+  tileszv = sse_piof1(TILE_SZ);
+  oxv = sse_piof1(ox);
+  ozv = sse_piof1(oz);
+
+  c0 = sse_sradi(sse_addpi(sse_mulpi(c00, sse_subpi(tileszv, oxv)),
+                           sse_mulpi(c10, oxv)),
+                 TILE_SZ_BITS);
+  c1 = sse_sradi(sse_addpi(sse_mulpi(c01, sse_subpi(tileszv, oxv)),
+                           sse_mulpi(c11, oxv)),
+                 TILE_SZ_BITS);
+  return sse_sradi(sse_addpi(sse_mulpi(c0, sse_subpi(tileszv, ozv)),
+                             sse_mulpi(c1, ozv)),
+                   TILE_SZ_BITS);
 }
 
 void terrain_basic_normal(vo3 dst, const terrain_tilemap* world,

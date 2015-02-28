@@ -65,6 +65,7 @@ static inline void put_uniform_vec3(GLint ix, const float* f) {
 #define with_colour
 #define with_secondary_colour
 #define attrib(cnt,name) unsigned name##_va;
+#define padding(cnt,name)
 extern int dummy_decl
 #include "shaders.inc"
 ;

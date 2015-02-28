@@ -61,6 +61,7 @@
 typedef unsigned coord;
 typedef signed coord_offset;
 #define METRE      ((coord_offset)0x00010000)
+#define METRE_BITS 16
 #define MILLIMETRE ((coord_offset)0x00000040)
 
 typedef coord vc3[3];

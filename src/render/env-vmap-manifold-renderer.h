@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014, 2015 Jason Lingle
+ * Copyright (c) 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,8 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef RENDER_ENV_MAP_VOXEL_RENDERER_H_
-#define RENDER_ENV_MAP_VOXEL_RENDERER_H_
+#ifndef RENDER_ENV_MAP_MANIFOLD_RENDERER_H_
+#define RENDER_ENV_MAP_MANIFOLD_RENDERER_H_
 
 #include "../math/coords.h"
 #include "../world/env-vmap.h"
@@ -35,20 +35,19 @@
 #include "env-voxel-graphic.h"
 
 /**
- * The number of tiles in each dimension comprising a single vhive in an
- * env_vmap_voxel_renderer.
+ * The number of tiles in each dimension comprising a single mhive in an
+ * env_vmap_manifold_renderer.
  */
-#define ENV_VMAP_VOXEL_RENDERER_VHIVE_SZ 64
+#define ENV_VMAP_MANIFOLD_RENDERER_MHIVE_SZ 32
 
 /**
  * Internal structure storing precalculated information and heavyweight
  * handles for rendering all or part of a vmap.
  */
-typedef struct env_vmap_voxel_render_vhive_s env_vmap_voxel_render_vhive;
+typedef struct env_vmap_manifold_render_mhive_s env_vmap_manifold_render_mhive;
 
 /**
- * Renders voxel maps by simply rendering each voxel as a cube containing three
- * surfaces, as described by env_voxel_graphic.
+ * Renders voxel maps by grouping blob-style voxels into solid manifold meshes.
  *
  * This struct should be considered immutable by external code.
  */
@@ -58,7 +57,7 @@ typedef struct {
    */
   const env_vmap* vmap;
   /**
-   * An array of size NUM_ENV_VOXEL_CONTEXTUAL_TYPES which describes how each
+   * An array of size NUM_ENV_VOXEL_TYPES which describes how each
    * contextual type is to be rendered.
    *
    * This is an array of pointers so that graphical equivalence between
@@ -85,31 +84,31 @@ typedef struct {
   /**
    * Internal state.
    */
-  env_vmap_voxel_render_vhive* vhives[FLEXIBLE_ARRAY_MEMBER];
-} env_vmap_voxel_renderer;
+  env_vmap_manifold_render_mhive* mhives[FLEXIBLE_ARRAY_MEMBER];
+} env_vmap_manifold_renderer;
 
 /**
- * Allocates a new env_vmap_voxel_renderer.
+ * Allocates a new env_vmap_manifold_renderer.
  *
  * @param vmap The vmap to be rendered by this renderer. Its X and Z dimensions
- * must be multiples of ENV_VMAP_VOXEL_RENDERER_VHIVE_SZ.
+ * must be multiples of ENV_VMAP_MANIFOLD_RENDERER_MHIVE_SZ.
  */
-env_vmap_voxel_renderer* env_vmap_voxel_renderer_new(
+env_vmap_manifold_renderer* env_vmap_manifold_renderer_new(
   const env_vmap* vmap,
-  const env_voxel_graphic*const graphics[NUM_ENV_VOXEL_CONTEXTUAL_TYPES],
+  const env_voxel_graphic*const graphics[NUM_ENV_VOXEL_TYPES],
   const vc3 base_coordinate,
   const void* base_object,
   coord (*get_y_offset)(const void*, coord, coord));
 
 /**
- * Releases the resources held by the given env_vmap_voxel_renderer.
+ * Releases the resources held by the given env_vmap_manifold_renderer.
  */
-void env_vmap_voxel_renderer_delete(env_vmap_voxel_renderer*);
+void env_vmap_manifold_renderer_delete(env_vmap_manifold_renderer*);
 
 /**
  * Renders the vmap of the given renderer.
  */
-void render_env_vmap_voxels(canvas* dst, env_vmap_voxel_renderer*restrict,
-                            const rendering_context*restrict context);
+void render_env_vmap_manifolds(canvas* dst, env_vmap_manifold_renderer*restrict,
+                               const rendering_context*restrict context);
 
 #endif /* RENDER_ENV_MAP_RENDERER_H_ */

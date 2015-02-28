@@ -25,18 +25,30 @@
 -- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+function oaktree_gen_leaf_valtex()
+  local a, b, c, d
+  a = mg.tg_perlin_noise(4, 100, 21162)
+  b = mg.tg_perlin_noise(8,  75, 21163)
+  c = mg.tg_perlin_noise(16, 50, 21164)
+  d = mg.tg_perlin_noise(32, 25, 21165)
+
+  return mg.tg_normalise(
+    mg.tg_sum(a, mg.tg_sum(b, mg.tg_sum(c, d))), 0, 255)
+end
+
+resource.valtex.oaktree_leaf = core.compose(
+  core.new_valtex, oaktree_gen_leaf_valtex)
+
 resource.palette.oaktree_leaf = core.bind(core.gen_palette_from_lanes) {
   x = {
-    alpha = {   2,      1,      0,      0,      1,      0,      0,      0,      0,      0       },
-    heat = {    0,      1,      2,      0,      1,      2,      0,      1,      2,      0       },
+    heat = {    0,      1,      2,      0,      2,      3,      0,      2,      3,      0       },
     g = {       0.7,    0.5,    0.7,    0.6,    0.8,    0.7,    0.9,    0.8,    1.0,    0.9     },
     r = {       0.5,    0.7,    0.5,    0.8,    0.5,    0.9,    0.5,    1.0,    0.5,    0.75    },
     agm = {     0.25,   0.1,    0.3,    0.2,    0.3,    0.5,    0.4,    0.2,    0.3,    0.4     },
   },
   --            M       A       M       J       J       A       S       O       N       D
   y = {
-    snow = {    2,      1,      0,      0,      0,      0,      0,      0,      2,      3       },
-    live = {    1,      1,      1,      1,      1,      1,      1,      1,      0,      0       },
+    snow = {    2,      1,      0,      0,      0,      0,      0,      0,      3,      4       },
     gsat = {    0.3,    0.4,    0.6,    0.5,    0.5,    0.4,    0.4,    0.4,    0.1,    0.0     },
     rsat = {    0.1,    0.1,    0.1,    0.1,    0.1,    0.1,    0.2,    0.8,    0.1,    0.1     },
     bsat = {    0.1,    0.1,    0.1,    0.1,    0.1,    0.1,    0.1,    0.0,    0.0,    0.0     },
@@ -59,122 +71,87 @@ resource.palette.oaktree_leaf = core.bind(core.gen_palette_from_lanes) {
       b = 255 * p.bsat / 1.0
     end
 
-    if p.alpha > p.live then
-      return core.argb(0, r, g, b)
-    else
-      return core.argb(255, r, g, b)
-    end
+    local a = core.chaos(p.x, p.y) % 64 + 191
+    return core.argb(a, r, g, b)
   end
 }
+
+function oaktree_gen_trunk_valtex()
+  return mg.tg_uniform_noise(nil, 17384)
+end
+resource.valtex.oaktree_trunk = core.compose(
+  core.new_valtex, oaktree_gen_trunk_valtex)
 
 resource.palette.oaktree_trunk = core.bind(core.new_palette) {
   -- M
-  { 0x00ffffff, 0xffffffff, 0xffffffff, 0xff302020, 0xff636357,
-    0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
+  { 0x90ffffff, 0x90ffffff, 0x90ffffff, 0x90302020, 0x90636357,
+    0x90303020, 0x90302800, 0x90303020, 0x90302000, 0x90303020, },
   -- A
-  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
-    0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
+  { 0x90201c00, 0x90201c00, 0x90201c00, 0x90303020, 0x90302000,
+    0x90303020, 0x90302800, 0x90303020, 0x90302000, 0x90303020, },
   -- M
-  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
-    0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
+  { 0x90201c00, 0x90201c00, 0x90201c00, 0x90303020, 0x90302000,
+    0x90303020, 0x90302800, 0x90303020, 0x90302000, 0x90303020, },
   -- J
-  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
-    0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
+  { 0x90201c00, 0x90201c00, 0x90201c00, 0x90303020, 0x90302000,
+    0x90303020, 0x90302800, 0x90303020, 0x90302000, 0x90303020, },
   -- J
-  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
-    0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
+  { 0x90201c00, 0x90201c00, 0x90201c00, 0x90303020, 0x90302000,
+    0x90303020, 0x90302800, 0x90303020, 0x90302000, 0x90303020, },
   -- A
-  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
-    0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
+  { 0x90201c00, 0x90201c00, 0x90201c00, 0x90303020, 0x90302000,
+    0x90303020, 0x90302800, 0x90303020, 0x90302000, 0x90303020, },
   -- S
-  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
-    0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
+  { 0x90201c00, 0x90201c00, 0x90201c00, 0x90303020, 0x90302000,
+    0x90303020, 0x90302800, 0x90303020, 0x90302000, 0x90303020, },
   -- O
-  { 0x00000000, 0xff000000, 0xff201c00, 0xff303020, 0xff302000,
-    0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
+  { 0x90201c00, 0x90201c00, 0x90201c00, 0x90303020, 0x90302000,
+    0x90303020, 0x90302800, 0x90303020, 0x90302000, 0x90303020, },
   -- N
-  { 0x00ffffff, 0xffffffff, 0xffffffff, 0xff302020, 0xff636357,
-    0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
+  { 0x90ffffff, 0x90ffffff, 0x90ffffff, 0x90302020, 0x90636357,
+    0x90303020, 0x90302800, 0x90303020, 0x90302000, 0x90303020, },
   -- D
-  { 0x00ffffff, 0xffffffff, 0xffffffff, 0xff302020, 0xffffffff,
-    0xff303020, 0xff302800, 0xff303020, 0xff302000, 0xff303020, },
+  { 0x90ffffff, 0x90ffffff, 0x90ffffff, 0x90302020, 0x90ffffff,
+    0x90303020, 0x90302800, 0x90303020, 0x90302000, 0x90303020, },
 }
 
--- TODO: Real textures instead of noise
-function resource.texdata.oaktree_trunk()
-  local rnd = 42
-  return core.new_texdata(
-    mg.tg_zip(mg.tg_uniform_noise(core.byte_array { 64, 128, 224 }, 1),
-              mg.tg_uniform_noise(core.byte_array { 255 }, 3),
-              mg.tg_uniform_noise(nil, 2)),
-    core.binary_mipmap_maximum, true)
-end
-
-function oaktree_generate_leaf_texture(bias)
-  local rnd = 751
-  local zero = mg.tg_fill(0)
-  local worley = zero
-  for i = 1, 32 do
-    local sx, sy
-    sx, rnd = mg.lcgrand(rnd)
-    sy, rnd = mg.lcgrand(rnd)
-    worley = mg.tg_max(
-      worley, mg.tg_similarity(sx % 64, sy % 64, zero, 0))
-  end
-
-  worley = mg.tg_normalise(worley, 255-32, 255-16)
-
-  local sphere = mg.tg_similarity(32, 32, zero, 0)
-  local colour = mg.tg_normalise(worley, bias, bias + 32)
-  local clipped = mg.tg_stencil(zero, colour, worley,
-                                mg.tg_fill(255-32), sphere)
-
-  return core.new_texdata(
-    mg.tg_zip(
-      clipped,
-      mg.tg_uniform_noise(core.byte_array { 255, 220, 200, 197 }, rnd),
-      mg.tg_uniform_noise(nil, rnd+1)),
-    core.binary_mipmap_maximum, true)
-end
-
-resource.texture.oaktree_trunk = core.bind(core.new_texture) {
-  texdata = "oaktree_trunk",
+resource.graphic_blob.oaktree_trunk = core.bind(core.new_graphic_blob) {
+  valtex = "oaktree_trunk",
   palette = "oaktree_trunk",
-}
-
-resource.graphic_plane.oaktree_trunk = core.bind(core.new_graphic_plane) {
-  texture = "oaktree_trunk",
+  noise = {
+    bias = 0.0,
+    amp = 1.0,
+    xfreq = 1.0,
+    yfreq = 1.0,
+  },
+  perturbation = 0.2
 }
 
 resource.voxel_graphic.oaktree_trunk = core.bind(core.new_voxel_graphic) {
-  x = "oaktree_trunk",
-  z = "oaktree_trunk",
+  blob = "oaktree_trunk",
 }
 
 for i = 1, 4 do
-  resource.texdata["oaktree_leaf"..i] =
-    core.bind(oaktree_generate_leaf_texture)(32 + i*32)
-
-  resource.texture["oaktree_leaf"..i] = core.bind(core.new_texture) {
-    texdata = "oaktree_leaf"..i,
-    palette = "oaktree_leaf"
-  }
-
-  resource.graphic_plane["oaktree_leaf"..i] = core.bind(core.new_graphic_plane) {
-    texture = "oaktree_leaf" .. i,
+  resource.graphic_blob["oaktree_leaf"..i] = core.bind(core.new_graphic_blob) {
+    valtex = "oaktree_leaf",
+    palette = "oaktree_leaf",
+    noise = {
+      bias = 0.2 * (i-1),
+      amp = 0.3,
+      xfreq = 1.0,
+      yfreq = 1.0,
+    },
+    perturbation = 0.3
   }
 
   resource.voxel_graphic["oaktree_leaf"..i] = core.bind(core.new_voxel_graphic) {
-    x = "oaktree_leaf" .. i,
-    y = "oaktree_leaf" .. i,
-    z = "oaktree_leaf" .. i,
+    blob = "oaktree_leaf"..i
   }
 
   resource.voxel["oaktree_leaf"..i] = function()
     local v = mg.rl_voxel_type_new()
     mg.rl_voxel_set_voxel_graphic(
-      v * (2^mg.ENV_VOXEL_CONTEXT_BITS),
-      resource.voxel_graphic["oaktree_leaf"..i]())
+      v, resource.voxel_graphic["oaktree_leaf"..i]())
     return v
   end
 end
@@ -182,8 +159,7 @@ end
 function resource.voxel.oaktree_trunk()
   local v = mg.rl_voxel_type_new()
   mg.rl_voxel_set_voxel_graphic(
-    v * (2^mg.ENV_VOXEL_CONTEXT_BITS),
-    resource.voxel_graphic.oaktree_trunk())
+    v, resource.voxel_graphic.oaktree_trunk())
   return v
 end
 
