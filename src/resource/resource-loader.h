@@ -106,6 +106,15 @@ unsigned rl_voxel_graphic_set_blob(unsigned graphic, unsigned blob);
  */
 unsigned rl_graphic_blob_new(void);
 /**
+ * Sets the noise texture used by the given graphic blob.
+ *
+ * @param blob The graphic blob to edit (see rl_graphic_blob_new()).
+ * @param noise The value texture to associate with the given blob (see
+ * rl_valtex_new()).
+ * @return Whether successful.
+ */
+unsigned rl_graphic_blob_set_valtex(unsigned blob, unsigned valtex);
+/**
  * Sets the palette used by the given graphic blob.
  *
  * @param blob The graphic blob to edit (see rl_graphic_blob_new()).
@@ -140,9 +149,6 @@ unsigned rl_graphic_blob_set_perturbation(unsigned blob, unsigned perturbation);
 /**
  * Allocates a new palette texture with unspecified content.
  *
- * These palettes are unrelated to those related to
- * rl_texture_load64x64rgbmm_NxMrgba().
- *
  * @return The new palette texture index.
  */
 unsigned rl_palette_new(void);
@@ -160,5 +166,22 @@ unsigned rl_palette_new(void);
 unsigned rl_palette_loadMxNrgba(unsigned palette,
                                 unsigned ncolours, unsigned ntimes,
                                 const void* data);
+/**
+ * Allocates a new value texture (valtex) with unspecified content.
+ *
+ * A valtex is a 64x64 texture with only an R channel. It is typically used to
+ * index palettes.
+ *
+ * @return The new valtex index.
+ */
+unsigned rl_valtex_new(void);
+/**
+ * Edits the R texture data of the given valtex.
+ *
+ * @param valtex The valtex to edit.
+ * @param data The R data, size 64*64
+ * @return Whether successful.
+ */
+unsigned rl_valtex_load64x64r(unsigned valtex, const void* data);
 
 #endif /* RESOURCE_RESOURCE_LOADER_H_ */

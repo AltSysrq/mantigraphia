@@ -48,6 +48,7 @@ core = {}
 resource = {
   graphic_blob = {},
   voxel_graphic = {},
+  valtex = {},
   palette = {},
   voxel = {},
   ntvp = {},
@@ -192,10 +193,23 @@ function core.new_palette(data)
   return p
 end
 
+--- Constructs and loads a new value texture object.
+--
+-- @param data A byte string of length 4096 specifying the data for the valtex.
+-- @return The new valtex object.
+function core.new_valtex(data)
+  local v = mg.rl_valtex_new()
+  mg.rl_valtex_load64x64r(v, data)
+  return v
+end
+
 --- Creates a new graphic plane with the specified properties.
 --
 -- Parameters are passed in a single table for readability The relevant
 -- parameters are:
+--
+-- - valtex. Specifies a key to resource.valtex from which to obtain the
+--   value texture for use with this blob.
 --
 -- - palette. Specifies a key to resource.palette from which to obtain the
 --   palette for use with this blob.
@@ -209,6 +223,7 @@ end
 -- @return The new graphic blob.
 function core.new_graphic_blob(parms)
   local b = mg.rl_graphic_blob_new()
+  mg.rl_graphic_blob_set_valtex(b, resource.valtex[parms.valtex]())
   mg.rl_graphic_blob_set_palette(b, resource.palette[parms.palette]())
   if parms.noise then
     mg.rl_graphic_blob_set_noise(b, parms.noise.bias, parms.noise.amp,
@@ -273,6 +288,15 @@ function core.bind(fun)
     return function()
       return fun(table.unpack(args))
     end
+  end
+end
+
+--- Composes the two given functions.
+--
+-- compose(a,b)(args) == a(b(args))
+function core.compose(a, b)
+  return function(...)
+    return a(b(...))
   end
 end
 
@@ -437,14 +461,6 @@ end
 -- new_palette().
 function core.gen_palette_from_lanes(parms)
   return core.new_palette(core.gen_2d_table_from_lanes(parms))
-end
-
---- Generates a 2d table and creates a texpalette from it.
---
--- The given input is passed to gen_2d_table_from_lanes(), and the result into
--- new_texpalette().
-function core.gen_texpalette_from_lanes(parms)
-  return core.new_texpalette(core.gen_2d_table_from_lanes(parms))
 end
 
 --- The global resoure loading trigger.

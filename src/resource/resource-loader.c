@@ -48,9 +48,12 @@ static env_voxel_graphic_blob res_graphic_blobs[256];
 static unsigned res_num_graphic_blobs;
 
 #define MAX_PALETTES 256
+#define MAX_VALTEXES 256
 
 static GLuint res_palettes[MAX_PALETTES];
 static unsigned res_num_palettes;
+static GLuint res_valtexes[MAX_VALTEXES];
+static unsigned res_num_valtexes;
 
 static GLuint res_default_texture;
 
@@ -71,12 +74,14 @@ void rl_clear(void) {
   res_num_voxel_graphics = 1;
   res_num_graphic_blobs = 1;
   res_num_palettes = 1;
+  res_num_valtexes = 1;
   memset(res_voxel_graphics, 0, sizeof(res_voxel_graphics));
   memset(res_voxel_graphics_array, 0, sizeof(res_voxel_graphics_array));
   memset(res_graphic_blobs, 0, sizeof(res_graphic_blobs));
 
   if (!has_textures) {
     glGenTextures(MAX_PALETTES-1, res_palettes + 1);
+    glGenTextures(MAX_VALTEXES-1, res_valtexes + 1);
 
     has_textures = 1;
   }
@@ -123,12 +128,22 @@ unsigned rl_graphic_blob_new(void) {
 
   res_graphic_blobs[res_num_graphic_blobs].ordinal = res_num_graphic_blobs-1;
   res_graphic_blobs[res_num_graphic_blobs].palette = res_default_texture;
+  res_graphic_blobs[res_num_graphic_blobs].noise = res_default_texture;
   res_graphic_blobs[res_num_graphic_blobs].noise_bias = 0;
   res_graphic_blobs[res_num_graphic_blobs].noise_amplitude = 65536;
   res_graphic_blobs[res_num_graphic_blobs].noise_xfreq = 65536;
   res_graphic_blobs[res_num_graphic_blobs].noise_yfreq = 65536;
   res_graphic_blobs[res_num_graphic_blobs].perturbation = 0;
   return res_num_graphic_blobs++;
+}
+
+unsigned rl_graphic_blob_set_valtex(unsigned blob, unsigned valtex) {
+  CKNF();
+  CKIX(blob, res_num_graphic_blobs);
+  CKIX(valtex, res_num_valtexes);
+
+  res_graphic_blobs[blob].noise = res_valtexes[valtex];
+  return 1;
 }
 
 unsigned rl_graphic_blob_set_palette(unsigned blob, unsigned palette) {
@@ -179,5 +194,24 @@ unsigned rl_palette_loadMxNrgba(unsigned palette,
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ncolours, ntimes, 0,
                GL_RGBA, GL_UNSIGNED_BYTE, data);
+  return 1;
+}
+
+unsigned rl_valtex_new(void) {
+  CKNF();
+  CKIX(res_num_valtexes, MAX_VALTEXES);
+
+  res_gen_default_texture(res_valtexes[res_num_valtexes]);
+  return res_num_valtexes++;
+}
+
+unsigned rl_valtex_load64x64r(unsigned valtex, const void* data) {
+  CKNF();
+  CKIX(valtex, res_num_valtexes);
+
+  glBindTexture(GL_TEXTURE_2D, res_valtexes[valtex]);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 64, 64, 0,
+               GL_RED, GL_UNSIGNED_BYTE, data);
   return 1;
 }

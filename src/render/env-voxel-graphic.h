@@ -44,6 +44,10 @@ typedef struct {
    * noise texture (S) and the current time (T).
    */
   unsigned palette;
+  /**
+   * The noise texture to use. This is a single-channel texture.
+   */
+  unsigned noise;
 
   /**
    * The bias added to the noise for this blob type, 16.16 fixed-point. 0.0

@@ -113,6 +113,8 @@ functions = {
   rl_voxel_graphic_set_blob = resource_loader(uint(32):min(1),
                                               uint(32):min(1)),
   rl_graphic_blob_new = resource_loader(),
+  rl_graphic_blob_set_valtex = resource_loader(uint(32):min(1),
+                                               uint(32):min(1)),
   rl_graphic_blob_set_palette = resource_loader(uint(32):min(1),
                                                 uint(32):min(1)),
   rl_graphic_blob_set_noise = resource_loader(uint(32):min(1),
@@ -125,6 +127,8 @@ functions = {
                                            uint(32):min(1):max(256),
                                            uint(32):min(1):max(256),
                                            bytes("argument_2*argument_3*4")),
+  rl_valtex_new = resource_loader(),
+  rl_valtex_load64x64r = resource_loader(uint(32):min(1), bytes(64*64)),
 
   ntvp_new = fun (uint(32):fail_on(0, "Out of NFAs")) (),
   ntvp_visibility = fun(uint(32):fail_on(0, "Invalid or frozen NFA")) (
@@ -145,6 +149,10 @@ functions = {
 
   tg_fill = fun (tg_tex8) (uint(8)),
   tg_uniform_noise = fun (tg_tex8) (ntbs():nullable(), uint(32)),
+  tg_perlin_noise = fun (tg_tex8) (uint(32):min(2):max(32),
+                                   uint(32):min(1):max(256),
+                                   uint(32)),
+  tg_sum = fun (tg_tex8) (tg_tex8, tg_tex8),
   tg_similarity = fun (tg_tex8) (sint(32), sint(32), tg_tex8, sint(32)),
   tg_max = fun (tg_tex8) (tg_tex8, tg_tex8),
   tg_min = fun (tg_tex8) (tg_tex8, tg_tex8),

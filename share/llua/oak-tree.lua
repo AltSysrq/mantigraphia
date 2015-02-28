@@ -25,6 +25,20 @@
 -- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+function oaktree_gen_leaf_valtex()
+  local a, b, c, d
+  a = mg.tg_perlin_noise(4, 100, 21162)
+  b = mg.tg_perlin_noise(8,  75, 21163)
+  c = mg.tg_perlin_noise(16, 50, 21164)
+  d = mg.tg_perlin_noise(32, 25, 21165)
+
+  return mg.tg_normalise(
+    mg.tg_sum(a, mg.tg_sum(b, mg.tg_sum(c, d))), 0, 255)
+end
+
+resource.valtex.oaktree_leaf = core.compose(
+  core.new_valtex, oaktree_gen_leaf_valtex)
+
 resource.palette.oaktree_leaf = core.bind(core.gen_palette_from_lanes) {
   x = {
     heat = {    0,      1,      2,      0,      2,      3,      0,      2,      3,      0       },
@@ -62,6 +76,12 @@ resource.palette.oaktree_leaf = core.bind(core.gen_palette_from_lanes) {
   end
 }
 
+function oaktree_gen_trunk_valtex()
+  return mg.tg_uniform_noise(nil, 17384)
+end
+resource.valtex.oaktree_trunk = core.compose(
+  core.new_valtex, oaktree_gen_trunk_valtex)
+
 resource.palette.oaktree_trunk = core.bind(core.new_palette) {
   -- M
   { 0x90ffffff, 0x90ffffff, 0x90ffffff, 0x90302020, 0x90636357,
@@ -96,12 +116,13 @@ resource.palette.oaktree_trunk = core.bind(core.new_palette) {
 }
 
 resource.graphic_blob.oaktree_trunk = core.bind(core.new_graphic_blob) {
+  valtex = "oaktree_trunk",
   palette = "oaktree_trunk",
   noise = {
     bias = 0.0,
     amp = 1.0,
-    xfreq = 0.25,
-    yfreq = 0.25,
+    xfreq = 1.0,
+    yfreq = 1.0,
   },
   perturbation = 0.2
 }
@@ -112,6 +133,7 @@ resource.voxel_graphic.oaktree_trunk = core.bind(core.new_voxel_graphic) {
 
 for i = 1, 4 do
   resource.graphic_blob["oaktree_leaf"..i] = core.bind(core.new_graphic_blob) {
+    valtex = "oaktree_leaf",
     palette = "oaktree_leaf",
     noise = {
       bias = 0.2 * (i-1),

@@ -54,8 +54,6 @@
 #define DRAW_DISTANCE 16 /* mhives */
 #define NOISETEX_SZ 64
 
-static GLuint noisetex;
-
 /**
  * A render operation is a set of polygons inside a render mhive which share the
  * same graphic plane.
@@ -844,42 +842,6 @@ static void env_vmap_manifold_render_mhive_delete(
   free(this);
 }
 
-static void env_vmap_manifold_renderer_bind_noise_texture(void) {
-  unsigned raw[NOISETEX_SZ*NOISETEX_SZ];
-  unsigned char data[NOISETEX_SZ*NOISETEX_SZ];
-  unsigned i, max, min;
-
-  if (!noisetex) {
-    glGenTextures(1, &noisetex);
-
-    glBindTexture(GL_TEXTURE_2D, noisetex);
-    memset(raw, 0, sizeof(raw));
-    perlin_noise(raw, NOISETEX_SZ, NOISETEX_SZ, 4, 256, rand());
-    perlin_noise(raw, NOISETEX_SZ, NOISETEX_SZ, 8, 200, rand());
-    perlin_noise(raw, NOISETEX_SZ, NOISETEX_SZ, 16, 175, rand());
-    perlin_noise(raw, NOISETEX_SZ, NOISETEX_SZ, 32, 50, rand());
-
-    max = 0;
-    min = ~0u;
-    for (i = 0; i < NOISETEX_SZ*NOISETEX_SZ; ++i) {
-      if (raw[i] > max) max = raw[i];
-      if (raw[i] < min) min = raw[i];
-    }
-
-    for (i = 0; i < NOISETEX_SZ*NOISETEX_SZ; ++i)
-      data[i] = 255 * (raw[i] - min) / (max - min);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, NOISETEX_SZ, NOISETEX_SZ, 0,
-                 GL_RED, GL_UNSIGNED_BYTE, data);
-  }
-
-  glBindTexture(GL_TEXTURE_2D, noisetex);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-}
-
 static void env_vmap_manifold_render_mhive_render(
   const env_vmap_manifold_render_mhive*restrict mhive,
   const rendering_context*restrict ctxt
@@ -923,9 +885,6 @@ static void env_vmap_manifold_render_mhive_render(
   glBindBuffer(GL_ARRAY_BUFFER, mhive->buffers[0]);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mhive->buffers[1]);
 
-  env_vmap_manifold_renderer_bind_noise_texture();
-  glActiveTexture(GL_TEXTURE1);
-
   for (i = 0; i < mhive->num_operations; ++i) {
     uniform.noise_bias = mhive->operations[i].graphic->noise_bias / 65536.0f;
     uniform.noise_amplitude =
@@ -935,11 +894,18 @@ static void env_vmap_manifold_render_mhive_render(
     uniform.noise_freq[1] =
       mhive->operations[i].graphic->noise_yfreq / 65536.0f;
 
+    glBindTexture(GL_TEXTURE_2D, mhive->operations[i].graphic->noise);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, mhive->operations[i].graphic->palette);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glActiveTexture(GL_TEXTURE0);
 
     shader_manifold_activate(&uniform);
     shader_manifold_configure_vbo();
@@ -947,6 +913,4 @@ static void env_vmap_manifold_render_mhive_render(
                    GL_UNSIGNED_SHORT,
                    (GLvoid*)(mhive->operations[i].offset * sizeof(unsigned short)));
   }
-
-  glActiveTexture(GL_TEXTURE0);
 }

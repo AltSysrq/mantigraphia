@@ -61,6 +61,23 @@ tg_tex8 tg_fill(unsigned char value);
 tg_tex8 tg_uniform_noise(const unsigned char* src, unsigned seed);
 
 /**
+ * Generates an 8-bit texture containing values ranging from 0 inclusive to amp
+ * exclusive, generated with perlin noise.
+ *
+ * @param freq The frequency, relative to the texture size, of the noise. Must
+ * be at least two; values greater than 32 do not make sense.
+ * @param amp The amplitude of the noise.
+ * @param seed The random number seed.
+ */
+tg_tex8 tg_perlin_noise(unsigned freq, unsigned amp, unsigned seed);
+
+/**
+ * Produces an 8-bit texture whose values are the (wrapping) sums of the
+ * corresponding values in the inputs.
+ */
+tg_tex8 tg_sum(tg_tex8 a, tg_tex8 b);
+
+/**
  * Generates a "similarity" texture.
  *
  * The value of each pixel in the output is 255, minus the distance in pixels
