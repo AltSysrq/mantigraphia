@@ -36,7 +36,7 @@
 
 #include "../alloc.h"
 #include "../world/env-vmap.h"
-#include "../render/env-vmap-voxel-renderer.h"
+#include "../render/env-voxel-graphic.h"
 #include "../render/voxel-tex-interp.h"
 
 env_voxel_context_map res_voxel_context_map;

@@ -30,7 +30,7 @@
 
 #include "../math/frac.h"
 #include "../world/env-vmap.h"
-#include "../render/env-vmap-voxel-renderer.h"
+#include "../render/env-voxel-graphic.h"
 
 /**
  * @file
