@@ -67,12 +67,6 @@ void rl_clear(void);
  */
 void rl_set_frozen(int);
 
-/**
- * Updates every strideth texture, beginning with the offsetth texture,
- * according to their palettes and the current time.
- */
-void rl_update_textures(unsigned offset, unsigned stride, fraction t);
-
 
 /****** Functions below this point are llua-callable *******/
 
@@ -122,17 +116,6 @@ unsigned rl_voxel_set_voxel_graphic(unsigned cvoxel, unsigned graphic);
  */
 unsigned rl_voxel_graphic_new(void);
 /**
- * Sets the graphic plane associated with the given axis of the given voxel
- * graphic.
- *
- * @param graphic The voxel graphic to modify (see rl_voxel_graphic_new()).
- * @param axis The axis of the plane to edit (0=X, 1=Y, 2=Z)
- * @param plane The plane to assign (see rl_graphic_plane_new()).
- * @return Whether successful.
- */
-unsigned rl_voxel_graphic_set_plane(unsigned graphic, unsigned axis,
-                                    unsigned plane);
-/**
  * Sets the graphic blob associated with the given voxel graphic.
  *
  * @param graphic The voxel graphic to modify (see rl_voxel_graphic_new()).
@@ -140,45 +123,6 @@ unsigned rl_voxel_graphic_set_plane(unsigned graphic, unsigned axis,
  * @return Whether successful.
  */
 unsigned rl_voxel_graphic_set_blob(unsigned graphic, unsigned blob);
-/**
- * Allocates a new graphic plane.
- *
- * @return The index of the new graphic plane.
- */
-unsigned rl_graphic_plane_new(void);
-/**
- * Sets the texture used with the given graphic plane.
- *
- * @param plane The plane to edit.
- * @param texture The texture to use with the plane (see rl_texture_new()).
- * @return Whether successful.
- */
-unsigned rl_graphic_plane_set_texture(unsigned plane, unsigned texture);
-/**
- * Sets the palette used with the given graphic plane.
- *
- * @param plane The plane to edit.
- * @param palette The palette to use with the plane (see rl_palette_new()).
- * @return Whether successful.
- */
-unsigned rl_graphic_plane_set_palette(unsigned plane, unsigned palette);
-/**
- * Sets the scale applied to the texture of the given graphic plane.
- *
- * @param plane The plane to edit.
- * @param sxscale The scale of the S axis (in 16.16 fixed-point format)
- * relative to the effective X axis.
- * @param syscale The scale of the S axis (in 16.16 fixed-point format)
- * relative to the effective Y axis.
- * @param txscale The scale of the T axis (in 16.16 fixed-point format)
- * relative to the effective X axis.
- * @param tyscale The scale of the T axis (in 16.16 fixed-point format)
- * relative to the effective Y axis.
- * @return Whether successful.
- */
-unsigned rl_graphic_plane_set_scale(unsigned plane,
-                                    signed sxscale, signed syscale,
-                                    signed txscale, signed tyscale);
 /**
  * Allocates a new graphic blob with an unspecified palette.
  *
@@ -219,50 +163,6 @@ unsigned rl_graphic_blob_set_noise(unsigned blob, unsigned bias, unsigned amp,
  * @return Whether successful.
  */
 unsigned rl_graphic_blob_set_perturbation(unsigned blob, unsigned perturbation);
-/**
- * Allocates a new texture with unspecified content.
- *
- * @return The new texture index.
- */
-unsigned rl_texture_new(void);
-/**
- * Edits 64x64 RGB texture by specifying both the control and palette data.
- *
- * The mipmap of the texture specifies control data as follows:
- * - R is an index into the S axis of the palette (after logical expansion).
- * - G controls the brush shape and direction (it is passed through to the
- *   alpha channel of the outpt).
- * - B controls visibility. A texel is visible if the B of the control texture
- *   is greater than the A of the palette.
- *
- * The palette specifies the actual colours to use. It is logically expanded
- * via interpolation to be 256 pixels wide. The S axis is used to select
- * colours via the R channel of the mipmap texture; the T axis specifies
- * variance by time.
- *
- * @param texture The texture to edit.
- * @param d64 The 64x64 level of the mipmap. Size 64*64*3 = 12288.
- * @param d32 The 32x32 level of the mipmap. Size 32*32*3 = 3072.
- * @param d16 The 16x16 level of the mipmap. Size 16*16*3 = 768.
- * @param d8 The 8x8 level of the mipmap. Size 8*8*3 = 192.
- * @param d4 The 4x4 level of the mipmap. Size 4*4*3 = 48.
- * @param d2 The 2x2 level of the mipmap. Size 2*2*3 = 12.
- * @param d1 The 1x1 level of the mipmap. Size 1*1*3 = 3.
- * @param ncolours The number of colours in the palette; ie, the size of the
- * palette's S axis.
- * @param ntimes The number of time-steps in the palette; ie, the size of the
- * palette's T axis.
- * @param palette The palette data. Size ncolours*ntimes*4.
- * @return Whether successful.
- */
-unsigned rl_texture_load64x64rgbmm_NxMrgba(
-  unsigned texture,
-  const void* d64, const void* d32,
-  const void* d16, const void* d8,
-  const void* d4, const void* d2,
-  const void* d1,
-  unsigned ncolours, unsigned ntimes,
-  const void* palette);
 /**
  * Allocates a new palette texture with unspecified content.
  *

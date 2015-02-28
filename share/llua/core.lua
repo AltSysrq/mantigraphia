@@ -37,8 +37,8 @@ core = {}
 -- within each sub-table which allocate the resource and return the resource's
 -- index, eg,
 --
---   function resource.graphic_plane.mymodule_myplane()
---     local v = mg.rl_graphic_plane_new()
+--   function resource.graphic_blob.mymodule_myblob()
+--     local v = mg.rl_graphic_blob_new()
 --     -- configure v
 --     return v
 --   end
@@ -46,13 +46,9 @@ core = {}
 -- When resources are to be loaded, the functions in every sub-table are
 -- memoised, and then the root types (eg, voxels) are forced.
 resource = {
-  graphic_plane = {},
   graphic_blob = {},
   voxel_graphic = {},
-  texdata = {},
-  texpalette = {},
   palette = {},
-  texture = {},
   voxel = {},
   ntvp = {},
 }
@@ -185,118 +181,6 @@ function core.gentable2d(rows, cols, fun)
   return result
 end
 
---- Mipmaps a table using the "nearest" algorithm.
---
--- Produces a mipmapped version of the input table by simply dropping
--- intermediate values.
---
--- Example:
--- ```
--- local m = core.mipmap_nearest {
---   {  1,  2,  3,  4 },
---   {  5,  6,  7,  8 },
---   {  9, 10, 11, 12 },
---   { 13, 14, 15, 16 },
--- }
--- m == { { 1, 3 }, { 9, 11 } }
--- ```
---
--- @param An assumed rectangular two-dimensional table whose dimensions should
--- be even numbers.
--- @return A two-dimensional table whose dimensions are half those of the input
--- table's, where output[y][x] == input[y*2][x*2].
-function core.mipmap_nearest(tab)
-  local rows = #tab / 2
-  local cols = #tab[1] / 2
-  local result = {}
-  for y = 1, rows do
-    local inrow = tab[y*2]
-    local outrow = {}
-    for x = 1, cols do
-      outrow[x] = inrow[x*2]
-    end
-    result[y] = outrow
-  end
-
-  return result
-end
-
---- Front-end to mg.tg_mipmap_maximum
---
--- Passes through to mg.tg_mipmap_maximum after automatically determining the
--- current size.
-function core.binary_mipmap_maximum(data)
-  return mg.tg_mipmap_maximum(mg.isqrt(#data/3), data)
-end
-
---- Creates a texpalette description from a table.
---
--- Convenience function for allocating a new palette and loading it with the
--- texture defined by the given two-dimensional ARGB table.
---
--- @param tab A table suitable for core.rgba_string_from_argb_table()
--- @return A table describing the converted palette.
-function core.new_texpalette(tab)
-  return {
-    data = core.rgba_string_from_argb_table(tab),
-    ncolours = #tab[1],
-    ntimes = #tab,
-  }
-end
-
---- Creates mipmapped texture data from a table.
---
--- Convenience function for allocating a new texture and loading it with the
--- data from the given two-dimensional RGB table.
---
--- @param tab An ARGB table with the exact dimensions of 64x64.
--- @param mipmap A function which takes a two-dimensional table and returns
--- a new two-dimensional table whose dimensions are half those of the input,
--- and still compatible with core.rgb_string_from_argb_table().
--- @param is_raw If true, input textures are assumed to already be byte arrays.
--- @return An array containing the mipmapped texture data.
-function core.new_texdata(t64, mipmap, is_raw)
-  local t32 = mipmap(t64)
-  local t16 = mipmap(t32)
-  local t8  = mipmap(t16)
-  local t4  = mipmap(t8)
-  local t2  = mipmap(t4)
-  local t1  = mipmap(t2)
-
-  local cvt
-  if is_raw then
-    cvt = function(x) return x end
-  else
-    cvt = core.rgb_string_from_argb_table
-  end
-
-  return { cvt(t64), cvt(t32), cvt(t16), cvt(t8), cvt(t4), cvt(t2), cvt(t1) }
-end
-
---- Constructs and loads a new texture object.
---
--- Parameters are passed in a single table for readability. The relevant
--- parameters are:
---
--- - texdata. Specifies a key to resources.texdata from which to obtain the
---   texture data (see core.new_texdata()).
--- - palette. Specifies a key to resources.texpalettes from which to obain the
---   palette data (see core.new_texpalette()).
-function core.new_texture(parms)
-  local texture = mg.rl_texture_new()
-  local td = resource.texdata[parms.texdata]()
-  local pd = resource.texpalette[parms.palette]()
-
-  mg.rl_texture_load64x64rgbmm_NxMrgba(
-    texture,
-    td[1], td[2], td[3],
-    td[4], td[5], td[6],
-    td[7],
-    pd.ncolours, pd.ntimes, pd.data)
-
-  return texture
-end
-
 --- Constructs and loads a new palette object.
 --
 -- @param data A rectangular table containing RGBA pixel values.
@@ -306,22 +190,6 @@ function core.new_palette(data)
   mg.rl_palette_loadMxNrgba(p, #data[1], #data,
                             core.rgba_string_from_argb_table(data))
   return p
-end
-
---- Creates a new graphic plane with the specified properties.
---
--- Parameters are passed in in a single table for readability. The relevant
--- parameters are:
---
--- - texture. Specifies a key to resource.texture from which to obtain the
---   texture to use with the graphic plane.
---
--- @param parms A table of parameters, as described above.
--- @return The new graphic plane.
-function core.new_graphic_plane(parms)
-  local g = mg.rl_graphic_plane_new()
-  mg.rl_graphic_plane_set_texture(g, resource.texture[parms.texture]())
-  return g
 end
 
 --- Creates a new graphic plane with the specified properties.
@@ -357,10 +225,6 @@ end
 -- Parameters are passed in a single table for readability. The relevant
 -- parameters are:
 --
--- - x, y, z. Optional. If present, specify a key to resource.graphic_plane
---   from which to obtain the graphic plane to use with each plane of the
---   graphic.
---
 -- - blob. Optional. If present, specifies a key to resource.graphic_blob from
 --   which to obtain the graphic blob to use with this graphic.
 --
@@ -368,15 +232,6 @@ end
 -- @return The new voxel graphic.
 function core.new_voxel_graphic(parms)
   local g = mg.rl_voxel_graphic_new()
-  if parms.x then
-    mg.rl_voxel_graphic_set_plane(g, 0, resource.graphic_plane[parms.x]())
-  end
-  if parms.y then
-    mg.rl_voxel_graphic_set_plane(g, 1, resource.graphic_plane[parms.y]())
-  end
-  if parms.z then
-    mg.rl_voxel_graphic_set_plane(g, 2, resource.graphic_plane[parms.z]())
-  end
   if parms.blob then
     mg.rl_voxel_graphic_set_blob(g, resource.graphic_blob[parms.blob]())
   end

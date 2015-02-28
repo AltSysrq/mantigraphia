@@ -141,7 +141,6 @@ game_state* cosine_world_new(unsigned seed) {
   if (lluas_get_error_status())
     errx(EX_SOFTWARE, "Lluas not OK, aborting");
   rl_set_frozen(1);
-  rl_update_textures(0, 1, 0);
 
   cosine_world_init_world(this);
   mouselook_set(1);
@@ -276,10 +275,6 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   perspective_init(proj, &render_dst, FOV);
 
   rendering_context_set(this->context, &context_inv);
-
-  rl_update_textures(this->frame_no % 8, 8,
-                     fraction_of(10) * this->month_integral +
-                     this->month_fraction / 10);
 }
 
 static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
