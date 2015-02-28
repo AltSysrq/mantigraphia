@@ -160,19 +160,26 @@ static void perlin_noise_put_row(unsigned y, unsigned h) {
       perlin_point(x, y, xwl, ywl, freq, freq, vectors), amp);
 }
 
+static void perlin_gen_vectors(signed short* vectors,
+                               unsigned count,
+                               unsigned* rnd) {
+  unsigned i;
+  angle ang;
+
+  for (i = 0; i < count; i += 2) {
+    ang = lcgrand(rnd);
+    vectors[i+0] = zo_cos(ang);
+    vectors[i+1] = zo_sin(ang);
+  }
+}
+
 void perlin_noise(unsigned* dst, unsigned w, unsigned h,
                   unsigned freq, unsigned amp,
                   unsigned seed) {
   signed short vectors[freq*freq*2];
   unsigned xwl = w / freq, ywl = h / freq;
-  unsigned i;
-  angle ang;
 
-  for (i = 0; i < lenof(vectors); i += 2) {
-    ang = lcgrand(&seed);
-    vectors[i+0] = zo_cos(ang);
-    vectors[i+1] = zo_sin(ang);
-  }
+  perlin_gen_vectors(vectors, lenof(vectors), &seed);
 
   perlin_noise_task.num_divisions = h;
   perlin_noise_dst = dst;
@@ -183,4 +190,18 @@ void perlin_noise(unsigned* dst, unsigned w, unsigned h,
   perlin_noise_freq = freq;
   perlin_noise_amp = amp;
   ump_run_sync(&perlin_noise_task);
+}
+
+void perlin_noise_st(unsigned* dst, unsigned w, unsigned h,
+                     unsigned freq, unsigned amp, unsigned seed) {
+  signed short vectors[freq*freq*2];
+  unsigned xwl = w / freq, ywl = h / freq;
+  unsigned x, y;
+
+  perlin_gen_vectors(vectors, lenof(vectors), &seed);
+
+  for (y = 0; y < h; ++y)
+    for (x = 0; x < w; ++x)
+      dst[y*w + x] += to_amplitude(
+        perlin_point(x, y, xwl, ywl, freq, freq, vectors), amp);
 }
