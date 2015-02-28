@@ -33,15 +33,17 @@
 function populate_vmap()
   local nfa = { resource.ntvp.oaktree1(), resource.ntvp.oaktree2(),
                 resource.ntvp.oaktree3(), resource.ntvp.oaktree4() }
-  local rnd = 0
-  local t
 
-  for i = 0, 65536 do
-    z, rnd = mg.lcgrand(rnd)
-    x, rnd = mg.lcgrand(rnd)
-    z = (z % 2048 - 1024) % 4096
-    x = (x % 2048 - 1024) % 4096
-    t = mg.lcgrand(rnd) % 4 + 1
-    mg.ntvp_paint(nfa[t], x, 0, z, x-16, z-16, 32, 32, 65535)
+  mg.wod_clear()
+  mg.wod_permit_terrain_type(mg.terrain_type_snow)
+  mg.wod_permit_terrain_type(mg.terrain_type_grass)
+  mg.wod_permit_terrain_type(mg.terrain_type_bare_grass)
+  mg.wod_add_perlin(16, 1024)
+  mg.wod_add_perlin(32, 2048)
+  mg.wod_add_perlin(256, 4096)
+  mg.wod_add_perlin(512, 8192)
+  for i = 1, #nfa do
+    mg.wod_add_ntvp(nfa[i], 32, 32, 65535)
   end
+  mg.wod_distribute(65536, 6000)
 end

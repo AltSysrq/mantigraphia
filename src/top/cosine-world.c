@@ -48,6 +48,7 @@
 #include "world/generate.h"
 #include "world/vmap-painter.h"
 #include "world/nfa-turtle-vmap-painter.h"
+#include "world/world-object-distributor.h"
 #include "gl/marshal.h"
 #include "gl/auxbuff.h"
 #include "render/context.h"
@@ -133,6 +134,7 @@ game_state* cosine_world_new(unsigned seed) {
   rl_clear();
   rl_set_frozen(0);
   ntvp_clear_all();
+  wod_init(this->world, this->vmap, seed + 6420);
   lluas_init();
   lluas_load_file("share/llua/core.lua", 65536);
   lluas_load_file("share/llua/oak-tree.lua", 65536);

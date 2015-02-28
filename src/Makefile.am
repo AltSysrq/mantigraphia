@@ -47,6 +47,7 @@ world/hspace.c \
 world/env-vmap.c \
 world/vmap-painter.c \
 world/nfa-turtle-vmap-painter.c \
+world/world-object-distributor.c \
 render/context.c \
 render/terrabuff.c \
 render/terrain-tilemap-rnd.c \

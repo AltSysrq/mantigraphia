@@ -32,6 +32,8 @@ preamble = [[
 #include "../math/rand.h"
 #include "../world/env-vmap.h"
 #include "../world/nfa-turtle-vmap-painter.h"
+#include "../world/terrain.h"
+#include "../world/world-object-distributor.h"
 #include "../resource/resource-loader.h"
 #include "../resource/texgen.h"
 ]]
@@ -76,6 +78,15 @@ constants = {
 
   NUM_ENV_VOXEL_TYPES = uint(32),
   ENV_VMAP_H = uint(32),
+
+  terrain_type_snow = uint(32),
+  terrain_type_road = uint(32),
+  terrain_type_stone = uint(32),
+  terrain_type_grass = uint(32),
+  terrain_type_bare_grass = uint(32),
+  terrain_type_gravel = uint(32),
+  terrain_type_water = uint(32),
+  TERRAIN_SHADOW_BITS = uint(32),
 }
 
 functions = {
@@ -161,4 +172,15 @@ functions = {
   tg_zip = fun (tg_texrgb) (tg_tex8, tg_tex8, tg_tex8),
   tg_mipmap_maximum = fun (bytes("argument_1*argument_1/4*3")) (
     uint(32):max(64), bytes("argument_1*argument_1*3")),
+
+  wod_clear = fun (void) (),
+  wod_add_perlin = fun (void) (uint(32):min(2):max(32768),
+                               uint(32):min(1)),
+  wod_permit_terrain_type = fun (void) (uint(32):max(0x3F)),
+  wod_restrict_altitude = fun (void) (coord, coord),
+  wod_add_ntvp = fun (uint(32):fail_on(0, "Too many WOD elements"))(
+    uint(32):min(1):max(255), uint(16):min(1), uint(16):min(1),
+    uint(16):min(1)),
+  wod_distribute = fun (uint(32):fail_on(0, "No WOD elements"):cost())(
+    uint(32):max(65536*2), uint(32)),
 }
