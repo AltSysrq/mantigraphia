@@ -37,7 +37,6 @@
 #include "../alloc.h"
 #include "../world/env-vmap.h"
 #include "../render/env-voxel-graphic.h"
-#include "../render/voxel-tex-interp.h"
 
 static unsigned res_num_voxel_types = 1;
 
