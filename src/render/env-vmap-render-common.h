@@ -86,7 +86,8 @@ static const env_voxel_graphic* env_vmap_renderer_get_graphic(
 
   switch (lod) {
   case 0:
-    return graphics[env_vmap_expand_type(vmap, x, y, z)];
+    return graphics[vmap->voxels[
+        env_vmap_offset(vmap, x, y, z)]];
 
   case 1:
   case 2:
@@ -94,8 +95,7 @@ static const env_voxel_graphic* env_vmap_renderer_get_graphic(
     cell = (unsigned long long*)
       (vmap->voxels + env_vmap_offset(vmap, x, y, z));
     return graphics[
-      env_vmap_renderer_ll_majority_component(*cell) <<
-      ENV_VOXEL_CONTEXT_BITS];
+      env_vmap_renderer_ll_majority_component(*cell)];
   }
 
   /* unreachable */

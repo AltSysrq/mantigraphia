@@ -33,91 +33,13 @@
 /**
  * The integer representation of an environment voxel.
  *
- * This value indicates the logical type of a particular voxel. However, the
- * exact manner in which it is displayed and interacts with its environment is
- * sensitive on the surrounding voxels (see env_voxel_context_map).
+ * This value indicates the logical type of a particular voxel.
  *
  * A value of zero always indicates empty space. Non-zero values define actual
  * types (though the semantics of each type are defined externally).
  */
 typedef unsigned char env_voxel_type;
 #define NUM_ENV_VOXEL_TYPES (1 << (8*sizeof(env_voxel_type)))
-
-/**
- * Bitmask constants which occupy the lower 6 bits of an
- * env_voxel_contextual_type.
- *
- * Each of these is an axis (X, Y, or Z) and a direction (Positive or
- * Negative).
- */
-#define ENV_VOXEL_CONTEXT_XP 1
-#define ENV_VOXEL_CONTEXT_XN 2
-#define ENV_VOXEL_CONTEXT_YP 4
-#define ENV_VOXEL_CONTEXT_YN 8
-#define ENV_VOXEL_CONTEXT_ZP 16
-#define ENV_VOXEL_CONTEXT_ZN 32
-
-/**
- * Defines how an env_voxel_type is expanded to an env_voxel_contextual_type
- * based on its surroundings.
- */
-typedef struct {
-  /**
-   * A bitset of which env_voxel_types are considered to be in the same
-   * "family" as the one described by this value.
-   *
-   * This is not necessarily mutual, though in most cases it will be.
-   */
-  unsigned char family[NUM_ENV_VOXEL_TYPES / 8];
-  /**
-   * A mask composed of the ENV_VOXEL_CONTEXT_?? constants which specifies in
-   * which directions the voxel is sensitive to context.
-   */
-  unsigned char sensitivity;
-} env_voxel_context_def;
-
-/**
- * Returns whether the given type is in the voxel family according to the given
- * context definition.
- */
-static inline int env_voxel_context_def_is_in_family(
-  const env_voxel_context_def* def,
-  env_voxel_type type
-) {
-  return !!(def->family[type / 8] & (1 << (type % 8)));
-}
-
-/**
- * Sets whether the given type is in the voxel family according to the given
- * context definition.
- */
-static inline void env_voxel_context_def_set_in_family(
-  env_voxel_context_def* def,
-  env_voxel_type type,
-  int is_in_family
-) {
-  def->family[type / 8] &= ~(1 << (type % 8));
-  def->family[type / 8] |= (!!is_in_family) << (type % 8);
-}
-
-/**
- * Describes the context sensitivity of all voxel types in a vmap.
- */
-typedef struct {
-  /**
-   * The definition for each voxel type.
-   */
-  env_voxel_context_def defs[NUM_ENV_VOXEL_TYPES];
-} env_voxel_context_map;
-
-/**
- * The "extended type" of a voxel. The upper bits are derived from the original
- * env_voxel_type, whereas the lower 6 are derived from the surrounding voxels.
- */
-typedef unsigned short env_voxel_contextual_type;
-#define ENV_VOXEL_CONTEXT_BITS 6
-#define NUM_ENV_VOXEL_CONTEXTUAL_TYPES                  \
-  (NUM_ENV_VOXEL_TYPES << ENV_VOXEL_CONTEXT_BITS)
 
 /**
  * The fixed number of vertical elements in a voxel map.
@@ -176,11 +98,6 @@ typedef struct {
   int is_toroidal;
 
   /**
-   * The mapping from simple to context-sensitive extended voxel types.
-   */
-  const env_voxel_context_map*restrict context_map;
-
-  /**
    * An array of voxels in this vmap.
    *
    * The head of the array is cache-line aligned.
@@ -215,17 +132,14 @@ typedef struct {
 } env_vmap;
 
 /**
- * Creates a new, empty vmap of the given (x,z) dimensions and toroidality and
- * with the given context map.
+ * Creates a new, empty vmap of the given (x,z) dimensions and toroidality.
  *
  * @param xmax The size of the X axis.
  * @param zmax The size of the Y axis.
  * @param is_toroidal Whether this vmap represents toroidal (for the X and Z
  * axes) space. If true, xmax and zmax MUST be powers of two.
- * @param context_map The voxel context map to use with this vmap.
  */
-env_vmap* env_vmap_new(coord xmax, coord zmax, int is_toroidal,
-                       const env_voxel_context_map* context_map);
+env_vmap* env_vmap_new(coord xmax, coord zmax, int is_toroidal);
 /**
  * Frees the memory held by the given vmap.
  */
@@ -265,15 +179,5 @@ void env_vmap_make_visible(env_vmap* vmap,
 int env_vmap_is_visible(const env_vmap* vmap,
                         coord x, coord y, coord z,
                         unsigned char level);
-
-/**
- * Returns the contextual type for the voxel at the given coordinates.
- *
- * Note that tile type 0 is not special for this function. Generally, the zero
- * type should not have anything in its family, including itself, and should
- * have no sensitivity.
- */
-env_voxel_contextual_type env_vmap_expand_type(
-  const env_vmap* vmap, coord x, coord y, coord z);
 
 #endif /* WORLD_ENV_VMAP_H_ */

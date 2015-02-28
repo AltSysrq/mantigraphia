@@ -118,7 +118,7 @@ game_state* cosine_world_new(unsigned seed) {
   this->is_running = 1;
   this->bg = parchment_new();
   this->world = terrain_tilemap_new(SIZE, SIZE, SIZE/256, SIZE/256);
-  this->vmap = env_vmap_new(SIZE, SIZE, 1, &res_voxel_context_map);
+  this->vmap = env_vmap_new(SIZE, SIZE, 1);
   this->sky = skybox_new(seed + 7512);
   this->context = rendering_context_new();
   this->camera_y_off = 7 * METRE / 4;

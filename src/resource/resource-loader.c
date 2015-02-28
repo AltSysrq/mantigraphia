@@ -39,12 +39,10 @@
 #include "../render/env-voxel-graphic.h"
 #include "../render/voxel-tex-interp.h"
 
-env_voxel_context_map res_voxel_context_map;
 static unsigned res_num_voxel_types = 1;
 
-env_voxel_graphic* res_voxel_graphics[NUM_ENV_VOXEL_CONTEXTUAL_TYPES];
-static env_voxel_graphic res_voxel_graphics_array[
-  NUM_ENV_VOXEL_CONTEXTUAL_TYPES];
+env_voxel_graphic* res_voxel_graphics[NUM_ENV_VOXEL_TYPES];
+static env_voxel_graphic res_voxel_graphics_array[NUM_ENV_VOXEL_TYPES];
 static unsigned res_num_voxel_graphics;
 
 static env_voxel_graphic_blob res_graphic_blobs[256];
@@ -75,7 +73,6 @@ void rl_clear(void) {
   res_num_graphic_blobs = 1;
   res_num_palettes = 1;
   memset(res_voxel_graphics, 0, sizeof(res_voxel_graphics));
-  memset(&res_voxel_context_map, 0, sizeof(res_voxel_context_map));
   memset(res_voxel_graphics_array, 0, sizeof(res_voxel_graphics_array));
   memset(res_graphic_blobs, 0, sizeof(res_graphic_blobs));
 
@@ -99,33 +96,17 @@ unsigned rl_voxel_type_new(void) {
   return res_num_voxel_types++;
 }
 
-unsigned rl_voxel_set_sensitivity(unsigned voxel, unsigned char sensitivity) {
+unsigned rl_voxel_set_voxel_graphic(unsigned voxel, unsigned graphic) {
   CKNF();
   CKIX(voxel, res_num_voxel_types);
-  res_voxel_context_map.defs[voxel].sensitivity = sensitivity;
-  return 1;
-}
-
-unsigned rl_voxel_set_in_family(unsigned voxel, unsigned other, int in_family) {
-  CKNF();
-  CKIX(voxel, res_num_voxel_types);
-  CKIX(other, res_num_voxel_types);
-  env_voxel_context_def_set_in_family(
-    res_voxel_context_map.defs + voxel, other, in_family);
-  return 1;
-}
-
-unsigned rl_voxel_set_voxel_graphic(unsigned cvoxel, unsigned graphic) {
-  CKNF();
-  CKIX(cvoxel, res_num_voxel_types << ENV_VOXEL_CONTEXT_BITS);
   CKIX(graphic, res_num_voxel_graphics);
-  res_voxel_graphics[cvoxel] = res_voxel_graphics_array + graphic;
+  res_voxel_graphics[voxel] = res_voxel_graphics_array + graphic;
   return 1;
 }
 
 unsigned rl_voxel_graphic_new(void) {
   CKNF();
-  CKIX(res_num_voxel_graphics, NUM_ENV_VOXEL_CONTEXTUAL_TYPES);
+  CKIX(res_num_voxel_graphics, NUM_ENV_VOXEL_TYPES);
   return res_num_voxel_graphics++;
 }
 

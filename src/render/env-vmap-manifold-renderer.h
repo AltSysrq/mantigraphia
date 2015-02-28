@@ -57,7 +57,7 @@ typedef struct {
    */
   const env_vmap* vmap;
   /**
-   * An array of size NUM_ENV_VOXEL_CONTEXTUAL_TYPES which describes how each
+   * An array of size NUM_ENV_VOXEL_TYPES which describes how each
    * contextual type is to be rendered.
    *
    * This is an array of pointers so that graphical equivalence between
@@ -95,7 +95,7 @@ typedef struct {
  */
 env_vmap_manifold_renderer* env_vmap_manifold_renderer_new(
   const env_vmap* vmap,
-  const env_voxel_graphic*const graphics[NUM_ENV_VOXEL_CONTEXTUAL_TYPES],
+  const env_voxel_graphic*const graphics[NUM_ENV_VOXEL_TYPES],
   const vc3 base_coordinate,
   const void* base_object,
   coord (*get_y_offset)(const void*, coord, coord));

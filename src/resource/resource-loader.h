@@ -47,14 +47,10 @@
  */
 
 /**
- * The voxel context map that has been loaded so far.
- */
-extern env_voxel_context_map res_voxel_context_map;
-/**
  * The swizzled representation of the voxel graphic table specified by calls to
  * the resource loader.
  */
-extern env_voxel_graphic* res_voxel_graphics[NUM_ENV_VOXEL_CONTEXTUAL_TYPES];
+extern env_voxel_graphic* res_voxel_graphics[NUM_ENV_VOXEL_TYPES];
 
 /**
  * Resets the resource loader to its initial state, releasing all resources
@@ -71,8 +67,7 @@ void rl_set_frozen(int);
 /****** Functions below this point are llua-callable *******/
 
 /**
- * Allocates a new (non-contextual) voxel type with an empty family, no
- * sensitivity, and no graphics.
+ * Allocates a new voxel type with no graphics.
  *
  * This is the scarcest resource exposed: A maximum of 255 can be allocated.
  *
@@ -80,35 +75,14 @@ void rl_set_frozen(int);
  */
 unsigned rl_voxel_type_new(void);
 /**
- * Sets the sensitivity of the given voxel.
- *
- * @param voxel The voxel type (from rl_voxel_type_new)
- * @param sensitivity The sensitivity (the OR / sum of any number of the
- * ENV_VOXEL_CONTEXT_?? constants).
- *
- * @return Whether successful.
- */
-unsigned rl_voxel_set_sensitivity(unsigned voxel, unsigned char sensitivity);
-/**
- * Sets whether one voxel type is considered to be in the family of the other.
- *
- * @param voxel The voxel whose family is to be altered.
- * @param other The voxel which is to be added to or removed from the family.
- * @param in_family Whether other will be considered to be a member of voxel's
- * context family after the call.
- */
-unsigned rl_voxel_set_in_family(unsigned voxel, unsigned other, int in_family);
-/**
  * Sets the graphic associated with the given contextual voxel type.
  *
- * @param cvoxel The *contextual* voxel type (ie, a value returned from
- * rl_voxel_type_new(), multiplied by 2**ENV_VOXEL_CONTEXT_BITS, plus some
- * combination of ENV_VOXEL_CONTEXT_?? constants) to alter.
+ * @param voxel The voxel type to alter.
  * @param graphic The graphic to assign to this contextual voxel type (see
  * rl_voxel_graphic_new()).
  * @return Whether successful.
  */
-unsigned rl_voxel_set_voxel_graphic(unsigned cvoxel, unsigned graphic);
+unsigned rl_voxel_set_voxel_graphic(unsigned voxel, unsigned graphic);
 /**
  * Allocates a new voxel graphic specification.
  *

@@ -57,8 +57,7 @@ static inline unsigned env_vmap_visibility4_offset(
     x/4 * (ENV_VMAP_H/4) + y/4;
 }
 
-env_vmap* env_vmap_new(coord xmax, coord zmax, int is_toroidal,
-                       const env_voxel_context_map* context_map) {
+env_vmap* env_vmap_new(coord xmax, coord zmax, int is_toroidal) {
   size_t voxels_sz = sizeof(env_voxel_type) * xmax * zmax * ENV_VMAP_H;
   size_t visibility2_sz = (xmax/2) * (zmax/2) * (ENV_VMAP_H/2) / 4;
   size_t visibility4_sz = (xmax/4) * (zmax/4) * (ENV_VMAP_H/4) / 4;
@@ -73,7 +72,6 @@ env_vmap* env_vmap_new(coord xmax, coord zmax, int is_toroidal,
   this->xmax = xmax;
   this->zmax = zmax;
   this->is_toroidal = is_toroidal;
-  this->context_map = context_map;
   memset(this->voxels, 0, voxels_sz);
   memset(this->visibility, 0, visibility2_sz + visibility4_sz);
 
@@ -82,43 +80,6 @@ env_vmap* env_vmap_new(coord xmax, coord zmax, int is_toroidal,
 
 void env_vmap_delete(env_vmap* this) {
   free(this);
-}
-
-env_voxel_contextual_type env_vmap_expand_type(
-  const env_vmap* this, coord x, coord y, coord z
-) {
-  env_voxel_type base_type;
-  env_voxel_contextual_type context_type;
-
-  base_type = this->voxels[env_vmap_offset(this, x, y, z)];
-  context_type =
-    ((env_voxel_contextual_type)base_type) << ENV_VOXEL_CONTEXT_BITS;
-
-#define CHECK(bitfield, axis, offset, max, toroidal)                    \
-  do {                                                                  \
-    if ((this->context_map->defs[base_type].sensitivity & (bitfield)) && \
-        (((coord)((axis)+(offset))) < (coord)(max) || (toroidal))) {    \
-      axis += (offset);                                                 \
-      axis &= ((max)-1);                                                \
-      if (env_voxel_context_def_is_in_family(                           \
-            this->context_map->defs + base_type,                        \
-            this->voxels[env_vmap_offset(this, x, y, z)])) {            \
-        context_type |= (bitfield);                                     \
-      }                                                                 \
-      axis -= (offset);                                                 \
-      axis &= ((max)-1);                                                \
-    }                                                                   \
-  } while (0)
-
-  CHECK(ENV_VOXEL_CONTEXT_YP, y, +1, ENV_VMAP_H, 0);
-  CHECK(ENV_VOXEL_CONTEXT_YN, y, -1, ENV_VMAP_H, 0);
-  CHECK(ENV_VOXEL_CONTEXT_XP, x, +1, this->xmax, this->is_toroidal);
-  CHECK(ENV_VOXEL_CONTEXT_XN, x, -1, this->xmax, this->is_toroidal);
-  CHECK(ENV_VOXEL_CONTEXT_ZP, z, +1, this->zmax, this->is_toroidal);
-  CHECK(ENV_VOXEL_CONTEXT_ZN, z, -1, this->zmax, this->is_toroidal);
-#undef CHECK
-
-  return context_type;
 }
 
 static void set_max_level(env_vmap* this,

@@ -129,8 +129,7 @@ for i = 1, 4 do
   resource.voxel["oaktree_leaf"..i] = function()
     local v = mg.rl_voxel_type_new()
     mg.rl_voxel_set_voxel_graphic(
-      v * (2^mg.ENV_VOXEL_CONTEXT_BITS),
-      resource.voxel_graphic["oaktree_leaf"..i]())
+      v, resource.voxel_graphic["oaktree_leaf"..i]())
     return v
   end
 end
@@ -138,8 +137,7 @@ end
 function resource.voxel.oaktree_trunk()
   local v = mg.rl_voxel_type_new()
   mg.rl_voxel_set_voxel_graphic(
-    v * (2^mg.ENV_VOXEL_CONTEXT_BITS),
-    resource.voxel_graphic.oaktree_trunk())
+    v, resource.voxel_graphic.oaktree_trunk())
   return v
 end
 

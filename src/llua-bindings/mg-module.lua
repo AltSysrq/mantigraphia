@@ -75,14 +75,6 @@ constants = {
   PRECISE_FRACTION_INTERMEDIATE_TRAILING_BITS = uint(32),
 
   NUM_ENV_VOXEL_TYPES = uint(32),
-  ENV_VOXEL_CONTEXT_XP = uint(32),
-  ENV_VOXEL_CONTEXT_XN = uint(32),
-  ENV_VOXEL_CONTEXT_YP = uint(32),
-  ENV_VOXEL_CONTEXT_YN = uint(32),
-  ENV_VOXEL_CONTEXT_ZP = uint(32),
-  ENV_VOXEL_CONTEXT_ZN = uint(32),
-  ENV_VOXEL_CONTEXT_BITS = uint(32),
-  NUM_ENV_VOXEL_CONTEXTUAL_TYPES = uint(32),
   ENV_VMAP_H = uint(32),
 }
 
@@ -115,12 +107,7 @@ functions = {
   chaos_of = fun (uint(32)) (uint(32)),
 
   rl_voxel_type_new = resource_loader(),
-  rl_voxel_set_sensitivity = resource_loader(uint(32):min(1):max(255),
-                                             uint(8):max(63)),
-  rl_voxel_set_in_family = resource_loader(uint(32):min(1):max(255),
-                                           uint(32):min(1):max(255),
-                                           bool),
-  rl_voxel_set_voxel_graphic = resource_loader(uint(32):min(64):max(16383),
+  rl_voxel_set_voxel_graphic = resource_loader(uint(32):min(1):max(255),
                                                uint(32):min(1)),
   rl_voxel_graphic_new = resource_loader(),
   rl_voxel_graphic_set_blob = resource_loader(uint(32):min(1),

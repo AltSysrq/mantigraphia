@@ -113,7 +113,7 @@ static void env_vmap_manifold_render_mhive_render(
 
 env_vmap_manifold_renderer* env_vmap_manifold_renderer_new(
   const env_vmap* vmap,
-  const env_voxel_graphic*const graphics[NUM_ENV_VOXEL_CONTEXTUAL_TYPES],
+  const env_voxel_graphic*const graphics[NUM_ENV_VOXEL_TYPES],
   const vc3 base_coordinate,
   const void* base_object,
   coord (*get_y_offset)(const void*, coord, coord)
