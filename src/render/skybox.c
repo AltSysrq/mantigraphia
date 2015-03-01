@@ -57,6 +57,10 @@ skybox* skybox_new(unsigned seed) {
   glBindTexture(GL_TEXTURE_2D, this->clouds);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, TEXSZ, TEXSZ, 0,
                GL_RED, GL_UNSIGNED_INT, texdata);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
   free(texdata);
 
@@ -100,10 +104,6 @@ static void skybox_do_render(skybox_render_op* op) {
   glDepthMask(GL_FALSE);
 
   glBindTexture(GL_TEXTURE_2D, this->clouds);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
   float basic_cloud_offset = - context->month_fraction / (float)fraction_of(1);
   basic_cloud_offset -= context->month_integral;

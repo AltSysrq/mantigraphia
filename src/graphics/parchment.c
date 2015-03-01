@@ -76,6 +76,10 @@ static void parchment_do_preprocess(const canvas* selection) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                  selection->w, selection->h, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     postprocess_tex_dim[0] = selection->w;
     postprocess_tex_dim[1] = selection->h;
   }
@@ -118,10 +122,6 @@ static void parchment_do_postprocess(struct parchment_postprocess* d) {
   uniform.pocket_size_scr[1] = uniform.pocket_size_px / (float)d->canv->h;
 
   glBindTexture(GL_TEXTURE_2D, postprocess_tex);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
   shader_postprocess_activate(&uniform);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);

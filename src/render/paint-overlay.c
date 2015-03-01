@@ -162,6 +162,10 @@ static void paint_overlay_create_texture(paint_overlay* this) {
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
                BRUSHTEX_SZ, BRUSHTEX_SZ, 0,
                GL_RED, GL_UNSIGNED_BYTE, brushtex_data_bytes);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
   for (y = 0; y < BRUSHTEX_LOW_SZ; ++y) {
     for (x = 0; x < BRUSHTEX_LOW_SZ; ++x) {
@@ -176,6 +180,10 @@ static void paint_overlay_create_texture(paint_overlay* this) {
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
                BRUSHTEX_LOW_SZ, BRUSHTEX_LOW_SZ, 0,
                GL_RED, GL_UNSIGNED_BYTE, brushtex_data_bytes);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
   free(brushtex_data);
 }
@@ -195,6 +203,10 @@ static void paint_overlay_preprocess_impl(paint_overlay* this) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
                  this->src_screenw, this->src_screenh, 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     this->fbtex_dim[0] = this->src_screenw;
     this->fbtex_dim[1] = this->src_screenh;
   }
@@ -230,17 +242,9 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   glClear(GL_DEPTH_BUFFER_BIT);
 
   glBindTexture(GL_TEXTURE_2D, this->fbtex);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, this->using_high_brushtex?
                 this->brushtex_high : this->brushtex_low);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glActiveTexture(GL_TEXTURE0);
 
   uniform.framebuffer = 0;
