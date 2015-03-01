@@ -172,7 +172,7 @@ function cherrytree_gen_ntvp(leafkey)
   local branch_directions = {
     { 1, 0 }, { 1, 1 }, { 0, 1 },
     {-1, 0 }, {-1,-1 }, { 0,-1 },
-    {-1, 1 }, { 1,-1 },
+    {-1, 1 }, { 1,-1 }, { 0, 0 },
   }
 
   local directions = {
@@ -181,17 +181,73 @@ function cherrytree_gen_ntvp(leafkey)
     { 0, 0, 1 }, {  0,  0, -1 },
   }
 
+  local leaf_directions = {
+    { 1, 0, 0 }, {-1, 0, 0 },
+    { 0, 1, 0 }, { 0,-1, 0 },
+    { 0, 0, 1 }, { 0, 0,-1 },
+    { 1, 1, 0 }, { 1,-1, 0 },
+    { 1, 0, 1 }, { 1, 0,-1 },
+    {-1, 1, 0 }, {-1,-1, 0 },
+    {-1, 0, 1 }, {-1, 0, 1 },
+    { 0, 1, 1 }, { 0, 1,-1 },
+    { 0,-1, 1 }, { 0,-1,-1 },
+    { 1, 1, 1 }, { 1, 1,-1 },
+    { 1,-1, 1 }, { 1,-1,-1 },
+    {-1, 1, 1 }, {-1, 1,-1 },
+    {-1,-1, 1 }, {-1,-1,-1 },
+  }
+
   function nfa:terminate()
   end
 
   function nfa:init_state()
+    go(0, 0, 0, self.init_small)
+    go(0, 0, 0, self.init_small)
+    go(0, 0, 0, self.init_small)
+    go(0, 0, 0, self.init_small)
+    go(0, 0, 0, self.init_small)
+    go(0, 0, 0, self.init_small)
+    go(0, 0, 0, self.init_small)
+    go(0, 0, 0, self.init_large_or_huge)
+  end
+
+  function nfa:init_large_or_huge()
+    go(0, 0, 0, self.init_large)
+    go(0, 0, 0, self.init_large)
+    go(0, 0, 0, self.init_large)
+    go(0, 0, 0, self.init_large)
+    go(0, 0, 0, self.init_large)
+    go(0, 0, 0, self.init_large)
+    go(0, 0, 0, self.init_large)
+    go(0, 0, 0, self.init_huge)
+  end
+
+  function nfa:init_small()
+    go(0, 0, 0, self.start, 1, 3)
+    go(0, 0, 0, self.start, 1, 4)
     go(0, 0, 0, self.start, 1, 5)
     go(0, 0, 0, self.start, 1, 6)
     go(0, 0, 0, self.start, 1, 6)
+    go(0, 0, 0, self.start, 1, 6)
     go(0, 0, 0, self.start, 1, 7)
     go(0, 0, 0, self.start, 1, 7)
+  end
+
+  function nfa:init_large()
+    go(0, 0, 0, self.start, 1, 8)
     go(0, 0, 0, self.start, 1, 8)
     go(0, 0, 0, self.start, 1, 9)
+    go(0, 0, 0, self.start, 1, 9)
+    go(0, 0, 0, self.start, 1, 10)
+  end
+
+  function nfa:init_huge()
+    go(0, 0, 0, self.start, 1, 11)
+    go(0, 0, 0, self.start, 1, 12)
+    go(0, 0, 0, self.start, 1, 13)
+    go(0, 0, 0, self.start, 1, 14)
+    go(0, 0, 0, self.start, 1, 15)
+    go(0, 0, 0, self.start, 1, 16)
   end
 
   function nfa:start(direction, height)
@@ -205,29 +261,24 @@ function cherrytree_gen_ntvp(leafkey)
 
   function nfa:build_vertical_trunk(height)
     put_voxel(0, resource.voxel.cherrytree_trunk())
-    for i = 1, 5 do
-      if height > 0 then
-        go(0, 1, 0, self.build_vertical_trunk, height-1)
-      else
-        go(0, 0, 0, self.start_branches, 1)
-      end
+    if height > 0 then
+      go(0, 1, 0, self.build_vertical_trunk, height-1)
+    else
+      go(0, 0, 0, self.start_branches, 1)
     end
-
-    go(0, 0, 0, self.crooked_trunk, height)
-  end
-
-  function nfa:crooked_trunk(height)
-    go( 1, 0,  0, self.build_vertical_trunk, height)
-    go(-1, 0,  0, self.build_vertical_trunk, height)
-    go( 0, 0,  1, self.build_vertical_trunk, height)
-    go( 0, 0, -1, self.build_vertical_trunk, height)
   end
 
   function nfa:start_branches(direction)
+    local base_length
+    if direction == #branch_directions then
+      base_length = 6
+    else
+      base_length = 3
+    end
     go(0, 0, 0, self.terminate)
-    go(0, 0, 0, self.branch, direction, 3, 0)
+    go(0, 0, 0, self.branch, direction, base_length, 0)
     go(0, 0, 0, self.terminate)
-    go(0, 0, 0, self.branch, direction, 4, 0)
+    go(0, 0, 0, self.branch, direction, base_length+1, 0)
 
     if direction < #branch_directions then
       fork(self.start_branches, direction + 1)
@@ -250,18 +301,23 @@ function cherrytree_gen_ntvp(leafkey)
       fork(self.spawn_leaves, count + 1)
     end
 
-    go(directions[count][1], directions[count][2], directions[count][3],
-       self.create_leaves, 8)
+    go(directions[count][1]*2, 2+directions[count][2], directions[count][3]*2,
+       self.create_leaves, 1)
+    go(0, 0, 0, self.terminate)
   end
 
-  function nfa:create_leaves(count)
-    put_voxel(0, resource.voxel[leafkey]())
-    if count > 0 then
-      for i = 1, #directions do
-        go(directions[i][1], directions[i][2], directions[i][3],
-           self.create_leaves, count - 1)
-      end
+  function nfa:create_leaves(iter)
+    if iter < #leaf_directions then
+      fork(self.create_leaves, iter + 1)
     end
+
+    go(leaf_directions[iter][1], leaf_directions[iter][2],
+       leaf_directions[iter][3],
+       self.create_leaf)
+  end
+
+  function nfa:create_leaf()
+    put_voxel(0, resource.voxel[leafkey]())
   end
 
   local n = compile(nfa, nfa.init_state)
