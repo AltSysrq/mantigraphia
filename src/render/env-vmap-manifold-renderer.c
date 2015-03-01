@@ -863,7 +863,7 @@ static void env_vmap_manifold_render_mhive_render(
   uniform.noisetex = 0;
   uniform.palette = 1;
   uniform.palette_t = (context->month_integral +
-                       context->month_fraction / (float)fraction_of(1)) / 9.0f;
+                       context->month_fraction / (float)fraction_of(1)) / 10.0f;
   for (i = 0; i < 3; ++i) {
     effective_camera = context->proj->camera[i];
     effective_camera -= mhive->base_coordinate[i];
