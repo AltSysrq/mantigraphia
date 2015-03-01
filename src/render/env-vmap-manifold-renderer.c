@@ -154,83 +154,141 @@ void render_env_vmap_manifolds(canvas* dst,
   glm_do((void(*)(void*))render_env_vmap_manifolds_impl, op);
 }
 
-void render_env_vmap_manifolds_impl(env_vmap_manifold_render_op* op) {
-  env_vmap_manifold_renderer* this = op->this;
-  const rendering_context*restrict ctxt = op->ctxt;
+static void render_env_vmap_manifolds_at_hive(
+  env_vmap_manifold_renderer* this,
+  const rendering_context*restrict ctxt,
+  unsigned x, unsigned z
+) {
   const rendering_context_invariant*restrict context = CTXTINV(ctxt);
-  unsigned x, z, xmax, zmax, cx, cz;
+  unsigned xmax, zmax, cx, cz;
   signed dx, dz;
   unsigned d;
   signed dot;
   unsigned char desired_lod;
-
-  free(op);
-
-  glPushAttrib(GL_ENABLE_BIT);
-  glEnable(GL_CULL_FACE);
 
   xmax = this->vmap->xmax / MHIVE_SZ;
   zmax = this->vmap->zmax / MHIVE_SZ;
   cx = context->proj->camera[0] / TILE_SZ / MHIVE_SZ;
   cz = context->proj->camera[2] / TILE_SZ / MHIVE_SZ;
 
-  for (z = 0; z < zmax; ++z) {
-    for (x = 0; x < xmax; ++x) {
-      dx = x - cx;
-      dz = z - cz;
-      if (this->vmap->is_toroidal) {
-        dx = torus_dist(dx, xmax);
-        dz = torus_dist(dz, zmax);
-      }
+  dx = x - cx;
+  dz = z - cz;
+  if (this->vmap->is_toroidal) {
+    dx = torus_dist(dx, xmax);
+    dz = torus_dist(dz, zmax);
+  }
 
-      d = umax(abs(dx), abs(dz));
+  d = umax(abs(dx), abs(dz));
 
-      if (d < DRAW_DISTANCE) {
-        if (d <= DRAW_DISTANCE/4)
-          desired_lod = 0;
-        else if (d < DRAW_DISTANCE/2)
-          desired_lod = 1;
-        else
-          desired_lod = 2;
+  if (d < DRAW_DISTANCE) {
+    if (d <= DRAW_DISTANCE/4)
+      desired_lod = 0;
+    else if (d < DRAW_DISTANCE/2)
+      desired_lod = 1;
+    else
+      desired_lod = 2;
 
-        /* We want to keep mhives prepared even if they won't be rendered this
-         * frame, since the angle the camera is facing can change rapidly.
-         */
+    /* We want to keep mhives prepared even if they won't be rendered this
+     * frame, since the angle the camera is facing can change rapidly.
+     */
 
-        if (this->mhives[z*xmax + x] &&
-            this->mhives[z*xmax + x]->lod != desired_lod) {
-          env_vmap_manifold_render_mhive_delete(this->mhives[z*xmax + x]);
-          this->mhives[z*xmax + x] = NULL;
-        }
-
-        if (!this->mhives[z*xmax + x])
-          this->mhives[z*xmax + x] = env_vmap_manifold_render_mhive_new(
-            this, x*MHIVE_SZ, z*MHIVE_SZ, desired_lod);
-
-        dot = dx * context->proj->yrot_sin +
-              dz * context->proj->yrot_cos;
-        /* Only render mhives that are actually visible.
-         *
-         * The (d<2) condition serves two purposes. First, it is a "fudge
-         * factor" to account for the fact that the calculations are based on
-         * the corners of the mhives instead of the centre. Second, it causes
-         * mhives "behind" the camera to be drawn when very close, which means
-         * that even at somewhat high altitutes, one cannot see the mhives not
-         * being drawn.
-         *
-         * (One can still go high enough to see those mhives, but this shouldn't
-         * be too much of an issue, since the plan is to obscure that part of
-         * the view anyway.)
-         */
-        if (dot <= 0 || d < 2)
-          env_vmap_manifold_render_mhive_render(this->mhives[z*xmax + x], ctxt);
-      } else {
-        if (this->mhives[z*xmax + x]) {
-          env_vmap_manifold_render_mhive_delete(this->mhives[z*xmax + x]);
-          this->mhives[z*xmax + x] = NULL;
-        }
-      }
+    if (this->mhives[z*xmax + x] &&
+        this->mhives[z*xmax + x]->lod != desired_lod) {
+      env_vmap_manifold_render_mhive_delete(this->mhives[z*xmax + x]);
+      this->mhives[z*xmax + x] = NULL;
     }
+
+    if (!this->mhives[z*xmax + x])
+      this->mhives[z*xmax + x] = env_vmap_manifold_render_mhive_new(
+        this, x*MHIVE_SZ, z*MHIVE_SZ, desired_lod);
+
+    dot = dx * context->proj->yrot_sin +
+      dz * context->proj->yrot_cos;
+    /* Only render mhives that are actually visible.
+     *
+     * The (d<2) condition serves two purposes. First, it is a "fudge
+     * factor" to account for the fact that the calculations are based on
+     * the corners of the mhives instead of the centre. Second, it causes
+     * mhives "behind" the camera to be drawn when very close, which means
+     * that even at somewhat high altitutes, one cannot see the mhives not
+     * being drawn.
+     *
+     * (One can still go high enough to see those mhives, but this shouldn't
+     * be too much of an issue, since the plan is to obscure that part of
+     * the view anyway.)
+     */
+    if (dot <= 0 || d < 2)
+      env_vmap_manifold_render_mhive_render(this->mhives[z*xmax + x], ctxt);
+  } else {
+    if (this->mhives[z*xmax + x]) {
+      env_vmap_manifold_render_mhive_delete(this->mhives[z*xmax + x]);
+      this->mhives[z*xmax + x] = NULL;
+    }
+  }
+}
+
+void render_env_vmap_manifolds_impl(env_vmap_manifold_render_op* op) {
+  env_vmap_manifold_renderer* this = op->this;
+  const rendering_context*restrict ctxt = op->ctxt;
+  const rendering_context_invariant*restrict context = CTXTINV(ctxt);
+  unsigned x, z, cx, cz;
+  unsigned xmax = this->vmap->xmax / MHIVE_SZ,
+           zmax = this->vmap->zmax / MHIVE_SZ;
+  char touched[zmax][xmax];
+  struct {
+    unsigned x, z;
+  } queue[zmax*xmax];
+  unsigned queue_out = 0, queue_in = 0;
+
+  free(op);
+
+  glPushAttrib(GL_ENABLE_BIT);
+  glEnable(GL_CULL_FACE);
+
+  cx = context->proj->camera[0] / TILE_SZ / MHIVE_SZ;
+  cz = context->proj->camera[2] / TILE_SZ / MHIVE_SZ;
+
+  /* Order as squares radiating away from the camera to ensure optimal draw
+   * order.
+   *
+   * This is implemented as a breadth-first search since it's easier to
+   * understand in the case of rectangular toroidal space.
+   */
+  queue[0].x = cx;
+  queue[0].z = cz;
+  queue_in = 1;
+  memset(touched, 0, sizeof(touched));
+  touched[cz][cx] = 1;
+  while (queue_out < queue_in) {
+    render_env_vmap_manifolds_at_hive(
+      this, ctxt, queue[queue_out].x, queue[queue_out].z);
+
+#define CK(xo, zo) do {                         \
+      x = queue[queue_out].x + xo;              \
+      if (x == (unsigned)-1)                    \
+        x = xmax - 1;                           \
+      else if (x == xmax)                       \
+        x = 0;                                  \
+      z = queue[queue_out].z + zo;              \
+      if (z == (unsigned)-1)                    \
+        z = zmax - 1;                           \
+      else if (z == zmax)                       \
+        z = 0;                                  \
+      if (!touched[z][x]) {                     \
+        queue[queue_in].z = z;                  \
+        queue[queue_in].x = x;                  \
+        ++queue_in;                             \
+        touched[z][x] = 1;                      \
+      }                                         \
+    } while (0)
+
+    CK(+1, 0);
+    CK(-1, 0);
+    CK( 0,+1);
+    CK( 0,-1);
+#undef CK
+
+    ++queue_out;
   }
 
   glPopAttrib();
