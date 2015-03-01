@@ -32,7 +32,13 @@
 -- TODO: Centralise, make sane, etc
 function populate_vmap()
   local nfa = { resource.ntvp.oaktree1(), resource.ntvp.oaktree2(),
-                resource.ntvp.oaktree3(), resource.ntvp.oaktree4() }
+                resource.ntvp.oaktree3(), resource.ntvp.oaktree4(),
+                resource.ntvp.oaktree1(), resource.ntvp.oaktree2(),
+                resource.ntvp.oaktree3(), resource.ntvp.oaktree4(),
+                resource.ntvp.oaktree1(), resource.ntvp.oaktree2(),
+                resource.ntvp.oaktree3(), resource.ntvp.oaktree4(),
+                resource.ntvp.cherrytree1(), resource.ntvp.cherrytree2(),
+                resource.ntvp.cherrytree3(), resource.ntvp.cherrytree4() }
 
   mg.wod_clear()
   mg.wod_permit_terrain_type(mg.terrain_type_snow)

@@ -253,6 +253,23 @@ function core.new_voxel_graphic(parms)
   return g
 end
 
+-- Creates a new voxel type with the specified properties.
+--
+-- Parameters are passed in a single table for readability. The relevant
+-- parameters are:
+--
+-- - graphic. Specifies a key to resource.voxel_graphic from which to obtain
+--   the graphic for this voxel type.
+--
+-- @param parms A table of parameters, as described above.
+-- @return The new voxel type
+function core.new_voxel_type(parms)
+  local v = mg.rl_voxel_type_new()
+  mg.rl_voxel_set_voxel_graphic(
+    v, resource.voxel_graphic[parms.graphic]())
+  return v
+end
+
 --- Memoises the given no-argument function.
 --
 -- Given a no-argument function, returns a new no-argument function. When

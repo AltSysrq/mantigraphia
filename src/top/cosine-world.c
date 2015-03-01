@@ -138,6 +138,7 @@ game_state* cosine_world_new(unsigned seed) {
   lluas_init();
   lluas_load_file("share/llua/core.lua", 65536);
   lluas_load_file("share/llua/oak-tree.lua", 65536);
+  lluas_load_file("share/llua/cherry-tree.lua", 65536);
   lluas_load_file("share/llua/test-resources.lua", 65536);
   lluas_invoke_global("load_resources", 1<<24);
   if (lluas_get_error_status())

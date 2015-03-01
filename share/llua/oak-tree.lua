@@ -148,20 +148,14 @@ for i = 1, 4 do
     blob = "oaktree_leaf"..i
   }
 
-  resource.voxel["oaktree_leaf"..i] = function()
-    local v = mg.rl_voxel_type_new()
-    mg.rl_voxel_set_voxel_graphic(
-      v, resource.voxel_graphic["oaktree_leaf"..i]())
-    return v
-  end
+  resource.voxel["oaktree_leaf"..i] = core.bind(core.new_voxel_type) {
+    graphic = "oaktree_leaf"..i
+  }
 end
 
-function resource.voxel.oaktree_trunk()
-  local v = mg.rl_voxel_type_new()
-  mg.rl_voxel_set_voxel_graphic(
-    v, resource.voxel_graphic.oaktree_trunk())
-  return v
-end
+resource.voxel.oaktree_trunk = core.bind(core.new_voxel_type) {
+  graphic = "oaktree_trunk"
+}
 
 function oaktree_gen_ntvp(leafkey)
   local nfa = {}
