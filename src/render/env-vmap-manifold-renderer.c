@@ -862,8 +862,21 @@ static void env_vmap_manifold_render_mhive_render(
   uniform.soff[1] = context->proj->syo;
   uniform.noisetex = 0;
   uniform.palette = 1;
+  /* There are a total of nine nominal months, 0..9. However, the final one is
+   * simply a terminal fencepost which should map to 1.0, so the divisor would
+   * be nine.
+   *
+   * If OpenGL texture coordinates worked like pixel coordinates, that is.
+   * OpenGL interpretes the coordinates to refer to the _centre_ of pixels,
+   * however; thus, time 0.0 needs to map to 0.5/10 (assuming 10 pixels in the
+   * palette), and time 1.0 needs to map to 9.5/10. Thus the full range is 0.9
+   * (accomplished by increasing the divisor back up to 10) with an offset of
+   * 0.05. (This does mean that palettes with more than 10 rows will not use
+   * some of the rows.)
+   */
   uniform.palette_t = (context->month_integral +
-                       context->month_fraction / (float)fraction_of(1)) / 10.0f;
+                       context->month_fraction / (float)fraction_of(1)) / 10.0f
+                    + 0.05f;
   for (i = 0; i < 3; ++i) {
     effective_camera = context->proj->camera[i];
     effective_camera -= mhive->base_coordinate[i];
