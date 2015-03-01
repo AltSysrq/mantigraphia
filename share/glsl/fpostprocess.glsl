@@ -34,5 +34,5 @@ void main() {
 
   colour = colour*0.75f + other*0.25f;
 
-  gl_FragColor = colour * (0.8f + 0.2f*pocket_factor);
+  gl_FragColor = colour * (0.9f + 0.2f*pocket_factor);
 }
