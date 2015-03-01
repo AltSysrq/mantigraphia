@@ -1,5 +1,6 @@
 uniform vec2 screen_size;
 uniform sampler2D framebuffer;
+uniform float width;
 varying vec4 selected_colour;
 varying vec2 angv;
 varying vec2 lumtc_scale;
@@ -7,9 +8,10 @@ varying vec2 lumtc_scale;
 const float SAMPLING = 3.0f;
 
 void main() {
+  vec2 pixel = vec2(1.0f, 1.0f) / screen_size;
+  float sample_size_px = screen_size.x / 1920.0f;
   vec4 selected, sample;
   vec2 stroke_centre;
-  vec2 pixel = vec2(1.0f, 1.0f) / screen_size;
   float xo, yo;
   float angle;
   float samples;
@@ -20,7 +22,8 @@ void main() {
   samples = 0.0f;
   for (yo = -SAMPLING; yo <= +SAMPLING; yo += 1.0f) {
     for (xo = -SAMPLING; xo <= +SAMPLING; xo += 1.0f) {
-      sample = texture2D(framebuffer, stroke_centre + vec2(xo,yo) * pixel);
+      sample = texture2D(
+        framebuffer, stroke_centre + vec2(xo,yo) * pixel * sample_size_px);
       if (0.0f != sample.a) {
         selected += sample;
         ++samples;

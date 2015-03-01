@@ -125,7 +125,7 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
 
   paint_overlay_create_texture(this);
 
-  this->using_high_brushtex = 1;
+  this->using_high_brushtex = 0;
   this->num_points = pdr.num_points;
   this->point_size = umax(pdr.point_size_fp / POISSON_DISC_FP, 1);
   this->screenw = canv->w;

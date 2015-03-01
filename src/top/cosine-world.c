@@ -68,8 +68,13 @@
 #define NUM_TREES 32768*2
 
 /* This should be a configuration at some point, not a compile-time constant. */
+#ifdef HIGH_RES_PAINT
 #define RENDER_SIZE_REDUCTION 1
 #define PAINT_SIZE_REDUCTION 1
+#else
+#define RENDER_SIZE_REDUCTION 2
+#define PAINT_SIZE_REDUCTION 2
+#endif
 
 typedef struct {
   game_state self;
@@ -124,7 +129,8 @@ game_state* cosine_world_new(unsigned seed) {
   this->context = rendering_context_new();
   this->camera_y_off = 7 * METRE / 4;
   this->use_paint_overlay = 1;
-  this->use_parchment = 0;
+  this->use_parchment = 1;
+  parchment_set_interpolate_postprocess(this->bg, 1 != PAINT_SIZE_REDUCTION);
 
   this->vmap_manifold_renderer = env_vmap_manifold_renderer_new(
     this->vmap, (const env_voxel_graphic*const*)&res_voxel_graphics,
@@ -364,6 +370,12 @@ static void cosine_world_key(cosine_world_state* this,
     if (down && this->overlay)
       paint_overlay_set_using_high_res_texture(
         this->overlay, !paint_overlay_is_using_high_res_texture(this->overlay));
+    break;
+
+  case SDLK_d:
+    if (down && this->bg)
+      parchment_set_interpolate_postprocess(
+        this->bg, !parchment_get_interpolate_postprocess(this->bg));
     break;
 
   case SDLK_F11:

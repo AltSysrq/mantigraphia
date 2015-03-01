@@ -55,6 +55,16 @@ parchment* parchment_new(void);
  * Releases the resources held by the given parchment.
  */
 void parchment_delete(parchment*);
+/**
+ * Sets whether this parchment uses linear interpolation in the postprocessing
+ * pass.
+ */
+void parchment_set_interpolate_postprocess(parchment*, int enabled);
+/**
+ * Gets whether this parchment uses linear interpolation in the postprocessing
+ * pass.
+ */
+int parchment_get_interpolate_postprocess(const parchment*);
 
 /**
  * Reconfigures GL to capture draw operations into the parchment's postprocess

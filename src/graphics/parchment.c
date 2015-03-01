@@ -49,9 +49,11 @@
 static GLuint postprocess_tex;
 static GLuint vbo;
 static unsigned postprocess_tex_dim[2];
+static int postprocess_tex_mode;
 
 struct parchment_s {
   unsigned tx, ty;
+  int interpolate_postprocess;
 };
 
 void parchment_init(void) {
@@ -62,7 +64,19 @@ void parchment_init(void) {
 parchment* parchment_new(void) {
   parchment* this = xmalloc(sizeof(parchment));
   this->tx = this->ty = 0;
+  this->interpolate_postprocess = 0;
   return this;
+}
+
+int parchment_get_interpolate_postprocess(const parchment* this) {
+  return this->interpolate_postprocess;
+}
+
+void parchment_set_interpolate_postprocess(parchment* this, int enabled) {
+  this->interpolate_postprocess = enabled;
+  /* Force resetting the texture's properties */
+  postprocess_tex_dim[0] = 0;
+  postprocess_tex_dim[1] = 0;
 }
 
 void parchment_delete(parchment* this) {
@@ -76,8 +90,8 @@ static void parchment_do_preprocess(const canvas* selection) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                  selection->w, selection->h, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, postprocess_tex_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, postprocess_tex_mode);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     postprocess_tex_dim[0] = selection->w;
@@ -89,6 +103,8 @@ static void parchment_do_preprocess(const canvas* selection) {
 
 void parchment_preprocess(const parchment* this,
                           const canvas* selection) {
+  postprocess_tex_mode = (this->interpolate_postprocess? GL_LINEAR : GL_NEAREST);
+
   glm_do((void(*)(void*))parchment_do_preprocess, (void*)selection);
 }
 
