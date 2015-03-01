@@ -246,6 +246,7 @@ int main(int argc, char** argv) {
 
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_TEXTURE_2D);
+  glEnableClientState(GL_VERTEX_ARRAY);
   canvas_init_thin(&canv, ww, wh);
   canvas_gl_clip_sub_immediate(&canv, &canv);
 

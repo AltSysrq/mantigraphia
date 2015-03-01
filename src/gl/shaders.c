@@ -35,6 +35,9 @@
 #include "shader_loader.h"
 #include "shaders.h"
 
+static GLuint current_program = 0;
+static unsigned num_vertex_attribs = 0;
+
 /* Like offsetof(), but works off of the value of a pointer instead. */
 #define ptroffof(ptr,fld) (((char*)&(ptr)->fld) - (char*)(ptr))
 
@@ -138,8 +141,13 @@ static char link_error_log[65536];
   static void shader_##name##_do_activate(      \
     struct shader_##name##_info* info,          \
     const shader_##name##_uniform* uniform)
-#define composed_of(x,y) glUseProgram(info->program);
-#define fixed_function glUseProgram(0);
+#define composed_of(x,y)                        \
+  if (current_program != info->program)         \
+    glUseProgram(info->program);                \
+  current_program = info->program;
+#define fixed_function                                  \
+  if (current_program) glUseProgram(0);                 \
+  current_program = 0;
 #define uniform(type, name)                             \
   put_uniform_##type(info->name##_ix, uniform->name);
 #define with_texture_coordinates
@@ -193,16 +201,15 @@ static char link_error_log[65536];
     shader_##name##_vertex* vertex_format,      \
     struct shader_##name##_info* info)
 #define fixed_function                                                  \
-  GLint i, max;                                                         \
-  glEnableClientState(GL_VERTEX_ARRAY);                                 \
+  GLuint i;                                                             \
   glVertexPointer(3, GL_FLOAT, sizeof(*vertex_format), (GLvoid*)0);     \
   /* Reset other array states */                                        \
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);                         \
   glDisableClientState(GL_COLOR_ARRAY);                                 \
   glDisableClientState(GL_SECONDARY_COLOR_ARRAY);                       \
-  glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max);                           \
-  for (i = 0; i < max; ++i)                                             \
-    glDisableVertexAttribArray(i);
+  for (i = 0; i < num_vertex_attribs; ++i)                              \
+    glDisableVertexAttribArray(i);                                      \
+  num_vertex_attribs = 0;
 #define composed_of(x,y) fixed_function
 #define uniform(x,y)
 #define with_texture_coordinates                                \
@@ -222,7 +229,9 @@ static char link_error_log[65536];
   glVertexAttribPointer(info->name##_va, cnt, GL_FLOAT, GL_FALSE,       \
                         sizeof(*vertex_format),                         \
                         (GLvoid*)ptroffof(vertex_format, name));        \
-  glEnableVertexAttribArray(info->name##_va);
+  glEnableVertexAttribArray(info->name##_va);                           \
+  if (info->name##_va > num_vertex_attribs)                             \
+    num_vertex_attribs = info->name##_va;
 #include "shaders.inc"
 #undef attrib
 #undef with_texture_coordinates
