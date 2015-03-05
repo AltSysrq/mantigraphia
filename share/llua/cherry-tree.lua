@@ -47,8 +47,8 @@ resource.palette.cherrytree_leaf = core.bind(core.gen_palette_from_lanes) {
   y = {
     snow = {    2,      1,      0,      0,      0,      0,      0,      0,      1,      3       },
     rsat = {    0.1,    0.1,    1.0,    0.1,    0.1,    0.1,    0.2,    0.7,    0.1,    0.1     },
-    gsat = {    0.4,    0.5,    0.5,    0.7,    0.7,    0.5,    0.4,    0.4,    0.2,    0.1     },
-    bsat = {    0.2,    0.2,    0.7,    0.2,    0.15,   0.15,   0.1,    0.05,   0.05,   0.0     },
+    gsat = {    0.4,    0.5,    0.7,    0.7,    0.7,    0.5,    0.4,    0.4,    0.2,    0.1     },
+    bsat = {    0.2,    0.2,    0.9,    0.2,    0.15,   0.15,   0.1,    0.05,   0.05,   0.0     },
     autumn = {  false,  false,  false,  false,  false,  false,  false,  true,   false,  false   },
     bloom = {   false,  false,  true,   false,  false,  false,  false,  false,  false,  false   },
   },
