@@ -141,7 +141,10 @@ unsigned wod_add_flower(flower_type type, coord h0, coord h1) {
   return 1;
 }
 
-unsigned wod_distribute(unsigned max_instances, unsigned threshold) {
+static unsigned long long wod_distribute_subregion(
+  unsigned max_instances, unsigned threshold,
+  coord x0, coord z0, coord xmask, coord zmask
+) {
   unsigned long long cost = max_instances;
   unsigned attempt, subsample, subsamples = 0, x, z, w, h, off, type;
 
@@ -160,8 +163,8 @@ unsigned wod_distribute(unsigned max_instances, unsigned threshold) {
     }
 
     for (subsample = 0; subsample < subsamples; ++subsample) {
-      x = twist(&wod_twister) & (wod_terrain->xmax - 1);
-      z = twist(&wod_twister) & (wod_terrain->zmax - 1);
+      x = x0 + (twist(&wod_twister) & xmask);
+      z = z0 + (twist(&wod_twister) & zmask);
       off = terrain_tilemap_offset(wod_terrain, x, z);
 
       if (!wod_permitted_terrain[wod_terrain->type[off] >> TERRAIN_SHADOW_BITS]
@@ -193,8 +196,33 @@ unsigned wod_distribute(unsigned max_instances, unsigned threshold) {
     }
   }
 
-  if (cost > 0xFFFFFFFFLL)
-    return ~0u;
-  else
-    return cost;
+  return cost;
+}
+
+#define SUBREGION_SIZE 64
+
+static unsigned long long wod_distribute_serial(
+  unsigned max_instances, unsigned threshold
+) {
+  unsigned long long cost = 0;
+  unsigned x, z, nx, nz;
+
+  /* Even when operating serially, subdivide for better cache performance. */
+  nx = wod_terrain->xmax / SUBREGION_SIZE;
+  nz = wod_terrain->zmax / SUBREGION_SIZE;
+  for (z = 0; z < nz; ++z)
+    for (x = 0; x < nx; ++x)
+      cost += wod_distribute_subregion(max_instances / nx / nz, threshold,
+                                       x * SUBREGION_SIZE, z * SUBREGION_SIZE,
+                                       SUBREGION_SIZE-1, SUBREGION_SIZE-1);
+
+  return cost;
+}
+
+unsigned wod_distribute(unsigned max_instances, unsigned threshold) {
+  unsigned long long cost;
+
+  cost = wod_distribute_serial(max_instances, threshold);
+
+  return cost > 0xFFFFFFFFLL? ~0u : cost;
 }
