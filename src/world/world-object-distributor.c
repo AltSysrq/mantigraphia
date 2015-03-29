@@ -36,13 +36,15 @@
 #include "terrain-tilemap.h"
 #include "terrain.h"
 #include "env-vmap.h"
+#include "flower-map.h"
 #include "nfa-turtle-vmap-painter.h"
 #include "world-object-distributor.h"
 
 #define MAX_ELEMENTS 16
 
 typedef enum {
-  wodet_ntvp
+  wodet_ntvp,
+  wodet_flower
 } wod_element_type;
 
 typedef struct {
@@ -51,11 +53,15 @@ typedef struct {
     struct {
       unsigned nfa, w, h, max_iterations;
     } ntvp;
+    struct {
+      flower_type type;
+      flower_height minh, hrange;
+    } flower;
   } v;
 } wod_element;
 
 static const terrain_tilemap* wod_terrain;
-static const env_vmap* wod_vmap;
+static flower_map* wod_flowers;
 static mersenne_twister wod_twister;
 static unsigned* wod_distribution;
 static coord wod_min_altitude, wod_max_altitude;
@@ -63,10 +69,10 @@ static char wod_permitted_terrain[0x40];
 static wod_element wod_elements[MAX_ELEMENTS];
 static unsigned wod_num_elements;
 
-void wod_init(const terrain_tilemap* terrain, const env_vmap* vmap,
+void wod_init(const terrain_tilemap* terrain, flower_map* flowers,
               unsigned seed) {
   wod_terrain = terrain;
-  wod_vmap = vmap;
+  wod_flowers = flowers;
   twister_seed(&wod_twister, seed);
 
   if (wod_distribution)
@@ -119,6 +125,22 @@ unsigned wod_add_ntvp(unsigned nfa, unsigned w, unsigned h,
   return 1;
 }
 
+unsigned wod_add_flower(flower_type type, coord h0, coord h1) {
+  if (wod_num_elements >= MAX_ELEMENTS)
+    return 0;
+
+  h0 /= FLOWER_HEIGHT_UNIT;
+  h1 /= FLOWER_HEIGHT_UNIT;
+  if (!h0 || h1 <= h0 || h0 > 0xFF || h1 > 0xFF) return 0;
+
+  wod_elements[wod_num_elements].type = wodet_flower;
+  wod_elements[wod_num_elements].v.flower.type = type;
+  wod_elements[wod_num_elements].v.flower.minh = h0;
+  wod_elements[wod_num_elements].v.flower.hrange = h1 - h0;
+  ++wod_num_elements;
+  return 1;
+}
+
 unsigned wod_distribute(unsigned max_instances, unsigned threshold) {
   unsigned long long cost = max_instances;
   unsigned attempt, x, z, w, h, off, type;
@@ -149,6 +171,14 @@ unsigned wod_distribute(unsigned max_instances, unsigned threshold) {
                          (z - h/2) & (wod_terrain->zmax - 1),
                          w, h,
                          wod_elements[type].v.ntvp.max_iterations);
+      break;
+
+    case wodet_flower:
+      h = wod_elements[type].v.flower.minh +
+        twist(&wod_twister) % wod_elements[type].v.flower.hrange;
+      flower_map_put(wod_flowers, wod_elements[type].v.flower.type, h,
+                     x * TILE_SZ + (twist(&wod_twister) % TILE_SZ),
+                     z * TILE_SZ + (twist(&wod_twister) % TILE_SZ));
       break;
     }
   }

@@ -36,14 +36,14 @@
  * thus uses single-instance global state for tracking most things.
  */
 
-#include "env-vmap.h"
 #include "terrain-tilemap.h"
+#include "flower-map.h"
 
 /**
- * Initialises the WOD for the given tilemap and vmap, using the given initial
- * random number seed.
+ * Initialises the WOD for the given tilemap and flower map, using the given
+ * initial random number seed.
  */
-void wod_init(const terrain_tilemap*, const env_vmap*, unsigned seed);
+void wod_init(const terrain_tilemap*, flower_map*, unsigned seed);
 
 /* Functions below this point are Llua-callable */
 
@@ -77,6 +77,20 @@ void wod_restrict_altitude(coord min, coord max);
  */
 unsigned wod_add_ntvp(unsigned nfa, unsigned w, unsigned h,
                       unsigned max_iterations);
+/**
+ * Adds an element type corresponding to a single flower to be added to the
+ * flower map.
+ *
+ * @param type The flower type to place.
+ * @param h0 The minimum height of the flower, in standard coordinates. Must be
+ * at least 1 after truncation to flower height units.
+ * @param h1 The maximum height, exclusive, of the flower, in standard
+ * coordinates. Must be greater than h0 after truncation to flower height
+ * units.
+ * @return Whether successful; failure means that too many elements have been
+ * added, or that the constraints on h0 and h1 were not met.
+ */
+unsigned wod_add_flower(flower_type type, coord h0, coord h1);
 /**
  * Distributes up to max_instances of the current element set throughout the
  * vmap.

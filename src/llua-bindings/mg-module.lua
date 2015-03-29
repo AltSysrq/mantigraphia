@@ -34,6 +34,7 @@ preamble = [[
 #include "../world/nfa-turtle-vmap-painter.h"
 #include "../world/terrain.h"
 #include "../world/world-object-distributor.h"
+#include "../world/flower-map.h"
 #include "../resource/resource-loader.h"
 #include "../resource/texgen.h"
 ]]
@@ -87,6 +88,11 @@ constants = {
   terrain_type_gravel = uint(32),
   terrain_type_water = uint(32),
   TERRAIN_SHADOW_BITS = uint(32),
+
+  NUM_FLOWER_TYPES = uint(32),
+  FLOWER_HEIGHT_UNIT = uint(32),
+  FLOWER_COORD_UNIT = uint(32),
+  FLOWER_FHIVE_SIZE = uint(16),
 }
 
 functions = {
@@ -181,6 +187,9 @@ functions = {
   wod_add_ntvp = fun (uint(32):fail_on(0, "Too many WOD elements"))(
     uint(32):min(1):max(255), uint(16):min(1), uint(16):min(1),
     uint(16):min(1)),
+  wod_add_flower = fun (uint(32):fail_on(
+                          0, "Too many WOD elements or bad height"))(
+    uint(8), uint(32), uint(32)),
   wod_distribute = fun (uint(32):fail_on(0, "No WOD elements"):cost())(
-    uint(32):max(65536*2), uint(32)),
+    uint(32):max(65536*256), uint(32)),
 }

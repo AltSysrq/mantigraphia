@@ -48,6 +48,7 @@ world/env-vmap.c \
 world/vmap-painter.c \
 world/nfa-turtle-vmap-painter.c \
 world/world-object-distributor.c \
+world/flower-map.c \
 render/context.c \
 render/terrabuff.c \
 render/terrain-tilemap-rnd.c \
@@ -55,6 +56,7 @@ render/colour-palettes.c \
 render/paint-overlay.c \
 render/env-vmap-manifold-renderer.c \
 render/skybox.c \
+render/flower-map-renderer.c \
 control/mouselook.c \
 resource/resource-loader.c \
 resource/texgen.c \

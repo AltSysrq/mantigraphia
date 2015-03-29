@@ -49,6 +49,7 @@
 #include "world/vmap-painter.h"
 #include "world/nfa-turtle-vmap-painter.h"
 #include "world/world-object-distributor.h"
+#include "world/flower-map.h"
 #include "gl/marshal.h"
 #include "gl/auxbuff.h"
 #include "render/context.h"
@@ -56,6 +57,7 @@
 #include "render/paint-overlay.h"
 #include "render/env-vmap-manifold-renderer.h"
 #include "render/skybox.h"
+#include "render/flower-map-renderer.h"
 #include "control/mouselook.h"
 #include "resource/resource-loader.h"
 #include "llua-bindings/lluas.h"
@@ -76,6 +78,14 @@
 #define PAINT_SIZE_REDUCTION 2
 #endif
 
+/* TODO: Move to resources / llua */
+const flower_graphic flower_graphic_zero = {
+  argb(255, 255, 255, 0),
+  argb(255, 128, 128, 0),
+  4 * 65536, 6 * 65536,
+  200 * MILLIMETRE,
+};
+
 typedef struct {
   game_state self;
   unsigned seed;
@@ -88,9 +98,11 @@ typedef struct {
   paint_overlay* overlay;
   terrain_tilemap* world;
   env_vmap* vmap;
+  flower_map* flowers;
   skybox* sky;
   rendering_context*restrict context;
   env_vmap_manifold_renderer* vmap_manifold_renderer;
+  flower_map_renderer* flower_renderer;
 
   int moving_forward, moving_backward, moving_left, moving_right;
   unsigned month_integral;
@@ -125,6 +137,7 @@ game_state* cosine_world_new(unsigned seed) {
   this->bg = parchment_new();
   this->world = terrain_tilemap_new(SIZE, SIZE, SIZE/256, SIZE/256);
   this->vmap = env_vmap_new(SIZE, SIZE, 1);
+  this->flowers = flower_map_new(SIZE, SIZE);
   this->sky = skybox_new(seed + 7512);
   this->context = rendering_context_new();
   this->camera_y_off = 7 * METRE / 4;
@@ -136,11 +149,14 @@ game_state* cosine_world_new(unsigned seed) {
     this->vmap, (const env_voxel_graphic*const*)&res_voxel_graphics,
     origin, this->world,
     (coord(*)(const void*,coord,coord))terrain_base_y);
+  this->flower_renderer = flower_map_renderer_new(
+    this->flowers, &flower_graphic_zero,
+    this->world, (coord(*)(const void*,coord,coord))terrain_base_y);
 
   rl_clear();
   rl_set_frozen(0);
   ntvp_clear_all();
-  wod_init(this->world, this->vmap, seed + 6420);
+  wod_init(this->world, this->flowers, seed + 6420);
   lluas_init();
   lluas_load_file("share/llua/core.lua", 65536);
   lluas_load_file("share/llua/oak-tree.lua", 65536);
@@ -161,7 +177,9 @@ static void cosine_world_delete(cosine_world_state* this) {
   if (this->overlay) paint_overlay_delete(this->overlay);
   parchment_delete(this->bg);
   env_vmap_manifold_renderer_delete(this->vmap_manifold_renderer);
+  flower_map_renderer_delete(this->flower_renderer);
   env_vmap_delete(this->vmap);
+  flower_map_delete(this->flowers);
   terrain_tilemap_delete(this->world);
   skybox_delete(this->sky);
   rendering_context_delete(this->context);
@@ -314,6 +332,8 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
   render_terrain_tilemap(&before_paint_overlay, this->world, this->context);
   render_env_vmap_manifolds(
     &before_paint_overlay, this->vmap_manifold_renderer, this->context);
+  render_flower_map(&before_paint_overlay, this->flower_renderer,
+                    this->context);
   ump_join();
 
   if (this->use_paint_overlay) {

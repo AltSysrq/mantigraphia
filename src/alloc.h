@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,14 @@ static inline void* xmalloc(size_t sz) {
 static inline void* zxmalloc(size_t sz) {
   void* ret = xmalloc(sz);
   memset(ret, 0, sz);
+  return ret;
+}
+
+static inline void* xrealloc(void* ptr, size_t sz) {
+  void* ret = realloc(ptr, sz);
+  if (!ret)
+    err(EX_UNAVAILABLE, "out of memory");
+
   return ret;
 }
 

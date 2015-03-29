@@ -52,4 +52,9 @@ function populate_vmap()
     mg.wod_add_ntvp(nfa[i], 32, 32, 65535)
   end
   mg.wod_distribute(65536, 6000)
+
+  mg.wod_clear()
+  mg.wod_permit_terrain_type(mg.terrain_type_grass)
+  mg.wod_add_flower(0, 0.1, 0.4)
+  mg.wod_distribute(1000000, 0)
 end
