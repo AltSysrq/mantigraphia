@@ -143,43 +143,53 @@ unsigned wod_add_flower(flower_type type, coord h0, coord h1) {
 
 unsigned wod_distribute(unsigned max_instances, unsigned threshold) {
   unsigned long long cost = max_instances;
-  unsigned attempt, x, z, w, h, off, type;
+  unsigned attempt, subsample, subsamples = 0, x, z, w, h, off, type;
 
   if (!wod_num_elements)
     return 0;
 
   for (attempt = 0; attempt < max_instances; ++attempt) {
-    x = twist(&wod_twister) & (wod_terrain->xmax - 1);
-    z = twist(&wod_twister) & (wod_terrain->zmax - 1);
-    off = terrain_tilemap_offset(wod_terrain, x, z);
-
-    if (!wod_permitted_terrain[wod_terrain->type[off] >> TERRAIN_SHADOW_BITS]
-    ||  wod_terrain->alt[off] * TILE_YMUL < wod_min_altitude
-    ||  wod_terrain->alt[off] * TILE_YMUL > wod_max_altitude
-    ||  wod_distribution[z*wod_terrain->xmax + x] < threshold)
-      continue;
-
     type = twist(&wod_twister) % wod_num_elements;
-
     switch (wod_elements[type].type) {
     case wodet_ntvp:
-      w = wod_elements[type].v.ntvp.w;
-      h = wod_elements[type].v.ntvp.h;
-      cost += ntvp_paint(wod_elements[type].v.ntvp.nfa,
-                         x, 0, z,
-                         (x - w/2) & (wod_terrain->xmax - 1),
-                         (z - h/2) & (wod_terrain->zmax - 1),
-                         w, h,
-                         wod_elements[type].v.ntvp.max_iterations);
+      subsamples = 1;
       break;
-
     case wodet_flower:
-      h = wod_elements[type].v.flower.minh +
-        twist(&wod_twister) % wod_elements[type].v.flower.hrange;
-      flower_map_put(wod_flowers, wod_elements[type].v.flower.type, h,
-                     x * TILE_SZ + (twist(&wod_twister) % TILE_SZ),
-                     z * TILE_SZ + (twist(&wod_twister) % TILE_SZ));
+      subsamples = 32;
       break;
+    }
+
+    for (subsample = 0; subsample < subsamples; ++subsample) {
+      x = twist(&wod_twister) & (wod_terrain->xmax - 1);
+      z = twist(&wod_twister) & (wod_terrain->zmax - 1);
+      off = terrain_tilemap_offset(wod_terrain, x, z);
+
+      if (!wod_permitted_terrain[wod_terrain->type[off] >> TERRAIN_SHADOW_BITS]
+          ||  wod_terrain->alt[off] * TILE_YMUL < wod_min_altitude
+          ||  wod_terrain->alt[off] * TILE_YMUL > wod_max_altitude
+          ||  wod_distribution[z*wod_terrain->xmax + x] < threshold)
+        continue;
+
+      switch (wod_elements[type].type) {
+      case wodet_ntvp:
+        w = wod_elements[type].v.ntvp.w;
+        h = wod_elements[type].v.ntvp.h;
+        cost += ntvp_paint(wod_elements[type].v.ntvp.nfa,
+                           x, 0, z,
+                           (x - w/2) & (wod_terrain->xmax - 1),
+                           (z - h/2) & (wod_terrain->zmax - 1),
+                           w, h,
+                           wod_elements[type].v.ntvp.max_iterations);
+        break;
+
+      case wodet_flower:
+        h = wod_elements[type].v.flower.minh +
+          twist(&wod_twister) % wod_elements[type].v.flower.hrange;
+        flower_map_put(wod_flowers, wod_elements[type].v.flower.type, h,
+                       x * TILE_SZ + (twist(&wod_twister) % TILE_SZ),
+                       z * TILE_SZ + (twist(&wod_twister) % TILE_SZ));
+        break;
+      }
     }
   }
 

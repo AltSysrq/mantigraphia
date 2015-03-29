@@ -78,8 +78,8 @@ void wod_restrict_altitude(coord min, coord max);
 unsigned wod_add_ntvp(unsigned nfa, unsigned w, unsigned h,
                       unsigned max_iterations);
 /**
- * Adds an element type corresponding to a single flower to be added to the
- * flower map.
+ * Adds an element type corresponding to 32 flowers to be added to the flower
+ * map.
  *
  * @param type The flower type to place.
  * @param h0 The minimum height of the flower, in standard coordinates. Must be
