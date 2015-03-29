@@ -68,8 +68,7 @@ typedef struct {
 struct flower_map_renderer_s {
   const flower_map* flowers;
   const flower_graphic* graphics;
-  const void* base_object;
-  coord (*get_y_offset)(const void*, coord, coord);
+  const terrain_tilemap* terrain;
 
   /**
    * Hives currently within the draw distance. Each fhive at (x,z) is mapped to
@@ -99,14 +98,12 @@ static void flower_map_render_fhive_render(
 flower_map_renderer* flower_map_renderer_new(
   const flower_map* flowers,
   const flower_graphic graphics[NUM_FLOWER_TYPES],
-  const void* base_object,
-  coord (*get_y_offset)(const void*, coord, coord)
+  const terrain_tilemap* terrain
 ) {
   flower_map_renderer* this = xmalloc(sizeof(flower_map_renderer));
   this->flowers = flowers;
   this->graphics = graphics;
-  this->base_object = base_object;
-  this->get_y_offset = get_y_offset;
+  this->terrain = terrain;
 
   memset(this->hives, ~0, sizeof(this->hives));
   return this;
@@ -179,7 +176,7 @@ static void flower_map_render_fhive_prepare(
   static unsigned short indices[65536 / 4][6];
 
   const flower_fhive* hive;
-  unsigned i, j, count;
+  unsigned i, j, count, shadow;
   vc3 flower_position;
   float date0, date1;
 
@@ -202,16 +199,21 @@ static void flower_map_render_fhive_prepare(
     flower_position[2] = z * FLOWER_FHIVE_SIZE * TILE_SZ +
       hive->flowers[i].z * FLOWER_COORD_UNIT;
     flower_position[1] = hive->flowers[i].y * FLOWER_HEIGHT_UNIT +
-      (*renderer->get_y_offset)(renderer->base_object,
-                                flower_position[0], flower_position[2]);
+      terrain_base_y(renderer->terrain,
+                     flower_position[0], flower_position[2]);
 
     vertices[i][0].v[0] = flower_position[0] - x * FLOWER_FHIVE_SIZE * TILE_SZ;
     vertices[i][0].v[1] = flower_position[1];
     vertices[i][0].v[2] = flower_position[2] - z * FLOWER_FHIVE_SIZE * TILE_SZ;
-    /* TODO: Apply shadow */
+
+    shadow = renderer->terrain->type[
+      terrain_tilemap_offset(renderer->terrain,
+                             flower_position[0] / TILE_SZ,
+                             flower_position[2] / TILE_SZ)] &
+      ((1 << TERRAIN_SHADOW_BITS) - 1);
     canvas_pixel_to_gl4fv(
       vertices[i][0].colour,
-      renderer->graphics[hive->flowers[i].type].colour[0]);
+      renderer->graphics[hive->flowers[i].type].colour[shadow]);
 
     date0 = renderer->graphics[hive->flowers[i].type].date_appear / 65536.0f;
     date1 = renderer->graphics[hive->flowers[i].type].date_disappear / 65536.0f;

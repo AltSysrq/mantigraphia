@@ -30,6 +30,7 @@
 
 #include "../world/flower-map.h"
 #include "../world/terrain.h"
+#include "../world/terrain-tilemap.h"
 #include "../graphics/canvas.h"
 #include "context.h"
 
@@ -72,8 +73,7 @@ typedef struct flower_map_renderer_s flower_map_renderer;
 flower_map_renderer* flower_map_renderer_new(
   const flower_map* flowers,
   const flower_graphic graphics[NUM_FLOWER_TYPES],
-  const void* base_object,
-  coord (*get_y_offset)(const void* base_object, coord x, coord z));
+  const terrain_tilemap* terrain);
 
 /**
  * Frees all resources held by the given renderer.

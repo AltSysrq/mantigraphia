@@ -142,8 +142,7 @@ game_state* cosine_world_new(unsigned seed) {
     origin, this->world,
     (coord(*)(const void*,coord,coord))terrain_base_y);
   this->flower_renderer = flower_map_renderer_new(
-    this->flowers, res_flower_graphics,
-    this->world, (coord(*)(const void*,coord,coord))terrain_base_y);
+    this->flowers, res_flower_graphics, this->world);
 
   rl_clear();
   rl_set_frozen(0);
