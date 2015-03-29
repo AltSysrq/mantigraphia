@@ -35,6 +35,7 @@ resource.flower.wild_aprjune_white = core.bind(core.new_flower) {
   appear = 1.0,
   disappear = 4.0,
   size = 0.25,
+  date_stagger = 0.5,
 }
 
 resource.flower.wild_juneaug_pink = core.bind(core.new_flower) {
@@ -42,6 +43,7 @@ resource.flower.wild_juneaug_pink = core.bind(core.new_flower) {
   appear = 3.0,
   disappear = 6.0,
   size = 0.2,
+  date_stagger = 0.5,
 }
 
 resource.flower.wild_augoct_blue = core.bind(core.new_flower) {
@@ -49,6 +51,7 @@ resource.flower.wild_augoct_blue = core.bind(core.new_flower) {
   appear = 5.0,
   disappear = 8.0,
   size = 0.275,
+  date_stagger = 0.5,
 }
 
 resource.flower.seasonal_apr_red = core.bind(core.new_flower) {
@@ -56,6 +59,7 @@ resource.flower.seasonal_apr_red = core.bind(core.new_flower) {
   appear = 0.5,
   disappear = 2.0,
   size = 0.23,
+  date_stagger = 0.3,
 }
 
 resource.flower.seasonal_may_yellow = core.bind(core.new_flower) {
@@ -63,6 +67,7 @@ resource.flower.seasonal_may_yellow = core.bind(core.new_flower) {
   appear = 1.0,
   disappear = 3.0,
   size = 0.2,
+  date_stagger = 0.3,
 }
 
 resource.flower.seasonal_june_blue = core.bind(core.new_flower) {
@@ -70,6 +75,7 @@ resource.flower.seasonal_june_blue = core.bind(core.new_flower) {
   appear = 2.0,
   disappear = 4.0,
   size = 0.25,
+  date_stagger = 0.3,
 }
 
 resource.flower.seasonal_july_orange = core.bind(core.new_flower) {
@@ -84,6 +90,7 @@ resource.flower.seasonal_aug_white = core.bind(core.new_flower) {
   appear = 4.0,
   disappear = 6.0,
   size = 0.2,
+  date_stagger = 0.3,
 }
 
 resource.flower.seasonal_sept_violet = core.bind(core.new_flower) {
@@ -91,6 +98,7 @@ resource.flower.seasonal_sept_violet = core.bind(core.new_flower) {
   appear = 5.0,
   disappear = 7.0,
   size = 0.25,
+  date_stagger = 0.3,
 }
 
 --- Distributes the common flowers in a "standard" way

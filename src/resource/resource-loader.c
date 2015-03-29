@@ -261,6 +261,15 @@ unsigned rl_flower_graphic_set_dates(unsigned flower,
   return 1;
 }
 
+unsigned rl_flower_graphic_set_date_stagger(unsigned flower,
+                                            unsigned date_stagger) {
+  CKNF();
+  CKIX(flower, res_num_flower_graphics);
+
+  res_flower_graphics[flower].date_stagger = date_stagger;
+  return 1;
+}
+
 unsigned rl_flower_graphic_set_size(unsigned flower, coord size) {
   CKNF();
   CKIX(flower, res_num_flower_graphics);

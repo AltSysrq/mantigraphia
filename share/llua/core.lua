@@ -304,7 +304,7 @@ function core.new_voxel_type(parms)
 end
 
 --- Creates a new flower with the given properties.
-
+--
 -- Parameters are passed in a single table for readability. The relevant
 -- parameters are:
 --
@@ -312,6 +312,8 @@ end
 --   shadowed, to use with this flower type.
 -- - appear. Specifies the date at which this flower type appears.
 -- - disappear. Specifies the date at which this flower type disappears.
+-- - date_stagger. If present, specifies the date stagger to apply to the
+--   flower.
 -- - size. Specifies the size, in world coordinates, of this flower type.
 --
 -- @param parms A table of parameters, as described above.
@@ -322,6 +324,9 @@ function core.new_flower(parms)
                                    parms.colours[3], parms.colours[4])
   mg.rl_flower_graphic_set_dates(v, parms.appear, parms.disappear)
   mg.rl_flower_graphic_set_size(v, parms.size)
+  if parms.date_stagger then
+    mg.rl_flower_graphic_set_date_stagger(v, parms.date_stagger)
+  end
   return v
 end
 

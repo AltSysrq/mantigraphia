@@ -36,6 +36,7 @@
 #include "../alloc.h"
 #include "../defs.h"
 #include "../math/coords.h"
+#include "../math/rand.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
 #include "../gl/marshal.h"
@@ -176,7 +177,7 @@ static void flower_map_render_fhive_prepare(
   static unsigned short indices[65536 / 4][6];
 
   const flower_fhive* hive;
-  unsigned i, j, count, shadow;
+  unsigned i, j, count, shadow, date_stagger, max_date_stagger;
   vc3 flower_position;
   float date0, date1;
 
@@ -217,6 +218,12 @@ static void flower_map_render_fhive_prepare(
 
     date0 = renderer->graphics[hive->flowers[i].type].date_appear / 65536.0f;
     date1 = renderer->graphics[hive->flowers[i].type].date_disappear / 65536.0f;
+    max_date_stagger = renderer->graphics[hive->flowers[i].type].date_stagger;
+    date_stagger = chaos_of(chaos_accum(chaos_accum(0, this->fhive_index), i));
+    date_stagger %= 1u + max_date_stagger;
+    date0 -= ((float)date_stagger - max_date_stagger / 2.0f) / 65536.0f;
+    date1 -= ((float)date_stagger - max_date_stagger / 2.0f) / 65536.0f;
+
     vertices[i][0].lifetime_centre[0] = (date0 + date1) / 2.0f;
     vertices[i][0].lifetime_scale[0] = 2.0f / (date1 - date0);
     vertices[i][0].max_size[0] =

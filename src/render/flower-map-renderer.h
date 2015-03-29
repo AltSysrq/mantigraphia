@@ -51,6 +51,13 @@ typedef struct {
    */
   signed date_appear, date_disappear;
   /**
+   * The range, inclusive, by which date_appear and date_disappear will be
+   * uniformly staggered per flower. Both dates will be staggered the same
+   * amount for the same flower; the nominal date indicates the middle of this
+   * range.
+   */
+  unsigned date_stagger;
+  /**
    * The size, in standard units, of the flower, when no conditions (such as
    * distance or time) are applied to shrink it.
    */

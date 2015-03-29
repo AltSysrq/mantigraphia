@@ -152,6 +152,8 @@ functions = {
     uint(32):min(1), canvas_pixel, canvas_pixel, canvas_pixel, canvas_pixel),
   rl_flower_graphic_set_dates = resource_loader(uint(32):min(1),
                                                 sint(32), sint(32)),
+  rl_flower_graphic_set_date_stagger = resource_loader(uint(32):min(1),
+                                                       uint(32)),
   rl_flower_graphic_set_size = resource_loader(uint(32):min(1),
                                                uint(32):min(1):max(4*65536)),
 

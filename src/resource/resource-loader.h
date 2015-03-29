@@ -223,6 +223,21 @@ unsigned rl_flower_graphic_set_colours(unsigned flower,
 unsigned rl_flower_graphic_set_dates(unsigned flower,
                                      signed appear, signed disappear);
 /**
+ * Sets the maximum date stagger for the given flower type.
+ *
+ * By default, stagger is zero. When non-zero, the appear and disappear dates
+ * of each individual flower are uniformly and identically perturbed by a value
+ * whose absolute value does not exceed the maximum date staggert. Ie, the
+ * actual dates for each flower are distributed uniformly in a range whose
+ * width is the date stagger, centred on the nominal date.
+ *
+ * @param flower The flower graphic to edit.
+ * @param date_stagger The new date stagger.
+ * @return Whether successful.
+ */
+unsigned rl_flower_graphic_set_date_stagger(unsigned flower,
+                                            unsigned date_stagger);
+/**
  * Sets the maximum size, in world coordinates, that the given flower type will
  * be displayed as having.
  *
