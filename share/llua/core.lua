@@ -52,6 +52,7 @@ resource = {
   palette = {},
   voxel = {},
   ntvp = {},
+  flower = {},
 }
 
 local bit_extract = bit32.extract
@@ -253,7 +254,7 @@ function core.new_voxel_graphic(parms)
   return g
 end
 
--- Creates a new voxel type with the specified properties.
+--- Creates a new voxel type with the specified properties.
 --
 -- Parameters are passed in a single table for readability. The relevant
 -- parameters are:
@@ -267,6 +268,28 @@ function core.new_voxel_type(parms)
   local v = mg.rl_voxel_type_new()
   mg.rl_voxel_set_voxel_graphic(
     v, resource.voxel_graphic[parms.graphic]())
+  return v
+end
+
+--- Creates a new flower with the given properties.
+
+-- Parameters are passed in a single table for readability. The relevant
+-- parameters are:
+--
+-- - colours. Specifies an array of 4 colours, from unshadowed to fully
+--   shadowed, to use with this flower type.
+-- - appear. Specifies the date at which this flower type appears.
+-- - disappear. Specifies the date at which this flower type disappears.
+-- - size. Specifies the size, in world coordinates, of this flower type.
+--
+-- @param parms A table of parameters, as described above.
+-- @return The new flower type.
+function core.new_flower(parms)
+  local v = mg.rl_flower_graphic_new()
+  mg.rl_flower_graphic_set_colours(v, parms.colours[1], parms.colours[2],
+                                   parms.colours[3], parms.colours[4])
+  mg.rl_flower_graphic_set_dates(v, parms.appear, parms.disappear)
+  mg.rl_flower_graphic_set_size(v, parms.size)
   return v
 end
 
@@ -501,4 +524,5 @@ function load_resources()
     end
   end
   force_roots(resource.voxel)
+  force_roots(resource.flower)
 end

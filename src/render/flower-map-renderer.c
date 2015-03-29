@@ -211,7 +211,7 @@ static void flower_map_render_fhive_prepare(
     /* TODO: Apply shadow */
     canvas_pixel_to_gl4fv(
       vertices[i][0].colour,
-      renderer->graphics[hive->flowers[i].type].bright_colour);
+      renderer->graphics[hive->flowers[i].type].colour[0]);
 
     date0 = renderer->graphics[hive->flowers[i].type].date_appear / 65536.0f;
     date1 = renderer->graphics[hive->flowers[i].type].date_disappear / 65536.0f;

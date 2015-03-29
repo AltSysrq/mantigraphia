@@ -51,6 +51,7 @@ local fraction = uint(32)
 local precise_fraction = uint(64)
 local tg_tex8 = bytes("TG_TEXSIZE")
 local tg_texrgb = bytes("TG_TEXSIZE*3")
+local canvas_pixel = uint(32)
 
 local function resource_loader(...)
   return fun(uint(32):fail_on(0, "Invalid usage or resource overflow"))(...)
@@ -146,6 +147,13 @@ functions = {
                                            bytes("argument_2*argument_3*4")),
   rl_valtex_new = resource_loader(),
   rl_valtex_load64x64r = resource_loader(uint(32):min(1), bytes(64*64)),
+  rl_flower_graphic_new = resource_loader(),
+  rl_flower_graphic_set_colours = resource_loader(
+    uint(32):min(1), canvas_pixel, canvas_pixel, canvas_pixel, canvas_pixel),
+  rl_flower_graphic_set_dates = resource_loader(uint(32):min(1),
+                                                sint(32), sint(32)),
+  rl_flower_graphic_set_size = resource_loader(uint(32):min(1),
+                                               uint(32):min(1):max(4*65536)),
 
   ntvp_new = fun (uint(32):fail_on(0, "Out of NFAs")) (),
   ntvp_visibility = fun(uint(32):fail_on(0, "Invalid or frozen NFA")) (

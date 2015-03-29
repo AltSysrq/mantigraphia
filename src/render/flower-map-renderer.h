@@ -29,6 +29,7 @@
 #define RENDER_FLOWER_MAP_RENDERER_H_
 
 #include "../world/flower-map.h"
+#include "../world/terrain.h"
 #include "../graphics/canvas.h"
 #include "context.h"
 
@@ -37,13 +38,9 @@
  */
 typedef struct {
   /**
-   * The colour of this flower type, unshadowed.
+   * The colours of this flower type, unshadowed to fully shadowed.
    */
-  canvas_pixel bright_colour;
-  /**
-   * The colour of this flower type in full shadow.
-   */
-  canvas_pixel shadow_colour;
+  canvas_pixel colour[1 << TERRAIN_SHADOW_BITS];
   /**
    * The dates (as 16.16 fixed-point months) at which this flower type appears
    * and disappears, respectively.

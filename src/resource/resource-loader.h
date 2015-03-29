@@ -29,8 +29,11 @@
 #define RESOURCE_RESOURCE_LOADER_H_
 
 #include "../math/frac.h"
+#include "../graphics/canvas.h"
 #include "../world/env-vmap.h"
+#include "../world/flower-map.h"
 #include "../render/env-voxel-graphic.h"
+#include "../render/flower-map-renderer.h"
 
 /**
  * @file
@@ -51,6 +54,10 @@
  * the resource loader.
  */
 extern env_voxel_graphic* res_voxel_graphics[NUM_ENV_VOXEL_TYPES];
+/**
+ * The flower graphic table specified by calls to the resource loader.
+ */
+extern flower_graphic res_flower_graphics[NUM_FLOWER_TYPES];
 
 /**
  * Resets the resource loader to its initial state, releasing all resources
@@ -183,5 +190,46 @@ unsigned rl_valtex_new(void);
  * @return Whether successful.
  */
 unsigned rl_valtex_load64x64r(unsigned valtex, const void* data);
+/**
+ * Allocates a new flower graphic and flower type.
+ *
+ * @return The new flower graphic index.
+ */
+unsigned rl_flower_graphic_new(void);
+/**
+ * Sets the four colours on the given flower graphic.
+ *
+ * @param flower The flower graphic to edit.
+ * @param bright The unshadowed ARGB colour.
+ * @param lshad The lightly-shadowed ARGB colour.
+ * @param mshad The medium-shadowed ARGB colour.
+ * @param hshad The fully-shadowed ARGB colour.
+ * @return Whether successful.
+ */
+unsigned rl_flower_graphic_set_colours(unsigned flower,
+                                       canvas_pixel bright, canvas_pixel lshad,
+                                       canvas_pixel mshad, canvas_pixel hshad);
+/**
+ * Sets the dates at which the given flower type appears and disappears.
+ *
+ * Each date is 16.16 fixed-point, indicating a month value. 0.0 is the initial
+ * time; 10.0-epsilon is the final time. Negative values are permitted.
+ *
+ * @param flower The flower graphic to edit.
+ * @param appear The date at which the flower begins to appear.
+ * @param disappear The date at which the flower completely disappears.
+ * @return Whether successful.
+ */
+unsigned rl_flower_graphic_set_dates(unsigned flower,
+                                     signed appear, signed disappear);
+/**
+ * Sets the maximum size, in world coordinates, that the given flower type will
+ * be displayed as having.
+ *
+ * @param flower The flower graphic to edit.
+ * @param size The size, in world coordinates, of the flower type.
+ * @return Whether successful.
+ */
+unsigned rl_flower_graphic_set_size(unsigned flower, coord size);
 
 #endif /* RESOURCE_RESOURCE_LOADER_H_ */

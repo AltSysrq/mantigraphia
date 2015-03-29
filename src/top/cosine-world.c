@@ -78,14 +78,6 @@
 #define PAINT_SIZE_REDUCTION 2
 #endif
 
-/* TODO: Move to resources / llua */
-const flower_graphic flower_graphic_zero = {
-  argb(255, 255, 255, 0),
-  argb(255, 128, 128, 0),
-  4 * 65536, 6 * 65536,
-  200 * MILLIMETRE,
-};
-
 typedef struct {
   game_state self;
   unsigned seed;
@@ -150,7 +142,7 @@ game_state* cosine_world_new(unsigned seed) {
     origin, this->world,
     (coord(*)(const void*,coord,coord))terrain_base_y);
   this->flower_renderer = flower_map_renderer_new(
-    this->flowers, &flower_graphic_zero,
+    this->flowers, res_flower_graphics,
     this->world, (coord(*)(const void*,coord,coord))terrain_base_y);
 
   rl_clear();
@@ -161,6 +153,7 @@ game_state* cosine_world_new(unsigned seed) {
   lluas_load_file("share/llua/core.lua", 65536);
   lluas_load_file("share/llua/oak-tree.lua", 65536);
   lluas_load_file("share/llua/cherry-tree.lua", 65536);
+  lluas_load_file("share/llua/common-flowers.lua", 65536);
   lluas_load_file("share/llua/test-resources.lua", 65536);
   lluas_invoke_global("load_resources", 1<<24);
   if (lluas_get_error_status())

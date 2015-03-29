@@ -36,13 +36,18 @@
 
 #include "../alloc.h"
 #include "../world/env-vmap.h"
+#include "../world/flower-map.h"
 #include "../render/env-voxel-graphic.h"
+#include "../render/flower-map-renderer.h"
 
 static unsigned res_num_voxel_types = 1;
 
 env_voxel_graphic* res_voxel_graphics[NUM_ENV_VOXEL_TYPES];
 static env_voxel_graphic res_voxel_graphics_array[NUM_ENV_VOXEL_TYPES];
 static unsigned res_num_voxel_graphics;
+
+flower_graphic res_flower_graphics[NUM_FLOWER_TYPES];
+static unsigned res_num_flower_graphics;
 
 static env_voxel_graphic_blob res_graphic_blobs[256];
 static unsigned res_num_graphic_blobs;
@@ -75,9 +80,11 @@ void rl_clear(void) {
   res_num_graphic_blobs = 1;
   res_num_palettes = 1;
   res_num_valtexes = 1;
+  res_num_flower_graphics = 1;
   memset(res_voxel_graphics, 0, sizeof(res_voxel_graphics));
   memset(res_voxel_graphics_array, 0, sizeof(res_voxel_graphics_array));
   memset(res_graphic_blobs, 0, sizeof(res_graphic_blobs));
+  memset(res_flower_graphics, 0, sizeof(res_flower_graphics));
 
   if (!has_textures) {
     glGenTextures(MAX_PALETTES-1, res_palettes + 1);
@@ -221,5 +228,43 @@ unsigned rl_valtex_load64x64r(unsigned valtex, const void* data) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  return 1;
+}
+
+unsigned rl_flower_graphic_new(void) {
+  CKNF();
+  CKIX(res_num_flower_graphics, NUM_FLOWER_TYPES);
+
+  return res_num_flower_graphics++;
+}
+
+unsigned rl_flower_graphic_set_colours(unsigned flower,
+                                       canvas_pixel c0, canvas_pixel c1,
+                                       canvas_pixel c2, canvas_pixel c3) {
+  CKNF();
+  CKIX(flower, res_num_flower_graphics);
+
+  res_flower_graphics[flower].colour[0] = c0;
+  res_flower_graphics[flower].colour[1] = c1;
+  res_flower_graphics[flower].colour[2] = c2;
+  res_flower_graphics[flower].colour[3] = c3;
+  return 1;
+}
+
+unsigned rl_flower_graphic_set_dates(unsigned flower,
+                                     unsigned d0, unsigned d1) {
+  CKNF();
+  CKIX(flower, res_num_flower_graphics);
+
+  res_flower_graphics[flower].date_appear = d0;
+  res_flower_graphics[flower].date_disappear = d1;
+  return 1;
+}
+
+unsigned rl_flower_graphic_set_size(unsigned flower, coord size) {
+  CKNF();
+  CKIX(flower, res_num_flower_graphics);
+
+  res_flower_graphics[flower].size = size;
   return 1;
 }
