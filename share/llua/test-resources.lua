@@ -53,8 +53,5 @@ function populate_vmap()
   end
   mg.wod_distribute(65536, 6000)
 
-  mg.wod_clear()
-  mg.wod_permit_terrain_type(mg.terrain_type_grass)
-  mg.wod_add_flower(resource.flower.may_yellow(), 0.1, 0.4)
-  mg.wod_distribute(1000000, 0)
+  common_flowers_distribute_default()
 end

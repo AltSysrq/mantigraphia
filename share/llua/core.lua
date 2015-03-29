@@ -63,6 +63,38 @@ function core.argb(a, r, g, b)
   return (a * 2^24) + (r * 2^16) + (g * 2^8) + b;
 end
 
+--- Linearly interpolates between two values.
+--
+-- @param start The value when pos==0
+-- @param end The value when pos==n
+-- @param pos An integer between 0 and n, both inclusive, indicating the
+-- interpolation position.
+-- @return A value between start and fin, according to pos and n.
+function core.interpolate(start, fin, pos, n)
+  return start + (fin - start) * pos / n
+end
+
+--- Produces an array of ARGB values ranging between two colours.
+--
+-- @param start An array of size 4 indicating the first ARGB value in the
+-- result.
+-- @param fin An array of size 4 indicating the last ARGB value in the result.
+-- @param n The size of the final array. Must be at least 2.
+-- @return An array of size n containing ARGB integers.
+function core.argb_gradient(start, fin, n)
+  local grad = {}
+
+  for i = 0, n-1 do
+    grad[i+1] = core.argb(
+      core.interpolate(start[1], fin[1], i, n-1),
+      core.interpolate(start[2], fin[2], i, n-1),
+      core.interpolate(start[3], fin[3], i, n-1),
+      core.interpolate(start[4], fin[4], i, n-1))
+  end
+
+  return grad
+end
+
 --- Converts an ARGB table to a RGBA string.
 --
 -- Converts a two-dimensional table of ARGB integers into a byte string in
