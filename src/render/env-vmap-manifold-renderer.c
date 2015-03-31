@@ -29,6 +29,8 @@
 #include <config.h>
 #endif
 
+#include <SDL.h>
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,6 +39,7 @@
 #include "bsd.h"
 #include "../alloc.h"
 #include "../defs.h"
+#include "../micromp.h"
 #include "../math/coords.h"
 #include "../math/sse.h"
 #include "../math/rand.h"
@@ -53,6 +56,17 @@
 #define MHIVE_SZ ENV_VMAP_MANIFOLD_RENDERER_MHIVE_SZ
 #define DRAW_DISTANCE 16 /* mhives */
 #define NOISETEX_SZ 64
+
+/**
+ * The data-intensive operations use static storage for their temporary data.
+ * This both makes programming simpler, and makes it easier to ensure that that
+ * memory is available. It also permits a few GCC optimisations that otherwise
+ * wouldn't happen.
+ *
+ * To permit multi-threading, each of these is duplicated THREADS times,
+ * permitting up to THREADS threads to run at once.
+ */
+#define THREADS 4
 
 /**
  * A render operation is a set of polygons inside a render mhive which share the
@@ -95,16 +109,10 @@ struct env_vmap_manifold_render_mhive_s {
   env_vmap_manifold_render_operation operations[FLEXIBLE_ARRAY_MEMBER];
 };
 
-typedef struct {
-  env_vmap_manifold_renderer*restrict this;
-  const rendering_context*restrict ctxt;
-} env_vmap_manifold_render_op;
-
 static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
   const env_vmap_manifold_renderer* parent, coord x0, coord z0,
-  unsigned char lod);
+  unsigned char lod, unsigned thread_ordinal);
 static void env_vmap_manifold_render_mhive_delete(env_vmap_manifold_render_mhive*);
-static void render_env_vmap_manifolds_impl(env_vmap_manifold_render_op*);
 static void env_vmap_manifold_render_mhive_render(
   const env_vmap_manifold_render_mhive*restrict,
   const rendering_context*restrict);
@@ -144,30 +152,79 @@ void env_vmap_manifold_renderer_delete(env_vmap_manifold_renderer* this) {
   free(this);
 }
 
-void render_env_vmap_manifolds(canvas* dst,
-                               env_vmap_manifold_renderer*restrict this,
-                               const rendering_context*restrict ctxt) {
-  env_vmap_manifold_render_op* op = xmalloc(sizeof(env_vmap_manifold_render_op));
-
-  op->this = this;
-  op->ctxt = ctxt;
-  glm_do((void(*)(void*))render_env_vmap_manifolds_impl, op);
+static void render_env_vmap_manifolds_glprepare(void* ignored) {
+  glPushAttrib(GL_ENABLE_BIT);
+  glEnable(GL_CULL_FACE);
 }
 
-void render_env_vmap_manifolds_impl(env_vmap_manifold_render_op* op) {
-  env_vmap_manifold_renderer* this = op->this;
-  const rendering_context*restrict ctxt = op->ctxt;
+static void render_env_vmap_manifolds_glfinish(void* ignore) {
+  glPopAttrib();
+}
+
+typedef struct {
+  GLuint* buffers;
+  void* vertex_data;
+  unsigned vertex_data_size;
+  void* index_data;
+  unsigned index_data_size;
+  SDL_sem* not_busy;
+} render_env_vmap_manifolds_put_buffer_data_op;
+
+static void render_env_vmap_manifolds_put_buffer_data(
+  render_env_vmap_manifolds_put_buffer_data_op* op
+) {
+  glGenBuffers(2, op->buffers);
+  glBindBuffer(GL_ARRAY_BUFFER, op->buffers[0]);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, op->buffers[1]);
+  glBufferData(GL_ARRAY_BUFFER, op->vertex_data_size,
+               op->vertex_data, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, op->index_data_size,
+               op->index_data, GL_STATIC_DRAW);
+
+  if (SDL_SemPost(op->not_busy))
+    errx(EX_SOFTWARE, "Failed to post semaphore for manifold thread: %s",
+         SDL_GetError());
+}
+
+static void render_env_vmap_manifolds_impl(
+  unsigned thread_ordinal, unsigned threads);
+
+static canvas* render_env_vmap_manifolds_dst;
+static env_vmap_manifold_renderer*restrict render_env_vmap_manifolds_this;
+static const rendering_context*restrict render_env_vmap_manifolds_ctxt;
+static ump_task render_env_vmap_manifolds_task = {
+  render_env_vmap_manifolds_impl,
+  THREADS,
+  0, /* sync */
+};
+
+void render_env_vmap_manifolds(
+  canvas* dst,
+  env_vmap_manifold_renderer*restrict this,
+  const rendering_context*restrict ctxt
+) {
+  glm_do(render_env_vmap_manifolds_glprepare, NULL);
+
+  render_env_vmap_manifolds_dst = dst;
+  render_env_vmap_manifolds_this = this;
+  render_env_vmap_manifolds_ctxt = ctxt;
+  ump_run_sync(&render_env_vmap_manifolds_task);
+
+  glm_do(render_env_vmap_manifolds_glfinish, NULL);
+}
+
+static void render_env_vmap_manifolds_impl(
+  unsigned thread_ordinal, unsigned ignore
+) {
+  env_vmap_manifold_renderer*restrict this = render_env_vmap_manifolds_this;
+  const rendering_context*restrict ctxt = render_env_vmap_manifolds_ctxt;
+
   const rendering_context_invariant*restrict context = CTXTINV(ctxt);
   unsigned x, z, xmax, zmax, cx, cz;
   signed dx, dz;
   unsigned d;
   signed dot;
   unsigned char desired_lod;
-
-  free(op);
-
-  glPushAttrib(GL_ENABLE_BIT);
-  glEnable(GL_CULL_FACE);
 
   xmax = this->vmap->xmax / MHIVE_SZ;
   zmax = this->vmap->zmax / MHIVE_SZ;
@@ -176,6 +233,9 @@ void render_env_vmap_manifolds_impl(env_vmap_manifold_render_op* op) {
 
   for (z = 0; z < zmax; ++z) {
     for (x = 0; x < xmax; ++x) {
+      if ((x + z) % THREADS != thread_ordinal)
+        continue;
+
       dx = x - cx;
       dz = z - cz;
       if (this->vmap->is_toroidal) {
@@ -205,7 +265,7 @@ void render_env_vmap_manifolds_impl(env_vmap_manifold_render_op* op) {
 
         if (!this->mhives[z*xmax + x])
           this->mhives[z*xmax + x] = env_vmap_manifold_render_mhive_new(
-            this, x*MHIVE_SZ, z*MHIVE_SZ, desired_lod);
+            this, x*MHIVE_SZ, z*MHIVE_SZ, desired_lod, thread_ordinal);
 
         dot = dx * context->proj->yrot_sin +
               dz * context->proj->yrot_cos;
@@ -232,8 +292,6 @@ void render_env_vmap_manifolds_impl(env_vmap_manifold_render_op* op) {
       }
     }
   }
-
-  glPopAttrib();
 }
 
 #define MAX_VERTICES 65535
@@ -316,7 +374,8 @@ static void catmull_clark_subdivide(
   const env_voxel_graphic_blob*const* graphics,
   unsigned num_orig_vertices,
   unsigned num_orig_faces,
-  unsigned level
+  unsigned level,
+  unsigned thread_ordinal
 ) {
   /*
     See also
@@ -363,8 +422,13 @@ static void catmull_clark_subdivide(
         recorded implicitly by copying the used portion of new_face_vertices
         onto the head of vertex_adjacency.
    */
-  static unsigned short new_face_vertices[MAX_VERTICES][MAX_FACES_PER_VERTEX];
-  static unsigned short edge_splits[MAX_VERTICES][MAX_EDGES_PER_VERTEX];
+  static struct {
+    unsigned short _new_face_vertices[MAX_VERTICES][MAX_FACES_PER_VERTEX];
+    unsigned short _edge_splits[MAX_VERTICES][MAX_EDGES_PER_VERTEX];
+    volatile unsigned char padding[UMP_CACHE_LINE_SZ];
+  } threads[THREADS];
+#define new_face_vertices threads[thread_ordinal]._new_face_vertices
+#define edge_splits threads[thread_ordinal]._edge_splits
 
   const ssepi one   = sse_piof1(1), two  = sse_piof1(2),
               three = sse_piof1(3), four = sse_piof1(4),
@@ -517,11 +581,15 @@ static void catmull_clark_subdivide(
       record_vertex_link(vertex_adjacency, i, edge_splits[i][k]);
     }
   }
+
+#undef edge_splits
+#undef new_face_vertices
 }
 
 static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
   const env_vmap_manifold_renderer* r, coord x0, coord z0,
-  unsigned char lod
+  unsigned char lod,
+  unsigned thread_ordinal
 ) {
   /*
     Producing the manifold data for the mhive is divided into three phases:
@@ -569,19 +637,40 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
     indexed by vertex index. Elements for each vertex are in no particular
     order; values of ~0 indicate an empty slot.
    */
-  static coord base_y[NVZ][NVX];
-  static ssepi vertices[MAX_VERTICES];
-  static float glvertices[MAX_VERTICES][3];
-  static unsigned short vertex_indices[NVZ][NVX][NVY];
-  static unsigned short vertex_adjacency[MAX_VERTICES][MAX_EDGES_PER_VERTEX];
-  static manifold_face faces[MAX_FACES];
-  static unsigned short triangulated_indices[MAX_FACES*6];
-  /* A bitset indicating whether each voxel in the column [z][x] has a graphic
-   * blob.
-   *
-   * This is rather dependent on ENV_VMAP_H being 32.
-   */
-  static unsigned has_graphic_blob[4+MHIVE_SZ][4+MHIVE_SZ];
+  static struct {
+    coord _base_y[NVZ][NVX];
+    ssepi _svertices[MAX_VERTICES];
+    float _glvertices[MAX_VERTICES][3];
+    unsigned short _vertex_indices[NVZ][NVX][NVY];
+    unsigned short _vertex_adjacency[MAX_VERTICES][MAX_EDGES_PER_VERTEX];
+    manifold_face _faces[MAX_FACES];
+    unsigned short _triangulated_indices[MAX_FACES*6];
+    /* A bitset indicating whether each voxel in the column [z][x] has a
+     * graphic blob.
+     *
+     * This is rather dependent on ENV_VMAP_H being 32.
+     */
+    unsigned _has_graphic_blob[4+MHIVE_SZ][4+MHIVE_SZ];
+
+    /* To track whether the data in glvertices has finished being sent to the
+     * GPU.
+     */
+    SDL_sem* not_busy;
+
+    render_env_vmap_manifolds_put_buffer_data_op _glm_op;
+
+    volatile unsigned char padding[UMP_CACHE_LINE_SZ];
+  } threads[THREADS];
+#define base_y threads[thread_ordinal]._base_y
+#define svertices threads[thread_ordinal]._svertices
+#define glvertices threads[thread_ordinal]._glvertices
+#define vertex_indices threads[thread_ordinal]._vertex_indices
+#define vertex_adjacency threads[thread_ordinal]._vertex_adjacency
+#define faces threads[thread_ordinal]._faces
+#define triangulated_indices threads[thread_ordinal]._triangulated_indices
+#define has_graphic_blob threads[thread_ordinal]._has_graphic_blob
+#define glm_op threads[thread_ordinal]._glm_op
+
   unsigned short num_vertices;
   unsigned short num_faces;
   unsigned num_triangulated_indices;
@@ -615,6 +704,14 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
   switch (0) {
   case 0:
   case ENV_VMAP_H == 8*sizeof(has_graphic_blob[0][0]):;
+  }
+
+  if (!threads[thread_ordinal].not_busy) {
+    threads[thread_ordinal].not_busy = SDL_CreateSemaphore(1);
+    if (!threads[thread_ordinal].not_busy)
+      errx(EX_SOFTWARE,
+           "Unable to create semaphore for manifold thread %d: %s",
+           thread_ordinal, SDL_GetError());
   }
 
   memset(base_y, ~0, sizeof(base_y));
@@ -729,7 +826,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
                * vertices so we don't lose FP precision. They'll be added back
                * in by the vertex shader.
                */
-              vertices[num_vertices] =
+              svertices[num_vertices] =
                 sse_piof((vcx<<lod) * TILE_SZ,
                          (vcy<<lod) * TILE_SZ + base_y[vcz+2][vcx+2],
                          (vcz<<lod) * TILE_SZ, 1);
@@ -764,10 +861,11 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
          num_vertices + num_edges + num_faces < MAX_VERTICES &&
          num_faces * 4 < MAX_FACES;
        ++num_subdivision_iterations) {
-    catmull_clark_subdivide(vertices, vertex_adjacency, faces,
+    catmull_clark_subdivide(svertices, vertex_adjacency, faces,
                             all_graphic_blobs,
                             num_vertices, num_faces,
-                            num_subdivision_iterations);
+                            num_subdivision_iterations,
+                            thread_ordinal);
     /* Each iteration creates:
      * - One vertex per face
      * - One vertex per edge
@@ -780,10 +878,17 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
     num_faces *= 4;
   }
 
+  /* Ensure that all the data from the prior run has been sent to the GPU
+   * before we start overwriting it.
+   */
+  if (SDL_SemWait(threads[thread_ordinal].not_busy))
+    errx(EX_SOFTWARE, "Failed to wait for semaphore on manifold thread %d: %s",
+         thread_ordinal, SDL_GetError());
+
   for (i = 0; i < num_vertices; ++i) {
-    glvertices[i][0] = SSE_VS(vertices[i], 0);
-    glvertices[i][1] = SSE_VS(vertices[i], 1);
-    glvertices[i][2] = SSE_VS(vertices[i], 2);
+    glvertices[i][0] = SSE_VS(svertices[i], 0);
+    glvertices[i][1] = SSE_VS(svertices[i], 1);
+    glvertices[i][2] = SSE_VS(svertices[i], 2);
   }
 
   num_graphic_blobs = 0;
@@ -799,7 +904,6 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
   mhive->base_coordinate[0] = x0 * TILE_SZ + r->base_coordinate[0];
   mhive->base_coordinate[1] = r->base_coordinate[1];
   mhive->base_coordinate[2] = z0 * TILE_SZ + r->base_coordinate[2];
-  glGenBuffers(2, mhive->buffers);
 
   op = 0;
   for (i = 0; i < lenof(graphic_blobs); ++i) {
@@ -825,31 +929,56 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
     }
   }
 
-  glBindBuffer(GL_ARRAY_BUFFER, mhive->buffers[0]);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mhive->buffers[1]);
-  glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(glvertices[0]),
-               glvertices, GL_STATIC_DRAW);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               num_triangulated_indices * sizeof(triangulated_indices[0]),
-               triangulated_indices, GL_STATIC_DRAW);
+  glm_op.buffers = mhive->buffers;
+  glm_op.vertex_data_size = num_vertices * sizeof(glvertices[0]);
+  glm_op.vertex_data = glvertices;
+  glm_op.index_data_size =
+    num_triangulated_indices * sizeof(triangulated_indices[0]);
+  glm_op.index_data = triangulated_indices;
+  glm_op.not_busy = threads[thread_ordinal].not_busy;
+  glm_do((void(*)(void*))render_env_vmap_manifolds_put_buffer_data, &glm_op);
   return mhive;
+#undef base_y
+#undef svertices
+#undef glvertices
+#undef vertex_indices
+#undef vertex_adjacency
+#undef faces
+#undef triangulated_indices
+#undef has_graphic_blob
+#undef glm_op
 }
 
-static void env_vmap_manifold_render_mhive_delete(
+static void env_vmap_manifold_render_mhive_delete_impl(
   env_vmap_manifold_render_mhive* this
 ) {
   glDeleteBuffers(2, this->buffers);
   free(this);
 }
 
-static void env_vmap_manifold_render_mhive_render(
-  const env_vmap_manifold_render_mhive*restrict mhive,
-  const rendering_context*restrict ctxt
+static void env_vmap_manifold_render_mhive_delete(
+  env_vmap_manifold_render_mhive* this
 ) {
+  glm_do((void(*)(void*))env_vmap_manifold_render_mhive_delete_impl, this);
+}
+
+typedef struct {
+  const env_vmap_manifold_render_mhive*restrict mhive;
+  const rendering_context*restrict ctxt;
+} env_vmap_manifold_render_mhive_render_op;
+
+static void env_vmap_manifold_render_mhive_render_impl(
+  env_vmap_manifold_render_mhive_render_op* op
+) {
+  const env_vmap_manifold_render_mhive*restrict mhive = op->mhive;
+  const rendering_context*restrict ctxt = op->ctxt;
+
   const rendering_context_invariant*restrict context = CTXTINV(ctxt);
   shader_manifold_uniform uniform;
   unsigned i;
   coord effective_camera;
+
+  free(op);
 
   uniform.torus_sz[0] = context->proj->torus_w;
   uniform.torus_sz[1] = context->proj->torus_h;
@@ -918,4 +1047,15 @@ static void env_vmap_manifold_render_mhive_render(
                    GL_UNSIGNED_SHORT,
                    (GLvoid*)(mhive->operations[i].offset * sizeof(unsigned short)));
   }
+}
+
+static void env_vmap_manifold_render_mhive_render(
+  const env_vmap_manifold_render_mhive*restrict mhive,
+  const rendering_context*restrict ctxt
+) {
+  env_vmap_manifold_render_mhive_render_op* op =
+    xmalloc(sizeof(env_vmap_manifold_render_mhive_render_op));
+  op->mhive = mhive;
+  op->ctxt = ctxt;
+  glm_do((void(*)(void*))env_vmap_manifold_render_mhive_render_impl, op);
 }
