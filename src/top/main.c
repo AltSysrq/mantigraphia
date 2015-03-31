@@ -383,7 +383,14 @@ static void start_render_thread(void) {
   if (!render_thread)
     errx(EX_SOFTWARE, "Unable to create rendering thread: %s",
          SDL_GetError());
+  /* SDL_DetachThread is not present in SDL 2.0.2, which is still the current
+   * version in Debian Sid (as of 2015-03-30).
+   *
+   * Not detaching merely means that the exit status will be leaked when the
+   * thread exits, which it never does, and that it cannot be awaited, which we
+   * never do, so just don't call it for now.
   SDL_DetachThread(render_thread);
+   */
 }
 
 static int render_thread_main(void* ignored) {
