@@ -265,9 +265,12 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   rendering_context_invariant context_inv;
   perspective* proj = &this->proj;
   canvas render_dst;
+  canvas after_paint_overlay;
 
   canvas_init_thin(&render_dst, dst->w / RENDER_SIZE_REDUCTION,
                    dst->h / RENDER_SIZE_REDUCTION);
+  canvas_init_thin(&after_paint_overlay,
+                   dst->w/PAINT_SIZE_REDUCTION, dst->h/PAINT_SIZE_REDUCTION);
 
   context_inv.proj = proj;
   context_inv.long_yrot = this->look.yrot;
@@ -294,6 +297,9 @@ static void cosine_world_predraw(cosine_world_state* this, canvas* dst) {
   perspective_init(proj, &render_dst, FOV);
 
   rendering_context_set(this->context, &context_inv);
+
+  if (!this->overlay)
+    this->overlay = paint_overlay_new(&after_paint_overlay);
 }
 
 static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
@@ -307,9 +313,6 @@ static void cosine_world_draw(cosine_world_state* this, canvas* dst) {
                    dst->w/RENDER_SIZE_REDUCTION, dst->h/RENDER_SIZE_REDUCTION);
   canvas_init_thin(&after_paint_overlay,
                    dst->w/PAINT_SIZE_REDUCTION, dst->h/PAINT_SIZE_REDUCTION);
-
-  if (!this->overlay)
-    this->overlay = paint_overlay_new(&after_paint_overlay);
 
   if (this->use_paint_overlay)
     paint_overlay_preprocess(this->overlay, this->context,

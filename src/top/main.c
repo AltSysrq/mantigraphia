@@ -40,6 +40,7 @@
 #include <SDL_image.h>
 #include <glew.h>
 
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -69,6 +70,10 @@
 static game_state* update(game_state*);
 static void draw(canvas*, game_state*, SDL_Window*);
 static int handle_input(game_state*);
+
+static void start_render_thread(void);
+static int render_thread_main(void*);
+static void invoke_draw_on_render_thread(canvas*, game_state*);
 
 /* Whether the multi-display configuration might be a Zaphod configuration. If
  * this is true, we need to try to force SDL to respect the environment and
@@ -257,6 +262,7 @@ int main(int argc, char** argv) {
   parchment_init();
   mouselook_init(screen);
   terrabuff_init();
+  start_render_thread();
 
   state = cosine_world_new(2 == argc? atoi(argv[1]) : 3);
 
@@ -303,16 +309,10 @@ static game_state* update(game_state* state) {
 static void draw(canvas* canv, game_state* state,
                  SDL_Window* screen) {
   (*state->predraw)(state, canv);
-  /* Todo: Run on separate thread */
-  (*state->draw)(state, canv);
-  /* Assume that any threads involved in drawing have already called
-   * glm_finish_thread(). While we *could* try to do that here, the fact that a
-   * thread might not have run (ie, due to impersonation) complicates matters a
-   * bit, and it also means that we'd have to wait for *all* threads to run the
-   * task, which as described in uMP, would cause occasional but substantial
-   * delays.
+  invoke_draw_on_render_thread(canv, state);
+  /* Process OpenGL commands until the rendering thread calls glm_done() and
+   * all the GL work itself is complete.
    */
-  glm_done();
   glm_main();
   SDL_GL_SwapWindow(screen);
 }
@@ -360,4 +360,85 @@ static int handle_input(game_state* state) {
   }
 
   return 0; /* continue running */
+}
+
+static SDL_Thread* render_thread;
+static SDL_cond* render_thread_cond;
+static SDL_mutex* render_thread_lock;
+/* Nulled when a rendering pass completes */
+static canvas* render_thread_target_canvas;
+static game_state* render_thread_game_state;
+
+static void start_render_thread(void) {
+  render_thread_cond = SDL_CreateCond();
+  if (!render_thread_cond)
+    errx(EX_SOFTWARE, "Unable to create rendering condition: %s",
+         SDL_GetError());
+  render_thread_lock = SDL_CreateMutex();
+  if (!render_thread_lock)
+    errx(EX_SOFTWARE, "Unable to create rendering lock: %s",
+         SDL_GetError());
+
+  render_thread = SDL_CreateThread(render_thread_main, "rendering", NULL);
+  if (!render_thread)
+    errx(EX_SOFTWARE, "Unable to create rendering thread: %s",
+         SDL_GetError());
+  SDL_DetachThread(render_thread);
+}
+
+static int render_thread_main(void* ignored) {
+  canvas* canv;
+  game_state* state;
+
+  for (;;) {
+    if (SDL_LockMutex(render_thread_lock))
+      errx(EX_SOFTWARE, "Failed to acquire rendering lock: %s",
+           SDL_GetError());
+
+    while (!render_thread_target_canvas) {
+      if (SDL_CondWait(render_thread_cond, render_thread_lock))
+        errx(EX_SOFTWARE, "Failed to wait on rendering condition: %s",
+             SDL_GetError());
+    }
+
+    canv = render_thread_target_canvas;
+    state = render_thread_game_state;
+    render_thread_target_canvas = NULL;
+    render_thread_game_state = NULL;
+    if (SDL_UnlockMutex(render_thread_lock))
+      errx(EX_SOFTWARE, "Failed to release rendering lock: %s",
+           SDL_GetError());
+
+    (*state->draw)(state, canv);
+    /* Assume that any threads involved in drawing have already called
+     * glm_finish_thread(). While we *could* try to do that here, the fact that
+     * a thread might not have run (ie, due to impersonation) complicates
+     * matters a bit, and it also means that we'd have to wait for *all*
+     * threads to run the task, which as described in uMP, would cause
+     * occasional but substantial delays.
+     */
+    glm_done();
+  }
+
+  /* unreachable */
+  return 0;
+}
+
+static void invoke_draw_on_render_thread(canvas* canv, game_state* state) {
+  if (SDL_LockMutex(render_thread_lock))
+    errx(EX_SOFTWARE, "Failed to acquire rendering lock: %s",
+         SDL_GetError());
+
+  assert(!render_thread_target_canvas);
+  assert(!render_thread_game_state);
+  render_thread_target_canvas = canv;
+  render_thread_game_state = state;
+
+  if (SDL_CondSignal(render_thread_cond))
+    errx(EX_SOFTWARE, "Failed to signal rendering condition: %s",
+         SDL_GetError());
+
+  if (SDL_UnlockMutex(render_thread_lock))
+    errx(EX_SOFTWARE, "Failed to release rendering lock: %s",
+         SDL_GetError());
 }
