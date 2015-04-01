@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013, 2014 Jason Lingle
+ * Copyright (c) 2013, 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,8 +86,9 @@ void terrain_tilemap_delete(terrain_tilemap* this) {
   free(this);
 }
 
-void terrain_tilemap_patch_next(terrain_tilemap* large, coord x, coord z) {
-  terrain_tilemap* small;
+static void terrain_tilemap_patch_shallow(
+  terrain_tilemap* small, const terrain_tilemap* large, coord x, coord z
+) {
   coord sx, sz;
   unsigned ox, oz, alt, strongest, loff, soff;
 
@@ -95,56 +96,65 @@ void terrain_tilemap_patch_next(terrain_tilemap* large, coord x, coord z) {
   x &= ~1u;
   z &= ~1u;
 
+  sx = x/2;
+  sz = z/2;
+  soff = terrain_tilemap_offset(small, sx, sz);
+
+  /* Select strongest element at each index for the combined value */
+  strongest = 256;
+  for (oz = 0; oz < 2; ++oz) {
+    for (ox = 0; ox < 2; ++ox) {
+      loff = terrain_tilemap_offset(large,
+                                    (x+ox) & (large->xmax-1),
+                                    (z+oz) & (large->zmax-1));
+      if (large->type[loff] < strongest) {
+        strongest = large->type[loff];
+        small->type[soff] = large->type[loff];
+        small->alt[soff] = large->alt[loff];
+      }
+    }
+  }
+
+  /* Terrain altitude is the maximum of the four.
+   * It's less mathematically correct, but generally has better effects given
+   * the way terrain is drawn.
+   */
+  alt = 0;
+  for (oz = 0; oz < 2; ++oz) {
+    for (ox = 0; ox < 2; ++ox) {
+      loff = terrain_tilemap_offset(large,
+                                    (x+ox) & (large->xmax-1),
+                                    (z+oz) & (large->zmax-1));
+      if (large->alt[loff] > alt)
+        alt = large->alt[loff];
+    }
+  }
+  small->alt[soff] = alt;
+}
+
+void terrain_tilemap_patch_next(terrain_tilemap* large, coord x, coord z) {
+  terrain_tilemap* small;
+
   while ((small = SLIST_NEXT(large, next))) {
-    sx = x/2;
-    sz = z/2;
-    soff = terrain_tilemap_offset(small, sx, sz);
-
-    /* Select strongest element at each index for the combined value */
-    strongest = 256;
-    for (oz = 0; oz < 2; ++oz) {
-      for (ox = 0; ox < 2; ++ox) {
-        loff = terrain_tilemap_offset(large,
-                                      (x+ox) & (large->xmax-1),
-                                      (z+oz) & (large->zmax-1));
-        if (large->type[loff] < strongest) {
-          strongest = large->type[loff];
-          small->type[soff] = large->type[loff];
-          small->alt[soff] = large->alt[loff];
-        }
-      }
-    }
-
-    /* Terrain altitude is the maximum of the four.
-     * It's less mathematically correct, but generally has better effects given
-     * the way terrain is drawn.
-     */
-    alt = 0;
-    for (oz = 0; oz < 2; ++oz) {
-      for (ox = 0; ox < 2; ++ox) {
-        loff = terrain_tilemap_offset(large,
-                                  (x+ox) & (large->xmax-1),
-                                  (z+oz) & (large->zmax-1));
-        if (large->alt[loff] > alt)
-          alt = large->alt[loff];
-      }
-    }
-    small->alt[soff] = alt;
+    terrain_tilemap_patch_shallow(small, large, x, z);
 
     /* Move to next level */
     large = small;
-    x = sx &~ 1;
-    z = sz &~ 1;
+    x /= 2;
+    z /= 2;
   }
 }
 
-void terrain_tilemap_calc_next(terrain_tilemap* this) {
+void terrain_tilemap_calc_next(terrain_tilemap* large) {
+  terrain_tilemap* small;
   coord x, z;
 
-  for (z = 0; z < this->zmax; z += 2) {
-    for (x = 0; x < this->xmax; x += 2) {
-      terrain_tilemap_patch_next(this, x, z);
-    }
+  while ((small = SLIST_NEXT(large, next))) {
+    for (z = 0; z < large->zmax; z += 2)
+      for (x = 0; x < large->xmax; x += 2)
+        terrain_tilemap_patch_shallow(small, large, x, z);
+
+    large = small;
   }
 }
 
