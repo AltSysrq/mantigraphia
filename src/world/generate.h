@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,9 @@
 #define WORLD_GENERATE_H_
 
 #include "terrain-tilemap.h"
+#include "env-vmap.h"
 
 void world_generate(terrain_tilemap*, unsigned seed);
+void world_add_shadow(terrain_tilemap*, const env_vmap*);
 
 #endif /* WORLD_GENERATE_H_ */

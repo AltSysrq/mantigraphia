@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013, 2014 Jason Lingle
+ * Copyright (c) 2013, 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,12 +33,14 @@
 #include <string.h>
 
 #include "../alloc.h"
+#include "../micromp.h"
 #include "../math/coords.h"
 #include "../math/rand.h"
 #include "../defs.h"
 #include "../micromp.h"
 #include "terrain-tilemap.h"
 #include "terrain.h"
+#include "env-vmap.h"
 #include "generate.h"
 
 static void initialise(terrain_tilemap*);
@@ -50,6 +52,10 @@ static void select_terrain(terrain_tilemap*, mersenne_twister*);
 static void create_path_to_from(terrain_tilemap*, mersenne_twister*,
                                 coord xto, coord zto,
                                 coord xfrom, coord zfrom);
+static void world_add_shadow_subregion(
+  terrain_tilemap*, const env_vmap*,
+  coord x0, coord z0, coord xs, coord zs,
+  coord xmask, coord zmask);
 
 void world_generate(terrain_tilemap* world, unsigned seed) {
   mersenne_twister twister;
@@ -334,3 +340,75 @@ static void create_path_to_from(terrain_tilemap* world, mersenne_twister* twiste
       world->type[i] = terrain_type_road << TERRAIN_SHADOW_BITS;
 }
 
+#define SHADOW_RADIUS 2
+#define SUBREGION_SIZE 128
+
+static void world_add_shadow_subregion(
+  terrain_tilemap* world, const env_vmap* vmap,
+  coord x0, coord z0, coord xs, coord zs,
+  coord xmask, coord zmask
+) {
+  unsigned char weight[zs+2*SHADOW_RADIUS][xs+2*SHADOW_RADIUS];
+  coord_offset xo, zo, xso, zso;
+  coord x, y, z;
+  unsigned shade;
+
+  memset(weight, 0, sizeof(weight));
+
+  for (zo = -SHADOW_RADIUS; zo < (signed)zs + SHADOW_RADIUS; ++zo) {
+    z = (z0 + zo) & zmask;
+    for (xo = -SHADOW_RADIUS; xo < (signed)xs + SHADOW_RADIUS; ++xo) {
+      x = (x0 + xo) & xmask;
+      for (y = 0; y < ENV_VMAP_H; ++y)
+        if (vmap->voxels[env_vmap_offset(vmap, x, y, z)])
+          ++weight[zo+SHADOW_RADIUS][xo+SHADOW_RADIUS];
+    }
+  }
+
+  for (zo = 0; zo < (signed)zs; ++zo) {
+    for (xo = 0; xo < (signed)xs; ++xo) {
+      shade = 0;
+
+      for (zso = -SHADOW_RADIUS; zso < SHADOW_RADIUS; ++zso)
+        for (xso = -SHADOW_RADIUS; xso < SHADOW_RADIUS; ++xso)
+          shade += weight[zo+zso+SHADOW_RADIUS][xo+xso+SHADOW_RADIUS] /
+            (1 + abs(zso) + abs(xso));
+
+      if (shade > 3) shade = 3;
+      world->type[terrain_tilemap_offset(
+          world, (x0 + xo) & xmask, (z0 + zo) & zmask)] |= shade;
+    }
+  }
+}
+
+static void world_add_shadow_impl(unsigned row, unsigned ignored);
+
+static terrain_tilemap* world_add_shadow_world;
+static const env_vmap* world_add_shadow_vmap;
+static ump_task world_add_shadow_task = {
+  world_add_shadow_impl,
+  0, /* set dynamically */
+  0 /* sync */
+};
+
+static void world_add_shadow_impl(unsigned row, unsigned ignored) {
+  terrain_tilemap* world = world_add_shadow_world;
+  const env_vmap* vmap = world_add_shadow_vmap;
+
+  unsigned col;
+
+  for (col = 0; col < world->xmax / SUBREGION_SIZE; ++col)
+    world_add_shadow_subregion(world, vmap,
+                               col * SUBREGION_SIZE, row * SUBREGION_SIZE,
+                               SUBREGION_SIZE, SUBREGION_SIZE,
+                               world->xmax - 1, world->zmax - 1);
+}
+
+void world_add_shadow(terrain_tilemap* world, const env_vmap* vmap) {
+  world_add_shadow_world = world;
+  world_add_shadow_vmap = vmap;
+  world_add_shadow_task.num_divisions = world->zmax / SUBREGION_SIZE;
+  ump_run_sync(&world_add_shadow_task);
+
+  terrain_tilemap_calc_next(world);
+}
