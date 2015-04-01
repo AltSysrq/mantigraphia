@@ -340,7 +340,7 @@ static void create_path_to_from(terrain_tilemap* world, mersenne_twister* twiste
       world->type[i] = terrain_type_road << TERRAIN_SHADOW_BITS;
 }
 
-#define SHADOW_RADIUS 2
+#define SHADOW_RADIUS 3
 #define SUBREGION_SIZE 128
 
 static void world_add_shadow_subregion(
@@ -371,9 +371,10 @@ static void world_add_shadow_subregion(
 
       for (zso = -SHADOW_RADIUS; zso < SHADOW_RADIUS; ++zso)
         for (xso = -SHADOW_RADIUS; xso < SHADOW_RADIUS; ++xso)
-          shade += weight[zo+zso+SHADOW_RADIUS][xo+xso+SHADOW_RADIUS] /
+          shade += 65536 * weight[zo+zso+SHADOW_RADIUS][xo+xso+SHADOW_RADIUS] /
             (1 + abs(zso) + abs(xso));
 
+      shade /= 65536;
       if (shade > 3) shade = 3;
       world->type[terrain_tilemap_offset(
           world, (x0 + xo) & xmask, (z0 + zo) & zmask)] |= shade;
