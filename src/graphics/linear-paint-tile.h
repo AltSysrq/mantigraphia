@@ -32,7 +32,7 @@
 
 /**
  * Renders into dst a tileable texture that looks like an area filled solid
- * with a paint brush (provided an appropriate pallet is given). The texture
+ * with a paint brush (provided an appropriate palette is given). The texture
  * needs to be small enough to reasonably fit on the stack, as proportional
  * stack space is required.
  *
@@ -43,15 +43,15 @@
  * @param streak The width of the moving average that generates "streaks"
  * @param bleed The height of the moving average that bleeds rows into each
  * other
- * @param pallet An array of colours to use to populate the initial texture,
+ * @param palette An array of colours to use to populate the initial texture,
  * which will then be averaged together in various ways.
- * @param pallet_size The number of entries in the pallet
+ * @param palette_size The number of entries in the palette
  */
 void linear_paint_tile_render(
   canvas_pixel* dst,
   unsigned w, unsigned h,
   unsigned streak, unsigned bleed,
-  const canvas_pixel* pallet,
-  unsigned pallet_size);
+  const canvas_pixel* palette,
+  unsigned palette_size);
 
 #endif /* GRAPHICS_LINEAR_PAINT_TILE_H_ */

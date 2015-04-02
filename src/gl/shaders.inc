@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 Jason Lingle
+ * Copyright (c) 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-shader_source(fbrush)
-shader_source(fpencil)
-shader_source(fpointcircle)
+shader_source(fflower)
+shader_source(fmanifold)
+shader_source(fpaint_overlay)
 shader_source(fpostprocess)
-shader_source(fsplotch)
-shader_source(fsplotch_poly)
+shader_source(fskybox)
 shader_source(fterrabuff)
-shader_source(vbrush)
+shader_source(fvoxel)
+shader_source(gen_vflower)
 shader_source(vgenerictc)
-shader_source(vgenericctc)
-shader_source(vpencil)
-shader_source(vsplotch)
-shader_source(vsplotch_poly)
+shader_source(gen_vmanifold)
+shader_source(vpaint_overlay)
 shader_source(vterrabuff)
+shader_source(vskybox)
+shader_source(gen_vvoxel)
 
 shader(fixed_texture) {
   fixed_function
@@ -65,48 +65,6 @@ shader(terrabuff) {
   attrib(1, side)
 }
 
-shader(brush) {
-  composed_of(fbrush, vbrush)
-  with_texture_coordinates
-  uniform(tex2d, tex)
-  uniform(tex2d, pallet)
-  uniform(float, decay)
-  uniform(float, noise)
-  attrib(2, info)
-}
-
-shader(splotch) {
-  composed_of(fsplotch, vsplotch)
-  attrib(3, parms)
-  uniform(tex2d, tex)
-  uniform(tex2d, pallet)
-  uniform(float, noise)
-}
-
-shader(poly_splotch) {
-  composed_of(fsplotch_poly, vsplotch_poly)
-  with_texture_coordinates
-  attrib(3, parms)
-  uniform(tex2d, tex)
-  uniform(tex2d, pallet)
-  uniform(float, noise)
-}
-
-shader(pointcircle) {
-  composed_of(fpointcircle, vgenericctc)
-  with_colour
-  no_uniforms
-}
-
-shader(pencil) {
-  composed_of(fpencil, vpencil)
-  with_colour
-  attrib(1, tcoord)
-  uniform(tex2d, thickness_tex)
-  uniform(float, line_thickness)
-  uniform(float, viewport_height)
-}
-
 shader(postprocess) {
   composed_of(fpostprocess, vgenerictc)
   with_texture_coordinates
@@ -114,4 +72,76 @@ shader(postprocess) {
   uniform(float, pocket_size_px)
   uniform(vec2, pocket_size_scr)
   uniform(vec2, px_offset)
+}
+
+shader(paint_overlay) {
+  composed_of(fpaint_overlay, vpaint_overlay)
+  uniform(tex2d, framebuffer)
+  uniform(tex2d, brush)
+  uniform(vec2, screen_size)
+  uniform(vec2, screen_off)
+  uniform(float, texture_freq)
+}
+
+shader(voxel) {
+  composed_of(fvoxel, gen_vvoxel)
+  with_texture_coordinates
+  uniform(vec2, torus_sz)
+  uniform(vec2, yrot)
+  uniform(vec2, rxrot)
+  uniform(float, zscale)
+  uniform(vec2, soff)
+  uniform(vec3, camera_integer)
+  uniform(vec3, camera_fractional)
+  uniform(tex2d, tex)
+  uniform(tex2d, control)
+  uniform(vec2, texture_scale_s)
+  uniform(vec2, texture_scale_t)
+}
+
+shader(skybox) {
+  composed_of(fskybox, vskybox)
+  uniform(vec2, screen_size)
+  uniform(float, fov)
+  uniform(vec2, yrot)
+  uniform(vec2, rxrot)
+  uniform(tex2d, clouds)
+  uniform(vec2, cloud_offset_1)
+  uniform(vec2, cloud_offset_2)
+  uniform(float, cloudiness)
+}
+
+shader(manifold) {
+  composed_of(fmanifold, gen_vmanifold)
+  uniform(vec2, torus_sz)
+  uniform(vec2, yrot)
+  uniform(vec2, rxrot)
+  uniform(float, zscale)
+  uniform(vec2, soff)
+  uniform(vec3, camera_integer)
+  uniform(vec3, camera_fractional)
+  uniform(float, noise_amplitude)
+  uniform(float, noise_bias)
+  uniform(tex2d, noisetex)
+  uniform(tex2d, palette)
+  uniform(float, palette_t)
+  uniform(vec2, noise_freq)
+}
+
+shader(flower) {
+  composed_of(fflower, gen_vflower)
+  with_colour
+  uniform(vec2, torus_sz)
+  uniform(vec2, yrot)
+  uniform(vec2, rxrot)
+  uniform(float, zscale)
+  uniform(vec2, soff)
+  uniform(vec3, camera_integer)
+  uniform(vec3, camera_fractional)
+  uniform(float, date)
+  uniform(float, inv_max_distance)
+  attrib(1, lifetime_centre)
+  attrib(1, lifetime_scale)
+  attrib(1, max_size)
+  attrib(2, corner_offset)
 }

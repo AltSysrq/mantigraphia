@@ -296,3 +296,15 @@ void glm_main(void) {
     free(entry);
   }
 }
+
+static void glm_do_clear(void* value) {
+  glClear(*(unsigned*)value);
+  free(value);
+}
+
+void glm_clear(unsigned value) {
+  unsigned* vp = xmalloc(sizeof(unsigned));
+
+  *vp = value;
+  glm_do(glm_do_clear, vp);
+}

@@ -28,8 +28,8 @@
 #ifndef RENDER_CONTEXT_H_
 #define RENDER_CONTEXT_H_
 
-#include "../coords.h"
-#include "../frac.h"
+#include "../math/coords.h"
+#include "../math/frac.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
 

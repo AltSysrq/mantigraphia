@@ -34,10 +34,10 @@
 
 #include <glew.h>
 
-#include "../coords.h"
+#include "../math/coords.h"
 #include "../alloc.h"
 #include "../defs.h"
-#include "../frac.h"
+#include "../math/frac.h"
 #include "../micromp.h"
 #include "../graphics/canvas.h"
 #include "../graphics/linear-paint-tile.h"
@@ -64,7 +64,7 @@ static void terrabuff_deactivate(void*);
 void terrabuff_init(void) {
   canvas* tmp;
 
-  static const canvas_pixel pallet[] = {
+  static const canvas_pixel palette[] = {
     argb(255,255,255,255),
     argb(255,64,64,64),
   };
@@ -73,10 +73,14 @@ void terrabuff_init(void) {
   tmp = canvas_new(TEXSZ, TEXSZ);
 
   linear_paint_tile_render(tmp->px, TEXSZ, TEXSZ,
-                           TEXSZ/4, 1,
-                           pallet, lenof(pallet));
+                           TEXSZ/4, 4,
+                           palette, lenof(palette));
   texture = canvas_to_texture(tmp, 0);
   glBindTexture(GL_TEXTURE_2D, texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
   /* Done with temporary */
   canvas_delete(tmp);
@@ -229,8 +233,37 @@ void terrabuff_merge(terrabuff*restrict this, const terrabuff*restrict that) {
 
   /* Merge shared scans */
   for (i = 0; i < this->scan && i < that->scan; ++i) {
-    assert(this->boundaries[i].high == that->boundaries[i].low);
     off = i * this->scap;
+
+    /* In theory,
+     * assert(this->boundaries[i].high == that->boundaries[i].low);
+     * should always hold.
+     *
+     * However, in extreme cases, it does not, mainly due to the non-cartesion
+     * space projection we use. When this case does come up, just patch it into
+     * sane conditions and carry on.
+     */
+    if (this->boundaries[i].high != that->boundaries[i].low) {
+      if (this->boundaries[i].high == this->boundaries[i].low) {
+        /* This slice contains nothing anyway, just move it over */
+        this->boundaries[i].high = this->boundaries[i].low =
+          that->boundaries[i].low;
+      } else if (this->boundaries[i].high < that->boundaries[i].low) {
+        /* Copy the last element from this's points to fill the hole */
+        while (this->boundaries[i].high < that->boundaries[i].low) {
+          this->points[off + this->boundaries[i].high] =
+            this->points[off + this->boundaries[i].high-1];
+          ++this->boundaries[i].high;
+        }
+      } else /* this->boundaries[i].high > that->boundaries[i].low */ {
+        /* Knock away the duplicate points in that. Make sure to advance it's
+         * own high if this ends up removing everything.
+         */
+        that->boundaries[i].low = this->boundaries[i].high;
+        if (that->boundaries[i].low > that->boundaries[i].high)
+          that->boundaries[i].high = that->boundaries[i].low;
+      }
+    }
 
     /* Copy slices in that higher than in this */
     memcpy(this->points + off + this->boundaries[i].high,
@@ -416,6 +449,11 @@ static void interp_to_gl(void* ignored) {
   glTexImage2D(GL_TEXTURE_2D, 0, GL_R16,
                terrabuff_dst->w, terrabuff_this->scan, 0,
                GL_RED, GL_UNSIGNED_SHORT, terrabuff_interp);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 }
 
 static void render_rectangle_between(glm_slab* slab,
@@ -483,16 +521,8 @@ static ump_task terrabuff_interpolate_task = {
 
 static void terrabuff_activate(void* ignored) {
   glBindTexture(GL_TEXTURE_2D, hmap);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glActiveTexture(GL_TEXTURE0);
   glDepthFunc(GL_ALWAYS);
   shader_terrabuff_activate(&terrabuff_uniform);
@@ -525,7 +555,7 @@ void terrabuff_render(canvas*restrict dst,
   terrabuff_uniform.hmap = 0;
   terrabuff_uniform.tex = 1;
   terrabuff_uniform.ty_below = 1.0f / this->scan;
-  terrabuff_uniform.line_thickness = dst->w / 512;
+  terrabuff_uniform.line_thickness = dst->w / 386;
   terrabuff_uniform.screen_size[0] = dst->w;
   terrabuff_uniform.screen_size[1] = dst->h;
   terrabuff_uniform.xoff = (-(signed)dst->w) * 314159 / 200000 *
@@ -553,20 +583,6 @@ void terrabuff_render(canvas*restrict dst,
 
     lower = upper;
     upper += dst->pitch;
-  }
-
-  /* Add line over final scan */
-  scan = this->scan - 1;
-  for (i = this->boundaries[scan].low;
-       i+1 < this->boundaries[scan].high; ++i) {
-    render_rectangle_between(
-      slab,
-      this->points + scan*this->scap + i,
-      this->points + scan*this->scap + i + 1,
-      /* The texture is clamped, so we can just pass an arbitrarily large value
-       * to ensure that the shader sees only the top.
-       */
-      lower, lower, dst->w, 2.0f);
   }
 
   glm_finish_thread();

@@ -41,135 +41,92 @@
 #include "../micromp.h"
 #include "../gl/marshal.h"
 #include "../gl/shaders.h"
+#include "../gl/auxbuff.h"
 #include "canvas.h"
 #include "parchment.h"
+#include "../defs.h"
 
-#define PARCHMENT_DIM 2048
-#define PARCHMENT_MASK (PARCHMENT_DIM-1)
-#define PARCHMENT_FILE "share/extern/parchment.jpg"
-
-static GLuint texture;
 static GLuint postprocess_tex;
-static glm_slab_group* glmsg;
-static void parchment_activate(void*);
+static GLuint vbo;
+static unsigned postprocess_tex_dim[2];
+static int postprocess_tex_mode;
 
 struct parchment_s {
   unsigned tx, ty;
+  int interpolate_postprocess;
 };
 
 void parchment_init(void) {
-  SDL_Surface* orig_surf, * new_surf;
-  canvas canv;
-
-  orig_surf = IMG_Load(PARCHMENT_FILE);
-  if (!orig_surf)
-    errx(EX_DATAERR, "File " PARCHMENT_FILE " is could not be loaded: %s",
-         IMG_GetError());
-
-  if (PARCHMENT_DIM != orig_surf->w || PARCHMENT_DIM != orig_surf->h)
-    errx(EX_DATAERR, "File " PARCHMENT_FILE " is of the wrong dimensions.");
-
-  new_surf = SDL_ConvertSurface(orig_surf, screen_pixel_format, 0);
-  if (!new_surf)
-    errx(EX_SOFTWARE, "Could not convert parchment surface: %s",
-         SDL_GetError());
-
-  /* new_surf is now the same format as a canvas, so we can directly point to
-   * the data inside the surface.
-   */
-  canv.w = PARCHMENT_DIM;
-  canv.h = PARCHMENT_DIM;
-  canv.pitch = PARCHMENT_DIM;
-  canv.logical_width = PARCHMENT_DIM;
-  canv.ox = canv.oy = 0;
-  canv.px = (canvas_pixel*)new_surf->pixels;
-  canv.depth = NULL;
-
-  texture = canvas_to_texture(&canv, 0);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-  SDL_FreeSurface(new_surf);
-  SDL_FreeSurface(orig_surf);
-
-  glmsg = glm_slab_group_new(parchment_activate, NULL, NULL,
-                             shader_fixed_texture_configure_vbo,
-                             sizeof(shader_fixed_texture_vertex));
-
   glGenTextures(1, &postprocess_tex);
+  glGenBuffers(1, &vbo);
 }
 
 parchment* parchment_new(void) {
   parchment* this = xmalloc(sizeof(parchment));
   this->tx = this->ty = 0;
+  this->interpolate_postprocess = 0;
   return this;
+}
+
+int parchment_get_interpolate_postprocess(const parchment* this) {
+  return this->interpolate_postprocess;
+}
+
+void parchment_set_interpolate_postprocess(parchment* this, int enabled) {
+  this->interpolate_postprocess = enabled;
+  /* Force resetting the texture's properties */
+  postprocess_tex_dim[0] = 0;
+  postprocess_tex_dim[1] = 0;
 }
 
 void parchment_delete(parchment* this) {
   free(this);
 }
 
-static void parchment_activate(void* ignore) {
-  glBindTexture(GL_TEXTURE_2D, texture);
-  shader_fixed_texture_activate(NULL);
-}
-
-void parchment_draw(canvas* dst, const parchment* this) {
-  shader_fixed_texture_vertex* vertices;
-  unsigned short* indices, base;
-  coord_offset x, y, x0, y0;
-  glm_slab* slab = glm_slab_get(glmsg);
-
-  x0 = this->tx / 1024 & PARCHMENT_MASK;
-  if (x0 > 0) x0 -= PARCHMENT_DIM;
-  y0 = this->ty / 1024 & PARCHMENT_MASK;
-  if (y0 > 0) y0 -= PARCHMENT_DIM;
-
-  for (y = y0; y < (signed)dst->h; y += PARCHMENT_DIM) {
-    for (x = x0; x < (signed)dst->w; x += PARCHMENT_DIM) {
-      base = GLM_ALLOC(&vertices, &indices, slab, 4, 6);
-      vertices[0].v[0] = x;
-      vertices[0].v[1] = y;
-      vertices[0].v[2] = 4095*METRE;
-      vertices[1].v[0] = x + PARCHMENT_DIM;
-      vertices[1].v[1] = y;
-      vertices[1].v[2] = 4095*METRE;
-      vertices[2].v[0] = x;
-      vertices[2].v[1] = y + PARCHMENT_DIM;
-      vertices[2].v[2] = 4095*METRE;
-      vertices[3].v[0] = x + PARCHMENT_DIM;
-      vertices[3].v[1] = y + PARCHMENT_DIM;
-      vertices[3].v[2] = 4095*METRE;
-      vertices[0].tc[0] = 0;
-      vertices[0].tc[1] = 0;
-      vertices[1].tc[0] = 1;
-      vertices[1].tc[1] = 0;
-      vertices[2].tc[0] = 0;
-      vertices[2].tc[1] = 1;
-      vertices[3].tc[0] = 1;
-      vertices[3].tc[1] = 1;
-      indices[0] = base + 0;
-      indices[1] = base + 1;
-      indices[2] = base + 2;
-      indices[3] = base + 1;
-      indices[4] = base + 2;
-      indices[5] = base + 3;
-    }
+static void parchment_do_preprocess(const canvas* selection) {
+  if (selection->w != postprocess_tex_dim[0] ||
+      selection->h != postprocess_tex_dim[1]) {
+    glBindTexture(GL_TEXTURE_2D, postprocess_tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                 selection->w, selection->h, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, postprocess_tex_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, postprocess_tex_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    postprocess_tex_dim[0] = selection->w;
+    postprocess_tex_dim[1] = selection->h;
   }
 
-  glm_finish_thread();
+  auxbuff_target_immediate(postprocess_tex, selection->w, selection->h);
+}
+
+void parchment_preprocess(const parchment* this,
+                          const canvas* selection) {
+  postprocess_tex_mode = (this->interpolate_postprocess? GL_LINEAR : GL_NEAREST);
+
+  glm_do((void(*)(void*))parchment_do_preprocess, (void*)selection);
 }
 
 struct parchment_postprocess {
   const parchment* this;
-  const canvas* canv;
+  const canvas* canv, * selection;
 };
 
 static void parchment_do_postprocess(struct parchment_postprocess* d) {
   shader_postprocess_uniform uniform;
+
+  shader_postprocess_vertex vertices[] = {
+    { { d->canv->w, 0.0f       }, { 1.0f, 1.0f } },
+    { { 0.0f,       0.0f       }, { 0.0f, 1.0f } },
+    { { d->canv->w, d->canv->h }, { 1.0f, 0.0f } },
+    { { 0.0f,       d->canv->h }, { 0.0f, 0.0f } },
+  };
+
+  glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT);
+  glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
+
   uniform.framebuffer = 0;
   /* We want these to be integer divisons so that the result is an integer, and
    * the effect remains sharp (ie, to the pixel).
@@ -181,33 +138,27 @@ static void parchment_do_postprocess(struct parchment_postprocess* d) {
   uniform.pocket_size_scr[1] = uniform.pocket_size_px / (float)d->canv->h;
 
   glBindTexture(GL_TEXTURE_2D, postprocess_tex);
-  glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, d->canv->w, d->canv->h, 0);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
   shader_postprocess_activate(&uniform);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
+               GL_STREAM_DRAW);
   shader_postprocess_configure_vbo();
 
-  glBegin(GL_QUADS);
-  glVertex2f(0.0f, 0.0f);
-  glTexCoord2f(1.0f, 1.0f);
-  glVertex2f(d->canv->w, 0.0f);
-  glTexCoord2f(1.0f, 0.0f);
-  glVertex2f(d->canv->w, d->canv->h);
-  glTexCoord2f(0.0f, 0.0f);
-  glVertex2f(0.0f, d->canv->h);
-  glTexCoord2f(0.0f, 1.0f);
-  glEnd();
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, lenof(vertices));
+
+  glPopAttrib();
 
   free(d);
 }
 
-void parchment_postprocess(const parchment* this, const canvas* canv) {
+void parchment_postprocess(const parchment* this, const canvas* canv,
+                           const canvas* selection) {
   struct parchment_postprocess* d =
     xmalloc(sizeof(struct parchment_postprocess));
   d->this = this;
   d->canv = canv;
+  d->selection = selection;
 
   glm_do((void(*)(void*))parchment_do_postprocess, d);
 }

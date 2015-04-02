@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013, 2014 Jason Lingle
+ * Copyright (c) 2013, 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,26 +33,31 @@
 #include <string.h>
 
 #include "../alloc.h"
-#include "../coords.h"
-#include "../rand.h"
+#include "../micromp.h"
+#include "../math/coords.h"
+#include "../math/rand.h"
 #include "../defs.h"
 #include "../micromp.h"
-#include "basic-world.h"
+#include "terrain-tilemap.h"
 #include "terrain.h"
-#include "grass-props.h"
+#include "env-vmap.h"
 #include "generate.h"
 
-static void initialise(basic_world*);
-static void randomise(basic_world*, signed, mersenne_twister*);
-static void rmp_up(basic_world* large, const basic_world* small,
+static void initialise(terrain_tilemap*);
+static void randomise(terrain_tilemap*, signed, mersenne_twister*);
+static void rmp_up(terrain_tilemap* large, const terrain_tilemap* small,
                    signed level, mersenne_twister*);
-static void generate_level(basic_world*, signed level, mersenne_twister*);
-static void select_terrain(basic_world*, mersenne_twister*);
-static void create_path_to_from(basic_world*, mersenne_twister*,
+static void generate_level(terrain_tilemap*, signed level, mersenne_twister*);
+static void select_terrain(terrain_tilemap*, mersenne_twister*);
+static void create_path_to_from(terrain_tilemap*, mersenne_twister*,
                                 coord xto, coord zto,
                                 coord xfrom, coord zfrom);
+static void world_add_shadow_subregion(
+  terrain_tilemap*, const env_vmap*,
+  coord x0, coord z0, coord xs, coord zs,
+  coord xmask, coord zmask);
 
-void world_generate(basic_world* world, unsigned seed) {
+void world_generate(terrain_tilemap* world, unsigned seed) {
   mersenne_twister twister;
   coord xs[5], zs[5], i, j;
 
@@ -73,17 +78,15 @@ void world_generate(basic_world* world, unsigned seed) {
         create_path_to_from(world, &twister, xs[i], zs[i], xs[j], zs[j]);
       else
         create_path_to_from(world, &twister, xs[j], zs[j], xs[i], zs[i]);
-
-  basic_world_calc_next(world);
 }
 
-static int above_perlin_threshold(const basic_world* world) {
+static int above_perlin_threshold(const terrain_tilemap* world) {
   return world->xmax > 512 && world->zmax > 512;
 }
 
-static void generate_level(basic_world* world, signed level,
+static void generate_level(terrain_tilemap* world, signed level,
                            mersenne_twister* twister) {
-  basic_world* next;
+  terrain_tilemap* next;
 
   printf("Generating level %d\n", level);
 
@@ -97,17 +100,16 @@ static void generate_level(basic_world* world, signed level,
   }
 }
 
-static void initialise(basic_world* world) {
+static void initialise(terrain_tilemap* world) {
   unsigned i, max;
 
   max = world->xmax * world->zmax;
   for (i = 0; i < max; ++i) {
-    world->tiles[i].elts[0].type = terrain_type_grass << TERRAIN_SHADOW_BITS;
-    world->tiles[i].elts[0].thickness = 0;
+    world->type[i] = terrain_type_grass << TERRAIN_SHADOW_BITS;
   }
 }
 
-static void randomise(basic_world* world,
+static void randomise(terrain_tilemap* world,
                       signed level,
                       mersenne_twister* twister) {
   unsigned* hmap, hmap_size, i, freq, amp, altitude_reduction;
@@ -130,17 +132,16 @@ static void randomise(basic_world* world,
   initialise(world);
   for (i = 0; i < world->xmax * world->zmax; ++i)
     if (hmap[i] < altitude_reduction)
-      world->tiles[i].elts[0].altitude = 0;
+      world->alt[i] = 0;
     else
-      world->tiles[i].elts[0].altitude = hmap[i] - altitude_reduction;
+      world->alt[i] = hmap[i] - altitude_reduction;
 
   free(hmap);
 }
 
-static inline signed altitude(const basic_world* world,
+static inline signed altitude(const terrain_tilemap* world,
                               coord x, coord z) {
-  signed s = world->tiles[basic_world_offset(world, x, z)]
-    .elts[0].altitude;
+  signed s = world->alt[terrain_tilemap_offset(world, x, z)];
 
   return s & 0xFFFF;
 }
@@ -156,8 +157,8 @@ static inline unsigned short perturb(signed base_altitude,
   return base_altitude;
 }
 
-static void rmp_up(basic_world* large,
-                   const basic_world* small,
+static void rmp_up(terrain_tilemap* large,
+                   const terrain_tilemap* small,
                    signed level,
                    mersenne_twister* twister) {
   coord sx0, sz0, lx0, lz0, sx1, sz1, lx1, lz1;
@@ -178,48 +179,47 @@ static void rmp_up(basic_world* large,
       sa11 = altitude(small, sx1, sz1);
 
       /* Exactly-matching points never change */
-      large->tiles[basic_world_offset(large, lx0, lz0)]
-        .elts[0].altitude = perturb(sa00, level, twister);
+      large->alt[terrain_tilemap_offset(large, lx0, lz0)] =
+        perturb(sa00, level, twister);
 
       /* Other points get perturbed averages of what they are in-between. */
-      large->tiles[basic_world_offset(large, lx0, lz1)]
-        .elts[0].altitude = perturb((sa00+sa01)/2, level, twister);
-      large->tiles[basic_world_offset(large, lx1, lz0)]
-        .elts[0].altitude = perturb((sa00+sa10)/2, level, twister);
-      large->tiles[basic_world_offset(large, lx1, lz1)]
-        .elts[0].altitude = perturb((sa00+sa01+sa10+sa11)/4, level, twister);
+      large->alt[terrain_tilemap_offset(large, lx0, lz1)] =
+        perturb((sa00+sa01)/2, level, twister);
+      large->alt[terrain_tilemap_offset(large, lx1, lz0)] =
+        perturb((sa00+sa10)/2, level, twister);
+      large->alt[terrain_tilemap_offset(large, lx1, lz1)] =
+        perturb((sa00+sa01+sa10+sa11)/4, level, twister);
     }
   }
 }
 
-static void select_terrain(basic_world* world, mersenne_twister* twister) {
+static void select_terrain(terrain_tilemap* world, mersenne_twister* twister) {
   unsigned x, z, i, dx, dz;
   coord_offset miny, maxy, y;
 
   for (z = 0; z < world->zmax; ++z) {
     for (x = 0; x < world->xmax; ++x) {
-      i = basic_world_offset(world, x, z);
+      i = terrain_tilemap_offset(world, x, z);
 
-      if (world->tiles[i].elts[0].altitude <= 2*METRE / TILE_YMUL) {
-        world->tiles[i].elts[0].type =
+      if (world->alt[i] <= 2*METRE / TILE_YMUL) {
+        world->type[i] =
           terrain_type_water << TERRAIN_SHADOW_BITS;
-      } else if (world->tiles[i].elts[0].altitude <= 4*METRE / TILE_YMUL) {
-        world->tiles[i].elts[0].type =
+      } else if (world->alt[i] <= 4*METRE / TILE_YMUL) {
+        world->type[i] =
           terrain_type_gravel << TERRAIN_SHADOW_BITS;
       /* Sometimes patches of snow, depending on altitude */
       } else if (((signed)(twist(twister)/2)) <
-          world->tiles[i].elts[0].altitude * TILE_YMUL) {
-        world->tiles[i].elts[0].type = terrain_type_snow << TERRAIN_SHADOW_BITS;
+          world->alt[i] * TILE_YMUL) {
+        world->type[i] = terrain_type_snow << TERRAIN_SHADOW_BITS;
       } else {
         /* Stone if max dy*2 > dx, grass otherwise */
         miny = 32767 * TILE_YMUL;
         maxy = 0;
         for (dz = 0; dz < 2; ++dz) {
           for (dx = 0; dx < 2; ++dx) {
-            y = world->tiles[basic_world_offset(world,
-                                                (x+dx) & (world->xmax-1),
-                                                (z+dz) & (world->zmax-1))]
-              .elts[0].altitude * TILE_YMUL;
+            y = world->alt[terrain_tilemap_offset(
+                world, (x+dx) & (world->xmax-1), (z+dz) & (world->zmax-1))]
+              * TILE_YMUL;
             if (y > maxy)
               maxy = y;
             if (y < miny)
@@ -228,13 +228,13 @@ static void select_terrain(basic_world* world, mersenne_twister* twister) {
         }
 
         if (maxy - miny > TILE_SZ/2)
-          world->tiles[i].elts[0].type =
+          world->type[i] =
             terrain_type_stone << TERRAIN_SHADOW_BITS;
         else if (twist(twister) & 7)
-          world->tiles[i].elts[0].type =
+          world->type[i] =
             terrain_type_bare_grass << TERRAIN_SHADOW_BITS;
         else
-          world->tiles[i].elts[0].type =
+          world->type[i] =
             terrain_type_grass << TERRAIN_SHADOW_BITS;
       }
     }
@@ -242,7 +242,7 @@ static void select_terrain(basic_world* world, mersenne_twister* twister) {
 }
 
 #define PATH_WIDTH 3
-static void create_path_to_from(basic_world* world, mersenne_twister* twister,
+static void create_path_to_from(terrain_tilemap* world, mersenne_twister* twister,
                                 coord xto, coord zto,
                                 coord xfrom, coord zfrom) {
   const vc3 to = { xto, 0, zto };
@@ -285,15 +285,13 @@ static void create_path_to_from(basic_world* world, mersenne_twister* twister,
            * distance apart, or even constantly intersecting each other.
            */
           if (terrain_type_road ==
-              world->tiles[basic_world_offset(world, curr[0], curr[2])]
-              .elts[0].type >> TERRAIN_SHADOW_BITS) {
+              world->type[terrain_tilemap_offset(world, curr[0], curr[2])]
+                  >> TERRAIN_SHADOW_BITS) {
             this_delta_y = -1;
           } else {
             this_delta_y = abs(
-              world->tiles[basic_world_offset(world, curr[0], curr[2])]
-              .elts[0].altitude -
-              world->tiles[basic_world_offset(world, here[0], here[2])]
-              .elts[0].altitude);
+              world->alt[terrain_tilemap_offset(world, curr[0], curr[2])] -
+              world->alt[terrain_tilemap_offset(world, here[0], here[2])]);
             this_delta_y /= fisqrt(ox*ox + oz*oz);
           }
 
@@ -311,8 +309,8 @@ static void create_path_to_from(basic_world* world, mersenne_twister* twister,
       for (ox = -PATH_WIDTH; ox < PATH_WIDTH; ++ox) {
         curr[0] = (here[0] + ox) & (world->xmax-1);
         curr[2] = (here[2] + oz) & (world->zmax-1);
-        switch (world->tiles[basic_world_offset(world, curr[0], curr[2])]
-                .elts[0].type >> TERRAIN_SHADOW_BITS) {
+        switch (world->type[terrain_tilemap_offset(world, curr[0], curr[2])]
+                    >> TERRAIN_SHADOW_BITS) {
         case terrain_type_water:
         case terrain_type_gravel:
         case terrain_type_stone:
@@ -326,8 +324,8 @@ static void create_path_to_from(basic_world* world, mersenne_twister* twister,
           /* Don't write a road immediately so that we won't detect the path we
            * are currently creating as if it were one to join with.
            */
-          world->tiles[basic_world_offset(world, curr[0], curr[2])]
-            .elts[0].type = TERRAIN_TYPE_PLACEHOLDER << TERRAIN_SHADOW_BITS;
+          world->type[terrain_tilemap_offset(world, curr[0], curr[2])] =
+            TERRAIN_TYPE_PLACEHOLDER << TERRAIN_SHADOW_BITS;
         }
       }
     }
@@ -336,176 +334,78 @@ static void create_path_to_from(basic_world* world, mersenne_twister* twister,
   /* Convert placeholders to actual roads */
   for (i = 0; i < world->xmax * world->zmax; ++i)
     if (TERRAIN_TYPE_PLACEHOLDER ==
-        world->tiles[i].elts[0].type >> TERRAIN_SHADOW_BITS)
-      world->tiles[i].elts[0].type = terrain_type_road << TERRAIN_SHADOW_BITS;
+        world->type[i] >> TERRAIN_SHADOW_BITS)
+      world->type[i] = terrain_type_road << TERRAIN_SHADOW_BITS;
 }
 
-static unsigned* seasonal_flower_distributions[NUM_GRASS_SEASONAL_FLOWER_TYPES];
-static mersenne_twister prop_generation_twisters[64];
-static world_prop* props_task_dst;
-static const basic_world* props_task_world;
-static unsigned props_task_count;
-static void grass_generate_segment(unsigned,unsigned);
-static ump_task grass_generate_task = {
-  grass_generate_segment, 64, 0
+#define SHADOW_RADIUS 3
+#define SUBREGION_SIZE 128
+
+static void world_add_shadow_subregion(
+  terrain_tilemap* world, const env_vmap* vmap,
+  coord x0, coord z0, coord xs, coord zs,
+  coord xmask, coord zmask
+) {
+  unsigned char weight[zs+2*SHADOW_RADIUS][xs+2*SHADOW_RADIUS];
+  coord_offset xo, zo, xso, zso;
+  coord x, y, z;
+  unsigned shade;
+
+  memset(weight, 0, sizeof(weight));
+
+  for (zo = -SHADOW_RADIUS; zo < (signed)zs + SHADOW_RADIUS; ++zo) {
+    z = (z0 + zo) & zmask;
+    for (xo = -SHADOW_RADIUS; xo < (signed)xs + SHADOW_RADIUS; ++xo) {
+      x = (x0 + xo) & xmask;
+      for (y = 0; y < ENV_VMAP_H; ++y)
+        if (vmap->voxels[env_vmap_offset(vmap, x, y, z)])
+          ++weight[zo+SHADOW_RADIUS][xo+SHADOW_RADIUS];
+    }
+  }
+
+  for (zo = 0; zo < (signed)zs; ++zo) {
+    for (xo = 0; xo < (signed)xs; ++xo) {
+      shade = 0;
+
+      for (zso = -SHADOW_RADIUS; zso < SHADOW_RADIUS; ++zso)
+        for (xso = -SHADOW_RADIUS; xso < SHADOW_RADIUS; ++xso)
+          shade += 65536 * weight[zo+zso+SHADOW_RADIUS][xo+xso+SHADOW_RADIUS] /
+            (1 + abs(zso) + abs(xso));
+
+      shade /= 65536;
+      if (shade > 3) shade = 3;
+      world->type[terrain_tilemap_offset(
+          world, (x0 + xo) & xmask, (z0 + zo) & zmask)] |= shade;
+    }
+  }
+}
+
+static void world_add_shadow_impl(unsigned row, unsigned ignored);
+
+static terrain_tilemap* world_add_shadow_world;
+static const env_vmap* world_add_shadow_vmap;
+static ump_task world_add_shadow_task = {
+  world_add_shadow_impl,
+  0, /* set dynamically */
+  0 /* sync */
 };
 
-void grass_generate(world_prop* props, unsigned count,
-                    const basic_world* world, unsigned seed) {
-  unsigned i;
+static void world_add_shadow_impl(unsigned row, unsigned ignored) {
+  terrain_tilemap* world = world_add_shadow_world;
+  const env_vmap* vmap = world_add_shadow_vmap;
 
-  for (i = 0; i < 64; ++i)
-    twister_seed(prop_generation_twisters+i, lcgrand(&seed));
+  unsigned col;
 
-  seasonal_flower_distributions[0] = zxmalloc(
-    NUM_GRASS_SEASONAL_FLOWER_TYPES * sizeof(unsigned) *
-    world->xmax * world->zmax);
-  for (i = 0; i < NUM_GRASS_SEASONAL_FLOWER_TYPES; ++i) {
-    seasonal_flower_distributions[i] =
-      seasonal_flower_distributions[0] +
-      i * world->xmax * world->zmax;
-
-    perlin_noise(seasonal_flower_distributions[i], world->xmax, world->zmax,
-                 world->xmax / 64, 256, twist(prop_generation_twisters));
-    perlin_noise(seasonal_flower_distributions[i], world->xmax, world->zmax,
-                 world->xmax / 32, 96, twist(prop_generation_twisters));
-    perlin_noise(seasonal_flower_distributions[i], world->xmax, world->zmax,
-                 world->xmax / 24, 16, twist(prop_generation_twisters));
-  }
-
-  props_task_dst = props;
-  props_task_world = world;
-  props_task_count = count;
-  ump_run_sync(&grass_generate_task);
-
-  free(seasonal_flower_distributions[0]);
+  for (col = 0; col < world->xmax / SUBREGION_SIZE; ++col)
+    world_add_shadow_subregion(world, vmap,
+                               col * SUBREGION_SIZE, row * SUBREGION_SIZE,
+                               SUBREGION_SIZE, SUBREGION_SIZE,
+                               world->xmax - 1, world->zmax - 1);
 }
 
-static void grass_generate_segment(unsigned ix, unsigned num_segments) {
-  unsigned i, j, max;
-  coord x, z, wx, wz;
-  mersenne_twister* twister = prop_generation_twisters + ix;
-  world_prop* props = props_task_dst;
-  const basic_world* world = props_task_world;
-  const unsigned count = props_task_count;
-
-  for (i = ix * count / num_segments; i < (ix+1) * count / num_segments; ++i) {
-    do {
-      x = twist(twister) & (world->xmax*TILE_SZ - 1);
-      z = twist(twister) & (world->zmax*TILE_SZ - 1);
-      wx = x / TILE_SZ;
-      wz = z / TILE_SZ;
-
-      /* Can only place grass in non-bare grass tiles */
-    } while (terrain_type_grass !=
-             world->tiles[basic_world_offset(world, wx, wz)].elts[0].type
-             >> TERRAIN_SHADOW_BITS);
-
-    props[i].x = x;
-    props[i].z = z;
-    /* 20% at random (uniform distribution) are wildflowers */
-    props[i].type = 1 + twist(twister) % NUM_GRASS_WILDFLOWER_TYPES;
-    if (twist(twister) % 5) {
-      /* Otherwise, the type is the one with the greatest distribution value in
-       * this tile
-       */
-      max = 0;
-      for (j = 0; j < NUM_GRASS_SEASONAL_FLOWER_TYPES; ++j) {
-        if (seasonal_flower_distributions[j][
-              wx + wz*world->xmax] > max) {
-          props[i].type = 1 + NUM_GRASS_WILDFLOWER_TYPES + j;
-          max = seasonal_flower_distributions[j][wx + wz*world->xmax];
-        }
-      }
-    }
-
-    props[i].variant = twist(twister);
-    props[i].yrot = twist(twister);
-  }
-}
-
-static int may_place_tree_at(const basic_world* world,
-                             unsigned offset,
-                             mersenne_twister* twister) {
-  switch (world->tiles[offset].elts[0].type >> TERRAIN_SHADOW_BITS) {
-  case terrain_type_road:
-  case terrain_type_water:
-  case terrain_type_gravel:
-  case terrain_type_stone: return 0;
-  case terrain_type_snow: return twist(twister) & 1;
-  default: return 1;
-  }
-}
-
-static void update_shadows(basic_world* world,
-                           world_prop* props,
-                           unsigned count,
-                           signed radius);
-
-void trees_generate(world_prop* props, unsigned count,
-                    basic_world* world,
-                    unsigned distrib_seed, unsigned pos_seed) {
-  mersenne_twister twister;
-  unsigned i;
-  coord x, z, wx, wz;
-  unsigned off;
-  unsigned* density, density_sz;
-
-  density_sz = sizeof(unsigned)*world->xmax*world->zmax;
-  density = xmalloc(density_sz);
-  memset(density, 0, density_sz);
-  perlin_noise(density, world->xmax, world->zmax,
-               world->xmax / 256, 0xC000, distrib_seed+1);
-  perlin_noise(density, world->xmax, world->zmax,
-               world->xmax / 32, 0x4000, distrib_seed+2);
-
-  twister_seed(&twister, pos_seed);
-
-  for (i = 0; i < count; ++i) {
-    do {
-      x = twist(&twister) & (world->xmax*TILE_SZ - 1);
-      z = twist(&twister) & (world->zmax*TILE_SZ - 1);
-      wx = x / TILE_SZ;
-      wz = z / TILE_SZ;
-      off = basic_world_offset(world, wx, wz);
-    } while (!may_place_tree_at(world, off, &twister) ||
-             twist(&twister) > density[off] * density[off]);
-
-    props[i].x = x;
-    props[i].z = z;
-    /* TODO: Distribute different trees differently */
-    props[i].type = 1 + (twist(&twister) & 1);
-    props[i].variant = twist(&twister);
-    props[i].yrot = twist(&twister);
-  }
-
-  free(density);
-
-  update_shadows(world, props, count, 10);
-  basic_world_calc_next(world);
-}
-
-static void update_shadows(basic_world* world,
-                           world_prop* props,
-                           unsigned count,
-                           signed radius) {
-  coord x, z;
-  coord_offset xo, zo;
-  unsigned i, off;
-
-  for (i = 0; i < count; ++i) {
-    for (zo = -radius; zo <= +radius; ++zo) {
-      for (xo = -radius; xo <= +radius; ++xo) {
-        if (fisqrt(xo*xo + zo*zo) <= (unsigned)radius) {
-          x = props[i].x / TILE_SZ + xo;
-          z = props[i].z / TILE_SZ + zo;
-          x &= (world->xmax - 1);
-          z &= (world->zmax - 1);
-          off = basic_world_offset(world, x, z);
-          if (3 != (world->tiles[off].elts[0].type & 3))
-            ++world->tiles[off].elts[0].type;
-        }
-      }
-    }
-  }
+void world_add_shadow(terrain_tilemap* world, const env_vmap* vmap) {
+  world_add_shadow_world = world;
+  world_add_shadow_vmap = vmap;
+  world_add_shadow_task.num_divisions = world->zmax / SUBREGION_SIZE;
+  ump_run_sync(&world_add_shadow_task);
 }

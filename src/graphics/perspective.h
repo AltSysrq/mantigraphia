@@ -28,7 +28,7 @@
 #ifndef GRAPHICS_PERSPECTIVE_H_
 #define GRAPHICS_PERSPECTIVE_H_
 
-#include "../coords.h"
+#include "../math/coords.h"
 #include "canvas.h"
 
 /**

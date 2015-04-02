@@ -17,7 +17,6 @@ aclocal.m4
 autom4te.cache
 stamp-h1
 gentrigtab
-trigtab.c
 .dirstamp
 share/extern
 *.gmon
@@ -28,3 +27,12 @@ test/tests
 *.log
 *.trs
 world.bmp
+libtool
+m4
+ltmain.sh
+*.lo
+*.t
+src/llua
+mgllua
+src/llua-bindings/*-module.c
+

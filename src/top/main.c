@@ -40,6 +40,7 @@
 #include <SDL_image.h>
 #include <glew.h>
 
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -57,15 +58,11 @@
 
 #include "graphics/canvas.h"
 #include "graphics/parchment.h"
-#include "graphics/brush.h"
-#include "graphics/fast-brush.h"
-#include "graphics/glbrush.h"
-#include "graphics/glpencil.h"
 #include "gl/glinfo.h"
 #include "gl/marshal.h"
+#include "gl/auxbuff.h"
 #include "control/mouselook.h"
 #include "render/terrabuff.h"
-#include "render/tree-props.h"
 #include "game-state.h"
 #include "cosine-world.h"
 #include "micromp.h"
@@ -73,6 +70,10 @@
 static game_state* update(game_state*);
 static void draw(canvas*, game_state*, SDL_Window*);
 static int handle_input(game_state*);
+
+static void start_render_thread(void);
+static int render_thread_main(void*);
+static void invoke_draw_on_render_thread(canvas*, game_state*);
 
 /* Whether the multi-display configuration might be a Zaphod configuration. If
  * this is true, we need to try to force SDL to respect the environment and
@@ -208,10 +209,11 @@ int main(int argc, char** argv) {
   SDL_Window* screen;
   SDL_GLContext glcontext;
   const int image_types = IMG_INIT_JPG | IMG_INIT_PNG;
-  canvas* canv;
+  canvas canv;
   game_state* state;
   GLenum glew_status;
   SDL_Rect window_bounds;
+  unsigned last_fps_report, frames_since_fps_report;
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
     errx(EX_SOFTWARE, "Unable to initialise SDL: %s", SDL_GetError());
@@ -247,41 +249,36 @@ int main(int argc, char** argv) {
     errx(EX_SOFTWARE, "Unable to initialise GLEW: %s",
          glewGetErrorString(glew_status));
 
-  glViewport(0, 0, ww, wh);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_TEXTURE_2D);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glOrtho(0, ww, 0, wh, 0, 4096*METRE);
-  /* Invert the Y axis so that GL coordinates match screen coordinates, and the
-   * Z axis so that positive moves into the screen. (Ie, match the canvas
-   * coordinate system.)
-   */
-  glScalef(1.0f, -1.0f, -1.0f);
-  glTranslatef(0.0f, -(float)wh, 0.0f);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
+  glEnableClientState(GL_VERTEX_ARRAY);
+  canvas_init_thin(&canv, ww, wh);
+  canvas_gl_clip_sub_immediate(&canv, &canv);
 
   ump_init(SDL_GetCPUCount()-1);
   glinfo_detect(wh);
   glm_init();
+  auxbuff_init(ww, wh);
   parchment_init();
-  brush_load();
-  fast_brush_load();
-  glbrush_load();
-  glpencil_load();
   mouselook_init(screen);
   terrabuff_init();
-  tree_props_init();
-
-  canv = canvas_new(ww, wh);
+  start_render_thread();
 
   state = cosine_world_new(2 == argc? atoi(argv[1]) : 3);
 
+  last_fps_report = SDL_GetTicks();
+  frames_since_fps_report = 0;
   do {
-    draw(canv, state, screen);
+    draw(&canv, state, screen);
     if (handle_input(state)) break; /* quit */
     state = update(state);
+
+    ++frames_since_fps_report;
+    if (SDL_GetTicks() - last_fps_report >= 3000) {
+      printf("FPS: %d\n", frames_since_fps_report/3);
+      frames_since_fps_report = 0;
+      last_fps_report = SDL_GetTicks();
+    }
   } while (state);
 
   return 0;
@@ -311,34 +308,13 @@ static game_state* update(game_state* state) {
 
 static void draw(canvas* canv, game_state* state,
                  SDL_Window* screen) {
-  unsigned draw_start, draw_end;
-
-  /* The parchment replaces the whole screen contents anyway, no need to clear
-   * the colour buffer here.
-   */
-  glClear(GL_DEPTH_BUFFER_BIT);
-
-  draw_start = SDL_GetTicks();
   (*state->predraw)(state, canv);
-  /* Todo: Run on separate thread */
-  (*state->draw)(state, canv);
-  /* Assume that any threads involved in drawing have already called
-   * glm_finish_thread(). While we *could* try to do that here, the fact that a
-   * thread might not have run (ie, due to impersonation) complicates matters a
-   * bit, and it also means that we'd have to wait for *all* threads to run the
-   * task, which as described in uMP, would cause occasional but substantial
-   * delays.
+  invoke_draw_on_render_thread(canv, state);
+  /* Process OpenGL commands until the rendering thread calls glm_done() and
+   * all the GL work itself is complete.
    */
-  glm_done();
   glm_main();
   SDL_GL_SwapWindow(screen);
-  draw_end = SDL_GetTicks();
-
-  if (draw_end > draw_start)
-    printf("Drawing took %3d ms (%3d FPS)\n", draw_end-draw_start,
-           1000 / (draw_end-draw_start));
-  else
-    printf("Drawing took 0 ms (>1000 FPS)\n");
 }
 
 static int handle_input(game_state* state) {
@@ -384,4 +360,92 @@ static int handle_input(game_state* state) {
   }
 
   return 0; /* continue running */
+}
+
+static SDL_Thread* render_thread;
+static SDL_cond* render_thread_cond;
+static SDL_mutex* render_thread_lock;
+/* Nulled when a rendering pass completes */
+static canvas* render_thread_target_canvas;
+static game_state* render_thread_game_state;
+
+static void start_render_thread(void) {
+  render_thread_cond = SDL_CreateCond();
+  if (!render_thread_cond)
+    errx(EX_SOFTWARE, "Unable to create rendering condition: %s",
+         SDL_GetError());
+  render_thread_lock = SDL_CreateMutex();
+  if (!render_thread_lock)
+    errx(EX_SOFTWARE, "Unable to create rendering lock: %s",
+         SDL_GetError());
+
+  render_thread = SDL_CreateThread(render_thread_main, "rendering", NULL);
+  if (!render_thread)
+    errx(EX_SOFTWARE, "Unable to create rendering thread: %s",
+         SDL_GetError());
+  /* SDL_DetachThread is not present in SDL 2.0.2, which is still the current
+   * version in Debian Sid (as of 2015-03-30).
+   *
+   * Not detaching merely means that the exit status will be leaked when the
+   * thread exits, which it never does, and that it cannot be awaited, which we
+   * never do, so just don't call it for now.
+  SDL_DetachThread(render_thread);
+   */
+}
+
+static int render_thread_main(void* ignored) {
+  canvas* canv;
+  game_state* state;
+
+  for (;;) {
+    if (SDL_LockMutex(render_thread_lock))
+      errx(EX_SOFTWARE, "Failed to acquire rendering lock: %s",
+           SDL_GetError());
+
+    while (!render_thread_target_canvas) {
+      if (SDL_CondWait(render_thread_cond, render_thread_lock))
+        errx(EX_SOFTWARE, "Failed to wait on rendering condition: %s",
+             SDL_GetError());
+    }
+
+    canv = render_thread_target_canvas;
+    state = render_thread_game_state;
+    render_thread_target_canvas = NULL;
+    render_thread_game_state = NULL;
+    if (SDL_UnlockMutex(render_thread_lock))
+      errx(EX_SOFTWARE, "Failed to release rendering lock: %s",
+           SDL_GetError());
+
+    (*state->draw)(state, canv);
+    /* Assume that any threads involved in drawing have already called
+     * glm_finish_thread(). While we *could* try to do that here, the fact that
+     * a thread might not have run (ie, due to impersonation) complicates
+     * matters a bit, and it also means that we'd have to wait for *all*
+     * threads to run the task, which as described in uMP, would cause
+     * occasional but substantial delays.
+     */
+    glm_done();
+  }
+
+  /* unreachable */
+  return 0;
+}
+
+static void invoke_draw_on_render_thread(canvas* canv, game_state* state) {
+  if (SDL_LockMutex(render_thread_lock))
+    errx(EX_SOFTWARE, "Failed to acquire rendering lock: %s",
+         SDL_GetError());
+
+  assert(!render_thread_target_canvas);
+  assert(!render_thread_game_state);
+  render_thread_target_canvas = canv;
+  render_thread_game_state = state;
+
+  if (SDL_CondSignal(render_thread_cond))
+    errx(EX_SOFTWARE, "Failed to signal rendering condition: %s",
+         SDL_GetError());
+
+  if (SDL_UnlockMutex(render_thread_lock))
+    errx(EX_SOFTWARE, "Failed to release rendering lock: %s",
+         SDL_GetError());
 }

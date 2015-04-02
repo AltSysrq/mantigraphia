@@ -34,10 +34,7 @@
 #include <assert.h>
 
 #include "../alloc.h"
-#include "basic-world.h"
-#include "propped-world.h"
-#include "tree-props.h"
-#include "grass-props.h"
+#include "terrain-tilemap.h"
 #include "colour-palettes.h"
 #include "context.h"
 
@@ -45,31 +42,23 @@ static size_t space_for_invariant(size_t);
 
 static size_t (*const context_put[])(size_t) = {
   space_for_invariant,
-  render_basic_world_put_context_offset,
-  tree_props_put_context_offset,
-  grass_props_put_context_offset,
+  render_terrain_tilemap_put_context_offset,
   colour_palettes_put_context_offset,
   NULL
 };
 
 static void (*const context_set[])(rendering_context*restrict) = {
-  tree_props_context_set,
-  grass_props_context_set,
   colour_palettes_context_set,
   NULL
 };
 
 static void (*const context_ctor[])(rendering_context*restrict) = {
-  render_basic_world_context_ctor,
-  tree_props_context_ctor,
-  grass_props_context_ctor,
+  render_terrain_tilemap_context_ctor,
   NULL
 };
 
 static void (*const context_dtor[])(rendering_context*restrict) = {
-  render_basic_world_context_dtor,
-  tree_props_context_dtor,
-  grass_props_context_dtor,
+  render_terrain_tilemap_context_dtor,
   NULL
 };
 

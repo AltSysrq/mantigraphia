@@ -3,7 +3,7 @@ uniform float pocket_size_px;
 uniform vec2 pocket_size_scr;
 uniform vec2 px_offset;
 
-float intensity(vec4 colour) {
+float intensity(in vec4 colour) {
   return max(max(colour.r, colour.g), colour.b);
 }
 
@@ -34,5 +34,5 @@ void main() {
 
   colour = colour*0.75f + other*0.25f;
 
-  gl_FragColor = colour * (0.8f + 0.2f*pocket_factor);
+  gl_FragColor = colour * (0.9f + 0.2f*pocket_factor);
 }

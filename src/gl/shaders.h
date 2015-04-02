@@ -33,6 +33,7 @@
 typedef GLuint shader_type_tex2d;
 typedef float shader_type_float;
 typedef float shader_type_vec2[2];
+typedef float shader_type_vec3[3];
 
 #define shader_source(x) ;extern int dummy_decl
 #define shader(name)                                                    \
@@ -51,9 +52,11 @@ typedef float shader_type_vec2[2];
 #define with_colour
 #define with_secondary_colour
 #define attrib(cnt,name)
+#define padding(cnt,name)
 extern int dummy_decl
 #include "shaders.inc"
 ;
+#undef padding
 #undef attrib
 #undef with_secondary_colour
 #undef with_colour
@@ -70,16 +73,18 @@ extern int dummy_decl
   void shader_##name##_configure_vbo(void);     \
   struct shader_##name##_vertex_s
 #define fixed_function float v[3];
-#define composed_of(x,y) fixed_function
+#define composed_of(x,y) float v[3];
 #define uniform(x,y)
 #define no_uniforms
 #define with_texture_coordinates float tc[2];
 #define with_colour float colour[4];
 #define with_secondary_colour float sec_colour[4];
 #define attrib(cnt,name) float name[cnt];
+#define padding(cnt,name) float name[cnt];
 extern int dummy_decl
 #include "shaders.inc"
 ;
+#undef padding
 #undef attrib
 #undef with_secondary_colour
 #undef with_colour

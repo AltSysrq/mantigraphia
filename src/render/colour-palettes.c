@@ -30,9 +30,9 @@
 #endif
 
 #include "../defs.h"
-#include "../simd.h"
-#include "../frac.h"
-#include "../rand.h"
+#include "../math/sse.h"
+#include "../math/frac.h"
+#include "../math/rand.h"
 #include "context.h"
 #include "colour-palettes.h"
 
@@ -345,9 +345,9 @@ static void generate_data(void) {
   }
 }
 
-static void interpolate_simd(simd4* dst,
-                             const unsigned* src1, const unsigned* src2,
-                             unsigned n, fraction p) {
+static void interpolate_sse(ssepi* dst,
+                            const unsigned* src1, const unsigned* src2,
+                            unsigned n, fraction p) {
   unsigned i, r, g, b, a;
 
   for (i = 0; i < n; ++i) {
@@ -360,7 +360,7 @@ static void interpolate_simd(simd4* dst,
     a = fraction_umul((src1[i] & 0xFF000000) >> 24, fraction_of(1) - p)
       + fraction_umul((src2[i] & 0xFF000000) >> 24, p);
 
-    dst[i] = simd_initl(r,g,b,a);
+    dst[i] = sse_piof(r,g,b,a);
   }
 }
 
@@ -400,23 +400,23 @@ static void interpolate_gl(float* dst,
   }
 }
 
-/* Since we need simd4-alignment for the inner struct, we need to add some
+/* Since we need ssepi-alignment for the inner struct, we need to add some
  * space so we can adjust the pointer as necessary.
  */
 struct colour_palettes_with_padding {
-  simd4 padding;
+  ssepi padding;
   colour_palettes palettes;
 };
 
-static inline void* align_to_simd4(const void* vinput) {
+static inline void* align_to_ssepi(const void* vinput) {
   char* input = (void*)vinput;
   unsigned long long as_int;
   unsigned misalignment;
 
   as_int = (unsigned long long)input;
-  misalignment = as_int & (sizeof(simd4) - 1);
+  misalignment = as_int & (sizeof(ssepi) - 1);
   if (misalignment)
-    input += sizeof(simd4) - misalignment;
+    input += sizeof(ssepi) - misalignment;
 
   return input;
 }
@@ -425,20 +425,20 @@ RENDERING_CONTEXT_STRUCT(colour_palettes, struct colour_palettes_with_padding)
 const colour_palettes* get_colour_palettes(
   const rendering_context*restrict context)
 {
-  return align_to_simd4(colour_palettes_get(context));
+  return align_to_ssepi(colour_palettes_get(context));
 }
 
 void colour_palettes_context_set(rendering_context*restrict context) {
-  colour_palettes* this = align_to_simd4(colour_palettes_getm(context));
+  colour_palettes* this = align_to_ssepi(colour_palettes_getm(context));
   const rendering_context_invariant*restrict inv = CTXTINV(context);
   unsigned ma = inv->month_integral+0;
   unsigned mb = inv->month_integral+1;
 
   generate_data();
 
-  interpolate_simd(this->terrain,
-                   terrain_palettes[ma], terrain_palettes[mb],
-                   lenof(this->terrain), inv->month_fraction);
+  interpolate_sse(this->terrain,
+                  terrain_palettes[ma], terrain_palettes[mb],
+                  lenof(this->terrain), inv->month_fraction);
   interpolate_px(this->oak_leaf,
                  oak_leaf_palettes[ma], oak_leaf_palettes[mb],
                  lenof(this->oak_leaf), inv->month_fraction);

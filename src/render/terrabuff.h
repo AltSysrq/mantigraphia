@@ -28,7 +28,7 @@
 #ifndef RENDER_TERRABUFF_H_
 #define RENDER_TERRABUFF_H_
 
-#include "../coords.h"
+#include "../math/coords.h"
 #include "../graphics/canvas.h"
 #include "../graphics/perspective.h"
 #include "context.h"

@@ -30,7 +30,7 @@
 
 #include <SDL.h>
 
-#include "coords.h"
+#include "math/coords.h"
 #include "graphics/canvas.h"
 
 /**
@@ -63,7 +63,8 @@ typedef void (*game_state_predraw_t)(game_state*, canvas*);
 /**
  * Draws the graphical representation of this state onto the given canvas. This
  * call is not guaranteed to run on any particular thread, but may call into
- * uMP.
+ * uMP. It is guaranteed that commands enqueued via the GLM system are executed
+ * concurrently with this call.
  */
 typedef void (*game_state_draw_t)(game_state*, canvas*);
 /**

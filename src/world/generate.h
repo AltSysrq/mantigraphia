@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Jason Lingle
+ * Copyright (c) 2013, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,15 +28,10 @@
 #ifndef WORLD_GENERATE_H_
 #define WORLD_GENERATE_H_
 
-#include "basic-world.h"
-#include "props.h"
+#include "terrain-tilemap.h"
+#include "env-vmap.h"
 
-void world_generate(basic_world*, unsigned seed);
-void grass_generate(world_prop*, unsigned count,
-                    const basic_world*, unsigned seed);
-void trees_generate(world_prop*, unsigned count,
-                    basic_world*,
-                    unsigned distribution_seed,
-                    unsigned position_seed);
+void world_generate(terrain_tilemap*, unsigned seed);
+void world_add_shadow(terrain_tilemap*, const env_vmap*);
 
 #endif /* WORLD_GENERATE_H_ */

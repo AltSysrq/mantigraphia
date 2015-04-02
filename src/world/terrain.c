@@ -29,21 +29,21 @@
 #include <config.h>
 #endif
 
-#include "../coords.h"
-#include "../simd.h"
-#include "basic-world.h"
+#include "../math/coords.h"
+#include "../math/sse.h"
+#include "terrain-tilemap.h"
 #include "terrain.h"
 
-static inline coord_offset altitude(const basic_world* world,
+static inline coord_offset altitude(const terrain_tilemap* world,
                                     coord tx, coord tz) {
-  return world->tiles[basic_world_offset(world, tx, tz)].elts[0].altitude *
+  return world->alt[terrain_tilemap_offset(world, tx, tz)] *
     TILE_YMUL;
 }
 
-coord terrain_base_y(const basic_world* world, coord wx, coord wz) {
+coord terrain_base_y(const terrain_tilemap* world, coord wx, coord wz) {
   unsigned long long ox = wx % TILE_SZ, oz = wz % TILE_SZ;
-  coord x = wx / TILE_SZ;
-  coord z = wz / TILE_SZ;
+  coord x = (wx / TILE_SZ) & (world->xmax-1);
+  coord z = (wz / TILE_SZ) & (world->zmax-1);
   coord x2 = (x+1) & (world->xmax-1), z2 = (z+1) & (world->zmax-1);
   coord y00 = altitude(world, x, z),
         y01 = altitude(world, x, z2),
@@ -56,14 +56,14 @@ coord terrain_base_y(const basic_world* world, coord wx, coord wz) {
   return ((TILE_SZ-oz)*y0 + oz*y1) / TILE_SZ;
 }
 
-coord terrain_graphical_y(const basic_world* world, coord wx, coord wz,
+coord terrain_graphical_y(const terrain_tilemap* world, coord wx, coord wz,
                           chronon t) {
   coord base = terrain_base_y(world, wx, wz);
   coord x = wx / TILE_SZ;
   coord z = wz / TILE_SZ;
 
   if (terrain_type_water ==
-      world->tiles[basic_world_offset(world, x, z)].elts[0].type >>
+      world->type[terrain_tilemap_offset(world, x, z)] >>
       TERRAIN_SHADOW_BITS) {
     return 3 * METRE / 2 + zo_cosms((wx+wz+t*65536/8)/16, METRE/2);
   } else {
@@ -74,40 +74,44 @@ coord terrain_graphical_y(const basic_world* world, coord wx, coord wz,
   }
 }
 
-static simd4 colour_of(const basic_world* world,
+static ssepi colour_of(const terrain_tilemap* world,
                        coord x, coord z,
-                       const simd4* terrain_colours) {
+                       const ssepi* terrain_colours) {
   return terrain_colours[
-    world->tiles[
-      basic_world_offset(world, x, z)
-    ].elts[0].type];
+    world->type[
+      terrain_tilemap_offset(world, x, z)]];
 }
 
-simd4 terrain_colour(const basic_world* world,
+ssepi terrain_colour(const terrain_tilemap* world,
                      coord wx, coord wz,
-                     const simd4* terrain_colours) {
+                     const ssepi* terrain_colours) {
   signed ox = wx % TILE_SZ, oz = wz % TILE_SZ;
   coord x = wx / TILE_SZ;
   coord z = wz / TILE_SZ;
   coord x2 = (x+1) & (world->xmax-1), z2 = (z+1) & (world->zmax-1);
-  simd4 c00 = colour_of(world, x, z, terrain_colours),
+  ssepi c00 = colour_of(world, x, z, terrain_colours),
         c01 = colour_of(world, x, z2, terrain_colours),
         c10 = colour_of(world, x2, z, terrain_colours),
         c11 = colour_of(world, x2, z2, terrain_colours);
-  simd4 c0, c1;
+  ssepi c0, c1;
+  ssepi tileszv, oxv, ozv;
 
-  c0 = simd_divvs(simd_addvv(simd_mulvs(c00, TILE_SZ-ox),
-                             simd_mulvs(c10, ox)),
-                  TILE_SZ);
-  c1 = simd_divvs(simd_addvv(simd_mulvs(c01, TILE_SZ-ox),
-                             simd_mulvs(c11, ox)),
-                  TILE_SZ);
-  return simd_divvs(simd_addvv(simd_mulvs(c0, TILE_SZ-oz),
-                               simd_mulvs(c1, oz)),
-                    TILE_SZ);
+  tileszv = sse_piof1(TILE_SZ);
+  oxv = sse_piof1(ox);
+  ozv = sse_piof1(oz);
+
+  c0 = sse_sradi(sse_addpi(sse_mulpi(c00, sse_subpi(tileszv, oxv)),
+                           sse_mulpi(c10, oxv)),
+                 TILE_SZ_BITS);
+  c1 = sse_sradi(sse_addpi(sse_mulpi(c01, sse_subpi(tileszv, oxv)),
+                           sse_mulpi(c11, oxv)),
+                 TILE_SZ_BITS);
+  return sse_sradi(sse_addpi(sse_mulpi(c0, sse_subpi(tileszv, ozv)),
+                             sse_mulpi(c1, ozv)),
+                   TILE_SZ_BITS);
 }
 
-void terrain_basic_normal(vo3 dst, const basic_world* world,
+void terrain_basic_normal(vo3 dst, const terrain_tilemap* world,
                           coord tx, coord tz) {
   coord x2 = (tx+1) & (world->xmax-1), z2 = (tz+1) & (world->zmax-1);
   coord_offset dy0011, dy1001;

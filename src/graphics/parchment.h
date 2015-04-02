@@ -29,7 +29,7 @@
 #define GRAPHICS_PARCHMENT_H_
 
 #include "canvas.h"
-#include "../coords.h"
+#include "../math/coords.h"
 
 /**
  * A parchment is a tilable texture usually drawn as the background of the
@@ -55,17 +55,30 @@ parchment* parchment_new(void);
  * Releases the resources held by the given parchment.
  */
 void parchment_delete(parchment*);
+/**
+ * Sets whether this parchment uses linear interpolation in the postprocessing
+ * pass.
+ */
+void parchment_set_interpolate_postprocess(parchment*, int enabled);
+/**
+ * Gets whether this parchment uses linear interpolation in the postprocessing
+ * pass.
+ */
+int parchment_get_interpolate_postprocess(const parchment*);
 
 /**
- * Draws the parchment to cover the entire screen with OpenGL.
+ * Reconfigures GL to capture draw operations into the parchment's postprocess
+ * texture.
  */
-void parchment_draw(canvas*, const parchment*);
+void parchment_preprocess(const parchment*, const canvas* selection);
 
 /**
  * Performs postprocessing against the OpenGL framebuffer, whose size is given
- * by the given canvas.
+ * by the given canvas, using the area of the framebuffer indicated by the
+ * selection canvas.
  */
-void parchment_postprocess(const parchment*, const canvas*);
+void parchment_postprocess(const parchment*, const canvas* dst,
+                           const canvas* selection);
 
 /**
  * Updates the transformation of the parchment according to the old and new
