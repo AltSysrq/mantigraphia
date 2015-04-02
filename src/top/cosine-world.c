@@ -187,6 +187,7 @@ static void cosine_world_init_world(cosine_world_state* this) {
   vmap_painter_flush();
 
   world_add_shadow(this->world, this->vmap);
+  terrain_tilemap_calc_next(this->world);
 }
 
 #define SPEED (4*METRES_PER_SECOND)

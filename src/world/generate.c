@@ -78,8 +78,6 @@ void world_generate(terrain_tilemap* world, unsigned seed) {
         create_path_to_from(world, &twister, xs[i], zs[i], xs[j], zs[j]);
       else
         create_path_to_from(world, &twister, xs[j], zs[j], xs[i], zs[i]);
-
-  terrain_tilemap_calc_next(world);
 }
 
 static int above_perlin_threshold(const terrain_tilemap* world) {
@@ -410,6 +408,4 @@ void world_add_shadow(terrain_tilemap* world, const env_vmap* vmap) {
   world_add_shadow_vmap = vmap;
   world_add_shadow_task.num_divisions = world->zmax / SUBREGION_SIZE;
   ump_run_sync(&world_add_shadow_task);
-
-  terrain_tilemap_calc_next(world);
 }
