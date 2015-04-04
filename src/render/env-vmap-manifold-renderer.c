@@ -640,7 +640,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
   static struct {
     coord _base_y[NVZ][NVX];
     ssepi _svertices[MAX_VERTICES];
-    float _glvertices[MAX_VERTICES][3];
+    float _glvertices[MAX_VERTICES][4];
     unsigned short _vertex_indices[NVZ][NVX][NVY];
     unsigned short _vertex_adjacency[MAX_VERTICES][MAX_EDGES_PER_VERTEX];
     manifold_face _faces[MAX_FACES];
@@ -650,7 +650,12 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
      *
      * This is rather dependent on ENV_VMAP_H being 32.
      */
-    unsigned _has_graphic_blob[4+MHIVE_SZ][4+MHIVE_SZ];
+    unsigned _has_graphic_blob[NVZ][NVX];
+    /* The minimum Y coordinate (in voxels) in each column which receives
+     * light. A generated face is lit if the Y offset of the empty adjacent
+     * voxel is greater than this value.
+     */
+    signed char _light_y[NVZ][NVX];
 
     /* To track whether the data in glvertices has finished being sent to the
      * GPU.
@@ -669,6 +674,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
 #define faces threads[thread_ordinal]._faces
 #define triangulated_indices threads[thread_ordinal]._triangulated_indices
 #define has_graphic_blob threads[thread_ordinal]._has_graphic_blob
+#define light_y threads[thread_ordinal]._light_y
 #define glm_op threads[thread_ordinal]._glm_op
 
   unsigned short num_vertices;
@@ -718,6 +724,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
   memset(vertex_indices, ~0, sizeof(vertex_indices));
   memset(vertex_adjacency, ~0, sizeof(vertex_adjacency));
   memset(graphic_blobs, 0, sizeof(graphic_blobs));
+  memset(light_y, 0, sizeof(light_y));
   num_vertices = 0;
   num_faces = 0;
   num_triangulated_indices = 0;
@@ -730,7 +737,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
     xmask = zmask = ~0u;
   }
 
-  /* Build bitset of grahpic blob presence */
+  /* Build bitset of grahpic blob presence and determine lighting */
   for (cz = -2; cz <= 1+(MHIVE_SZ>>lod); ++cz) {
     z = (z0 + (cz<<lod)) & zmask;
     if (z >= r->vmap->zmax) {
@@ -751,6 +758,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
         if (graphic) {
           has_graphic_blob[cz+2][cx+2] |= 1 << cy;
           all_graphic_blobs[graphic->ordinal] = graphic;
+          light_y[cz+2][cx+2] = cy;
         }
       }
     }
@@ -829,7 +837,8 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
               svertices[num_vertices] =
                 sse_piof((vcx<<lod) * TILE_SZ,
                          (vcy<<lod) * TILE_SZ + base_y[vcz+2][vcx+2],
-                         (vcz<<lod) * TILE_SZ, 1);
+                         (vcz<<lod) * TILE_SZ,
+                         65536 * (ocy > light_y[ocz+2][ocx+2]));
               vertex_indices[vcz+2][vcx+2][vcy] = num_vertices++;
             }
 
@@ -889,6 +898,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
     glvertices[i][0] = SSE_VS(svertices[i], 0);
     glvertices[i][1] = SSE_VS(svertices[i], 1);
     glvertices[i][2] = SSE_VS(svertices[i], 2);
+    glvertices[i][3] = SSE_VS(svertices[i], 3);
   }
 
   num_graphic_blobs = 0;
@@ -946,6 +956,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
 #undef faces
 #undef triangulated_indices
 #undef has_graphic_blob
+#undef light_y
 #undef glm_op
 }
 

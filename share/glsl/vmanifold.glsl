@@ -3,7 +3,10 @@
 uniform float noise_amplitude;
 uniform vec2 noise_freq;
 
+attribute float lighting;
+
 varying float scaled_noise_amplitude;
+varying float scaled_lighting;
 
 void main() {
   vec4 proj;
@@ -18,4 +21,5 @@ void main() {
   gl_TexCoord[0] = vec4(texc.s, texc.t, 0.0f, 1.0f);
   scaled_noise_amplitude = noise_amplitude - noise_amplitude * clamp(
     abs(proj.z) / METRE / 256.0f, 0.0f, 1.0f);
+  scaled_lighting = 0.6f + lighting * 0.4f / 65536.0f;
 }
