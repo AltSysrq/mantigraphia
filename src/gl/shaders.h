@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 Jason Lingle
+ * Copyright (c) 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,10 +42,6 @@ typedef float shader_type_vec3[3];
   void shader_##name##_activate(const shader_##name##_uniform*);        \
   struct shader_##name##_uniform_s
 #define composed_of(x,y)
-/* Fixed-function shaders never have uniforms; add a member to suppress
- * empty-struct warnings.
- */
-#define fixed_function int dummy;
 #define uniform(type, name) shader_type_##type name;
 #define no_uniforms int dummy;
 #define with_texture_coordinates
@@ -63,7 +59,6 @@ extern int dummy_decl
 #undef with_texture_coordinates
 #undef no_uniforms
 #undef uniform
-#undef fixed_function
 #undef composed_of
 #undef shader
 
@@ -72,7 +67,6 @@ extern int dummy_decl
   shader_##name##_vertex;                       \
   void shader_##name##_configure_vbo(void);     \
   struct shader_##name##_vertex_s
-#define fixed_function float v[3];
 #define composed_of(x,y) float v[3];
 #define uniform(x,y)
 #define no_uniforms
@@ -91,7 +85,6 @@ extern int dummy_decl
 #undef with_texture_coordinates
 #undef no_uniforms
 #undef uniform
-#undef fixed_function
 #undef composed_of
 #undef shader
 

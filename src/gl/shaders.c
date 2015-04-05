@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 Jason Lingle
+ * Copyright (c) 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,7 +62,6 @@ static inline void put_uniform_vec3(GLint ix, const float* f) {
 #define shader_source(name) ;static GLuint shader_part_##name
 #define shader(name) ;struct shader_##name##_info
 #define composed_of(x,y) GLuint program;
-#define fixed_function int dummy; /* suppress empty struct warning */
 #define uniform(type,name) GLint name##_ix;
 #define with_texture_coordinates
 #define with_colour
@@ -78,7 +77,6 @@ extern int dummy_decl
 #undef with_texture_coordinates
 #undef uniform
 #undef composed_of
-#undef fixed_function
 #undef shader
 #undef shader_source
 
@@ -110,8 +108,6 @@ static char link_error_log[65536];
     errx(EX_DATAERR, "Failed to link shaders "            \
          "" #fpart "and" #vpart ":\n%s", link_error_log); \
   }
-#define fixed_function                                          \
-  const char*const composition __unused = "fixed-function";
 
 #define uniform(type,name)                                      \
   info->name##_ix = glGetUniformLocation(info->program, #name); \
@@ -133,7 +129,6 @@ static char link_error_log[65536];
 #undef with_colour
 #undef with_texture_coordinates
 #undef uniform
-#undef fixed_function
 #undef composed_of
 #undef shader
 
@@ -145,9 +140,6 @@ static char link_error_log[65536];
   if (current_program != info->program)         \
     glUseProgram(info->program);                \
   current_program = info->program;
-#define fixed_function                                  \
-  if (current_program) glUseProgram(0);                 \
-  current_program = 0;
 #define uniform(type, name)                             \
   put_uniform_##type(info->name##_ix, uniform->name);
 #define with_texture_coordinates
@@ -160,7 +152,6 @@ static char link_error_log[65536];
 #undef with_colour
 #undef with_texture_coordinates
 #undef uniform
-#undef fixed_function
 #undef composed_of
 #undef shader
 
@@ -173,7 +164,6 @@ static char link_error_log[65536];
     shader_##name##_do_activate(&name##_shader_info, uniform);          \
   } static inline void name##_dummy()
 #define composed_of(x,y)
-#define fixed_function
 #define uniform(x,y)
 #define with_texture_coordinates
 #define with_colour
@@ -185,7 +175,6 @@ static char link_error_log[65536];
 #undef with_colour
 #undef with_texture_coordinates
 #undef uniform
-#undef fixed_function
 #undef composed_of
 #undef shader
 
@@ -200,7 +189,7 @@ static char link_error_log[65536];
   static void shader_##name##_configure_vbo_(   \
     shader_##name##_vertex* vertex_format,      \
     struct shader_##name##_info* info)
-#define fixed_function                                                  \
+#define composed_of(x,y)                                                \
   GLuint i;                                                             \
   glVertexPointer(3, GL_FLOAT, sizeof(*vertex_format), (GLvoid*)0);     \
   /* Reset other array states */                                        \
@@ -210,7 +199,6 @@ static char link_error_log[65536];
   for (i = 0; i < num_vertex_attribs; ++i)                              \
     glDisableVertexAttribArray(i);                                      \
   num_vertex_attribs = 0;
-#define composed_of(x,y) fixed_function
 #define uniform(x,y)
 #define with_texture_coordinates                                \
   glTexCoordPointer(2, GL_FLOAT, sizeof(*vertex_format),        \
@@ -236,6 +224,5 @@ static char link_error_log[65536];
 #undef attrib
 #undef with_texture_coordinates
 #undef uniform
-#undef fixed_function
 #undef composed_of
 #undef shader

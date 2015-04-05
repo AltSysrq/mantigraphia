@@ -41,16 +41,6 @@ shader_source(vterrabuff)
 shader_source(vskybox)
 shader_source(gen_vvoxel)
 
-shader(fixed_texture) {
-  fixed_function
-  with_texture_coordinates
-}
-
-shader(solid) {
-  fixed_function
-  with_colour
-}
-
 shader(terrabuff) {
   composed_of(fterrabuff, vterrabuff)
   with_texture_coordinates
