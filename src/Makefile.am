@@ -31,6 +31,7 @@ math/trigtab.c \
 math/rand.c \
 math/evaluator.c \
 math/poisson-disc.c \
+math/matrix.c \
 graphics/canvas.c \
 graphics/parchment.c \
 graphics/linear-paint-tile.c \

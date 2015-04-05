@@ -41,6 +41,7 @@
 #include "../micromp.h"
 #include "../math/frac.h"
 #include "../math/coords.h"
+#include "../math/matrix.h"
 #include "../gl/marshal.h"
 #include "canvas.h"
 
@@ -178,20 +179,27 @@ static void canvas_do_gl_clip_sub(const canvas** parms) {
 
 void canvas_gl_clip_sub_immediate(const canvas* sub,
                                   const canvas* whole) {
+  mat44fgl projection_matrix;
+
   glViewport(sub->ox, whole->h - sub->oy - sub->h,
              sub->w, sub->h);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glOrtho(sub->ox, sub->w, sub->oy, sub->h,
-          0, 4096*METRE);
+  projection_matrix = mat44fgl_identity;
+  projection_matrix = mat44fgl_multiply(
+    projection_matrix, mat44fgl_ortho(sub->ox, sub->w, sub->oy, sub->h,
+                                      0, 4096*METRE));
   /* Invert the Y axis so that GL coordinates match screen coordinates, and the
    * Z axis so that positive moves into the screen. (Ie, match the canvas
    * coordinate system.)
    */
-  glScalef(1.0f, -1.0f, -1.0f);
-  glTranslatef(0.0f, -(float)sub->h, 0.0f);
+  projection_matrix = mat44fgl_multiply(
+    projection_matrix, mat44fgl_scale(1.0f, -1.0f, -1.0f));
+  projection_matrix = mat44fgl_multiply(
+    projection_matrix, mat44fgl_translate(0.0f, -(float)sub->h, 0.0f));
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadMatrixf((const float*)projection_matrix.m);
   glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
+  glLoadMatrixf((const float*)mat44fgl_identity.m);
 }
 
 void canvas_gl_clip_sub(const canvas* sub, const canvas* whole) {
