@@ -28,6 +28,7 @@
 
 shader(solid) {
   composed_of(fsolid, vgenericc)
+  attrib(3, v)
   attrib(4, colour)
   no_uniforms
 }
@@ -40,6 +41,7 @@ shader(terrabuff) {
   uniform(float, line_thickness)
   uniform(float, xoff)
   uniform(vec2, screen_size)
+  attrib(3, v)
   attrib(1, side)
   attrib(2, tc)
   attrib(4, colour_a)
@@ -52,6 +54,7 @@ shader(postprocess) {
   uniform(float, pocket_size_px)
   uniform(vec2, pocket_size_scr)
   uniform(vec2, px_offset)
+  attrib(3, v)
   attrib(2, tc)
 }
 
@@ -62,6 +65,7 @@ shader(paint_overlay) {
   uniform(vec2, screen_size)
   uniform(vec2, screen_off)
   uniform(float, texture_freq)
+  attrib(3, v)
 }
 
 shader(voxel) {
@@ -77,6 +81,7 @@ shader(voxel) {
   uniform(tex2d, control)
   uniform(vec2, texture_scale_s)
   uniform(vec2, texture_scale_t)
+  attrib(3, v)
   attrib(2, tc)
 }
 
@@ -90,11 +95,11 @@ shader(skybox) {
   uniform(vec2, cloud_offset_1)
   uniform(vec2, cloud_offset_2)
   uniform(float, cloudiness)
+  attrib(3, v)
 }
 
 shader(manifold) {
   composed_of(fmanifold, gen_vmanifold)
-  attrib(1, lighting)
   uniform(vec2, torus_sz)
   uniform(vec2, yrot)
   uniform(vec2, rxrot)
@@ -108,6 +113,8 @@ shader(manifold) {
   uniform(tex2d, palette)
   uniform(float, palette_t)
   uniform(vec2, noise_freq)
+  attrib(3, v)
+  attrib(1, lighting)
 }
 
 shader(flower) {
@@ -121,6 +128,7 @@ shader(flower) {
   uniform(vec3, camera_fractional)
   uniform(float, date)
   uniform(float, inv_max_distance)
+  attrib(3, v)
   attrib(4, colour)
   attrib(1, lifetime_centre)
   attrib(1, lifetime_scale)

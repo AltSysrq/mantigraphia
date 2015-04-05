@@ -1,13 +1,15 @@
-varying float rel;
-varying vec2 screen_coords;
+out vec4 dst;
+
+in float rel;
+in vec2 screen_coords;
 uniform sampler2D hmap, tex;
 uniform float ty_below;
 uniform float line_thickness;
 uniform vec2 screen_size;
 
-varying vec2 v_texcoord;
-varying vec4 v_colour_a;
-varying vec4 v_colour_b;
+in vec2 v_texcoord;
+in vec4 v_colour_a;
+in vec4 v_colour_b;
 
 void main() {
   float low, high;
@@ -57,9 +59,9 @@ void main() {
   alpha += 0.125f - angle / (3.14159f * 8.0f);
 
   if (rel + value*5 > 3.5)
-    gl_FragColor.rgb = value * v_colour_b.rgb;
+    dst.rgb = value * v_colour_b.rgb;
   else
-    gl_FragColor.rgb = value * v_colour_a.rgb;
+    dst.rgb = value * v_colour_a.rgb;
 
-  gl_FragColor.a = alpha;
+  dst.a = alpha;
 }

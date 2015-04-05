@@ -1,24 +1,25 @@
 uniform mat4 projection_matrix;
+in vec3 v;
 
 /* #include "perspective.glsl" */
 
 uniform float date;
 uniform float inv_max_distance;
 
-attribute vec4 colour;
-attribute float lifetime_centre;
-attribute float lifetime_scale;
-attribute float max_size;
-attribute vec2 corner_offset;
+in vec4 colour;
+in float lifetime_centre;
+in float lifetime_scale;
+in float max_size;
+in vec2 corner_offset;
 
-varying vec4 v_colour;
-varying vec2 v_position;
+flat out vec4 v_colour;
+out vec2 v_position;
 
 void main() {
   float date_size_scale = 1.0f -
     pow(lifetime_scale * (date - lifetime_centre), 2.0f);
 
-  vec3 xlated = perspective_xlate(gl_Vertex.xyz);
+  vec3 xlated = perspective_xlate(v);
   float dist = xlated.z * inv_max_distance;
   float dist_size_scale = 1.0f - dist * dist;
   float effective_size = max(0.0f, date_size_scale) * max(0.0f, dist_size_scale);

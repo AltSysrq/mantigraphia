@@ -1,16 +1,17 @@
 uniform mat4 projection_matrix;
+in vec3 v;
 
 /* #include "perspective.glsl" */
 
 uniform vec2 texture_scale_s;
 uniform vec2 texture_scale_t;
 
-attribute vec2 tc;
+in vec2 tc;
 
-varying vec2 v_texcoord;
+out vec2 v_texcoord;
 
 void main() {
   gl_Position = projection_matrix *
-    perspective_proj(gl_Vertex);
+    perspective_proj(v);
   v_texcoord = tc * mat2(texture_scale_s, texture_scale_t);
 }

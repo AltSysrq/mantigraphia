@@ -36,7 +36,7 @@
 
 #include "shader_loader.h"
 
-static const char glsl_version[] = "#version 120\n";
+static const char glsl_version[] = "#version 140\n";
 
 void load_shader(GLuint* shader, const char* basename) {
   static char buffer[65536];

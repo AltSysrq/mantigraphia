@@ -64,7 +64,7 @@ extern int dummy_decl
   shader_##name##_vertex;                       \
   void shader_##name##_configure_vbo(void);     \
   struct shader_##name##_vertex_s
-#define composed_of(x,y) float v[3];
+#define composed_of(x,y)
 #define uniform(x,y)
 #define no_uniforms
 #define attrib(cnt,name) float name[cnt];

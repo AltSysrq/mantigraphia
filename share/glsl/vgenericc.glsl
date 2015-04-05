@@ -1,10 +1,11 @@
 uniform mat4 projection_matrix;
+in vec3 v;
 
-attribute vec4 colour;
+in vec4 colour;
 
-varying vec4 v_colour;
+out vec4 v_colour;
 
 void main() {
-  gl_Position = projection_matrix * gl_Vertex;
+  gl_Position = projection_matrix * vec4(v.x, v.y, v.z, 1.0f);
   v_colour = colour;
 }

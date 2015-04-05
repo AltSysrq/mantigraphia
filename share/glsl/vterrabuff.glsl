@@ -1,28 +1,29 @@
 uniform mat4 projection_matrix;
+in vec3 v;
 
 uniform float xoff;
 uniform vec2 screen_size;
 
-attribute vec4 colour_a;
-attribute vec4 colour_b;
-attribute vec2 tc;
-attribute float side;
+in vec4 colour_a;
+in vec4 colour_b;
+in vec2 tc;
+in float side;
 
-varying float rel;
-varying vec2 screen_coords;
-varying vec2 v_texcoord;
-varying vec4 v_colour_a;
-varying vec4 v_colour_b;
+out float rel;
+out vec2 screen_coords;
+out vec2 v_texcoord;
+out vec4 v_colour_a;
+out vec4 v_colour_b;
 
 void main() {
-  gl_Position = projection_matrix * gl_Vertex;
+  gl_Position = projection_matrix * vec4(v.x, v.y, v.z, 1.0f);
   v_texcoord = tc;
   v_colour_a = colour_a;
   v_colour_b = colour_b;
-  screen_coords = vec2(gl_Vertex.x + xoff +
+  screen_coords = vec2(v.x + xoff +
                        screen_size.x / 4 * 128 *
                        (31 * tc.t +
                         75 * tc.t * tc.t),
-                       gl_Vertex.y);
+                       v.y);
   rel = side;
 }

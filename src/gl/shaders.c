@@ -178,7 +178,6 @@ static char link_error_log[65536];
     struct shader_##name##_info* info)
 #define composed_of(x,y)                                                \
   GLuint i;                                                             \
-  glVertexPointer(3, GL_FLOAT, sizeof(*vertex_format), (GLvoid*)0);     \
   for (i = 0; i < num_vertex_attribs; ++i)                              \
     glDisableVertexAttribArray(i);                                      \
   num_vertex_attribs = 0;
