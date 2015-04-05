@@ -62,7 +62,6 @@ static inline void put_uniform_vec3(GLint ix, const float* f) {
 
 #define no_uniforms
 
-#define shader_source(name) ;static GLuint shader_part_##name
 #define shader(name) ;struct shader_##name##_info
 #define composed_of(x,y) GLuint program; GLint projection_matrix_ix;
 #define uniform(type,name) GLint name##_ix;
@@ -75,15 +74,14 @@ extern int dummy_decl
 #undef uniform
 #undef composed_of
 #undef shader
-#undef shader_source
-
-#define shader_source(name)
 
 static char link_error_log[65536];
 
 #define shader(name)                                                    \
   static void shader_##name##_assemble(struct shader_##name##_info* info)
 #define composed_of(fpart, vpart)                         \
+  static GLuint shader_part_##fpart;                      \
+  static GLuint shader_part_##vpart;                      \
   GLint status;                                           \
   const char*const composition __unused =                 \
     #fpart "+" #vpart;                                    \

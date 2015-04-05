@@ -26,21 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-shader_source(fflower)
-shader_source(fmanifold)
-shader_source(fpaint_overlay)
-shader_source(fpostprocess)
-shader_source(fskybox)
-shader_source(fterrabuff)
-shader_source(fvoxel)
-shader_source(gen_vflower)
-shader_source(vgenerictc)
-shader_source(gen_vmanifold)
-shader_source(vpaint_overlay)
-shader_source(vterrabuff)
-shader_source(vskybox)
-shader_source(gen_vvoxel)
-
 shader(terrabuff) {
   composed_of(fterrabuff, vterrabuff)
   uniform(tex2d, hmap)

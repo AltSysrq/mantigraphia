@@ -39,7 +39,6 @@ typedef float shader_type_float;
 typedef float shader_type_vec2[2];
 typedef float shader_type_vec3[3];
 
-#define shader_source(x) ;extern int dummy_decl
 #define shader(name)                                                    \
   ;typedef struct shader_##name##_uniform_s                             \
   shader_##name##_uniform;                                              \
@@ -79,7 +78,5 @@ extern int dummy_decl
 #undef uniform
 #undef composed_of
 #undef shader
-
-#undef shader_source
 
 #endif /* GL_SHADERS_H_ */
