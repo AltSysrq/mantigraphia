@@ -1,3 +1,5 @@
+uniform mat4 projection_matrix;
+
 /* #include "perspective.glsl" */
 
 uniform float noise_amplitude;
@@ -14,7 +16,7 @@ void main() {
   vec2 texc;
 
   proj = perspective_proj(gl_Vertex);
-  gl_Position = gl_ModelViewProjectionMatrix * proj;
+  gl_Position = projection_matrix * proj;
   texc = gl_Vertex.xy / METRE / 4.0f;
   texc.s += gl_Vertex.z / METRE / 4.0f;
   texc.t += cos(gl_Vertex.z / METRE / 16.0f * 3.14159f);

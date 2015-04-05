@@ -1,3 +1,5 @@
+uniform mat4 projection_matrix;
+
 uniform float xoff;
 uniform vec2 screen_size;
 
@@ -13,7 +15,7 @@ varying vec4 v_colour_a;
 varying vec4 v_colour_b;
 
 void main() {
-  gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+  gl_Position = projection_matrix * gl_Vertex;
   v_texcoord = tc;
   v_colour_a = colour_a;
   v_colour_b = colour_b;

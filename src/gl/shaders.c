@@ -32,8 +32,11 @@
 #include <glew.h>
 #include "../bsd.h"
 
+#include "../math/matrix.h"
 #include "shader_loader.h"
 #include "shaders.h"
+
+mat44fgl implicit_projection_matrix;
 
 static GLuint current_program = 0;
 static unsigned num_vertex_attribs = 0;
@@ -61,7 +64,7 @@ static inline void put_uniform_vec3(GLint ix, const float* f) {
 
 #define shader_source(name) ;static GLuint shader_part_##name
 #define shader(name) ;struct shader_##name##_info
-#define composed_of(x,y) GLuint program;
+#define composed_of(x,y) GLuint program; GLint projection_matrix_ix;
 #define uniform(type,name) GLint name##_ix;
 #define attrib(cnt,name) unsigned name##_va;
 #define padding(cnt,name)
@@ -101,7 +104,12 @@ static char link_error_log[65536];
                         NULL, link_error_log);            \
     errx(EX_DATAERR, "Failed to link shaders "            \
          "" #fpart "and" #vpart ":\n%s", link_error_log); \
-  }
+  }                                                       \
+  info->projection_matrix_ix = glGetUniformLocation(      \
+    info->program, "projection_matrix");                  \
+  if (-1 == info->projection_matrix_ix)                   \
+    errx(EX_SOFTWARE, "Failed to link projection_matrix"  \
+         " in shader, using %s", composition);
 
 #define uniform(type,name)                                      \
   info->name##_ix = glGetUniformLocation(info->program, #name); \
@@ -124,10 +132,15 @@ static char link_error_log[65536];
   static void shader_##name##_do_activate(      \
     struct shader_##name##_info* info,          \
     const shader_##name##_uniform* uniform)
-#define composed_of(x,y)                        \
-  if (current_program != info->program)         \
-    glUseProgram(info->program);                \
-  current_program = info->program;
+#define composed_of(x,y)                                \
+  if (current_program != info->program)                 \
+    glUseProgram(info->program);                        \
+  current_program = info->program;                      \
+  glUniformMatrix4fv(                                   \
+    info->projection_matrix_ix,                         \
+    1, 0,                                               \
+    (const float*)implicit_projection_matrix.m);
+
 #define uniform(type, name)                             \
   put_uniform_##type(info->name##_ix, uniform->name);
 #define attrib(cnt, name)

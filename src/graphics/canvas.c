@@ -43,6 +43,7 @@
 #include "../math/coords.h"
 #include "../math/matrix.h"
 #include "../gl/marshal.h"
+#include "../gl/shaders.h"
 #include "canvas.h"
 
 SDL_PixelFormat* screen_pixel_format;
@@ -195,11 +196,7 @@ void canvas_gl_clip_sub_immediate(const canvas* sub,
     projection_matrix, mat44fgl_scale(1.0f, -1.0f, -1.0f));
   projection_matrix = mat44fgl_multiply(
     projection_matrix, mat44fgl_translate(0.0f, -(float)sub->h, 0.0f));
-
-  glMatrixMode(GL_PROJECTION);
-  glLoadMatrixf((const float*)projection_matrix.m);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadMatrixf((const float*)mat44fgl_identity.m);
+  implicit_projection_matrix = projection_matrix;
 }
 
 void canvas_gl_clip_sub(const canvas* sub, const canvas* whole) {

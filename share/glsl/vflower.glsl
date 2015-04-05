@@ -1,3 +1,5 @@
+uniform mat4 projection_matrix;
+
 /* #include "perspective.glsl" */
 
 uniform float date;
@@ -29,7 +31,7 @@ void main() {
   vec4 co4 = vec4(corner_offset.x, corner_offset.y, 0.0f, 0.0f);
 
   v_colour = colour;
-  gl_Position = gl_ModelViewProjectionMatrix *
+  gl_Position = projection_matrix *
     (rel4 + co4 * projected_size);
   v_position = corner_offset + vec2(0.5f, 0.5f);
 }

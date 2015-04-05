@@ -1,3 +1,5 @@
+uniform mat4 projection_matrix;
+
 uniform vec2 screen_size;
 uniform sampler2D framebuffer;
 uniform float width;
@@ -44,5 +46,5 @@ void main() {
   }
 
   selected_colour = selected;
-  gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+  gl_Position = projection_matrix * gl_Vertex;
 }

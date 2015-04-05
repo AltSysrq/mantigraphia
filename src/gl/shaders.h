@@ -30,6 +30,10 @@
 
 #include <SDL_opengl.h>
 
+#include "../math/matrix.h"
+
+extern mat44fgl implicit_projection_matrix;
+
 typedef GLuint shader_type_tex2d;
 typedef float shader_type_float;
 typedef float shader_type_vec2[2];

@@ -1,3 +1,5 @@
+uniform mat4 projection_matrix;
+
 uniform vec2 screen_size;
 uniform float fov;
 uniform vec2 yrot;
@@ -31,7 +33,7 @@ void main() {
   angle = asin(rxrot.y) + screen_off.y * fov / screen_size.x +
     3.14159f / 2.0f;
 
-  gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+  gl_Position = projection_matrix * gl_Vertex;
   sky_colour = vec4(0.1f + 0.4f*cloudiness*cloudiness,
                     0.1f + 0.4f*cloudiness*cloudiness,
                     0.4f, 1.0f) +
