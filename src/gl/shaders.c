@@ -39,7 +39,6 @@
 mat44fgl implicit_projection_matrix;
 
 static GLuint current_program = 0;
-static unsigned num_vertex_attribs = 0;
 
 /* Like offsetof(), but works off of the value of a pointer instead. */
 #define ptroffof(ptr,fld) (((char*)&(ptr)->fld) - (char*)(ptr))
@@ -176,19 +175,13 @@ static char link_error_log[65536];
   static void shader_##name##_configure_vbo_(   \
     shader_##name##_vertex* vertex_format,      \
     struct shader_##name##_info* info)
-#define composed_of(x,y)                                                \
-  GLuint i;                                                             \
-  for (i = 0; i < num_vertex_attribs; ++i)                              \
-    glDisableVertexAttribArray(i);                                      \
-  num_vertex_attribs = 0;
+#define composed_of(x,y)
 #define uniform(x,y)
 #define attrib(cnt,name)                                                \
   glVertexAttribPointer(info->name##_va, cnt, GL_FLOAT, GL_FALSE,       \
                         sizeof(*vertex_format),                         \
                         (GLvoid*)ptroffof(vertex_format, name));        \
-  glEnableVertexAttribArray(info->name##_va);                           \
-  if (info->name##_va > num_vertex_attribs)                             \
-    num_vertex_attribs = info->name##_va;
+  glEnableVertexAttribArray(info->name##_va);
 #include "shaders.inc"
 #undef attrib
 #undef uniform

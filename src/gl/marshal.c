@@ -71,7 +71,7 @@ static SDL_sem* queue_size;
 static SDL_SpinLock queue_lock;
 static STAILQ_HEAD(, glm_queued_item) queue =
   STAILQ_HEAD_INITIALIZER(queue);
-static GLuint vertex_buffer, index_buffer;
+static GLuint vao, vertex_buffer, index_buffer;
 
 /* SDL doesn't provide a way to free TLS objects, so store unused TLSIDs in
  * this stack. We can safely assume that any reused TLS objects have NULL
@@ -92,6 +92,7 @@ void glm_init(void) {
     errx(EX_SOFTWARE, "Unable to create GL marshaller semaphore: %s",
          SDL_GetError());
 
+  glGenVertexArrays(1, &vao);
   glGenBuffers(1, &vertex_buffer);
   glGenBuffers(1, &index_buffer);
 }
@@ -227,8 +228,8 @@ static void flush_slab(glm_slab* this, int reallocate) {
 }
 
 static void execute_slab(glm_slab* this) {
-  int error;
   (*this->group->activate)(this->group->userdata);
+  glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
   glBufferData(GL_ARRAY_BUFFER, this->data_off, this->data, GL_STREAM_DRAW);
@@ -244,10 +245,6 @@ static void execute_slab(glm_slab* this) {
                    (GLvoid*)0);
   else
     glDrawArrays(this->group->primitive, 0, this->vertex_off);
-
-  error = glGetError();
-  if (error)
-    warnx("GL Error: %d (%s)", error, gluErrorString(error));
 
   if (this->group->deactivate)
     (*this->group->deactivate)(this->group->userdata);
@@ -282,6 +279,7 @@ static void execute_set_done(void* ignored) {
 
 void glm_main(void) {
   struct glm_queued_item* entry;
+  int error;
 
   is_done = 0;
   while (!is_done) {
@@ -293,6 +291,11 @@ void glm_main(void) {
     SDL_AtomicUnlock(&queue_lock);
 
     (*entry->exec)(entry->userdata);
+
+    error = glGetError();
+    if (error)
+      warnx("GL Error: %d (%s)", error, gluErrorString(error));
+
     free(entry);
   }
 }

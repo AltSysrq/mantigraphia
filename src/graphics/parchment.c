@@ -47,7 +47,7 @@
 #include "../defs.h"
 
 static GLuint postprocess_tex;
-static GLuint vbo;
+static GLuint vao, vbo;
 static unsigned postprocess_tex_dim[2];
 static int postprocess_tex_mode;
 
@@ -58,6 +58,7 @@ struct parchment_s {
 
 void parchment_init(void) {
   glGenTextures(1, &postprocess_tex);
+  glGenVertexArrays(1, &vao);
   glGenBuffers(1, &vbo);
 }
 
@@ -140,6 +141,7 @@ static void parchment_do_postprocess(struct parchment_postprocess* d) {
   glBindTexture(GL_TEXTURE_2D, postprocess_tex);
 
   shader_postprocess_activate(&uniform);
+  glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
                GL_STREAM_DRAW);

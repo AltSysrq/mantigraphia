@@ -94,6 +94,10 @@ struct env_vmap_manifold_render_mhive_s {
    */
   unsigned char lod;
   /**
+   * The VAO for this mhive.
+   */
+  GLuint vao;
+  /**
    * The vertex and index buffers for this mhive.
    */
   GLuint buffers[2];
@@ -162,6 +166,7 @@ static void render_env_vmap_manifolds_glfinish(void* ignore) {
 }
 
 typedef struct {
+  GLuint* vao;
   GLuint* buffers;
   void* vertex_data;
   unsigned vertex_data_size;
@@ -173,7 +178,9 @@ typedef struct {
 static void render_env_vmap_manifolds_put_buffer_data(
   render_env_vmap_manifolds_put_buffer_data_op* op
 ) {
+  glGenVertexArrays(1, op->vao);
   glGenBuffers(2, op->buffers);
+  glBindVertexArray(*op->vao);
   glBindBuffer(GL_ARRAY_BUFFER, op->buffers[0]);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, op->buffers[1]);
   glBufferData(GL_ARRAY_BUFFER, op->vertex_data_size,
@@ -184,6 +191,8 @@ static void render_env_vmap_manifolds_put_buffer_data(
   if (SDL_SemPost(op->not_busy))
     errx(EX_SOFTWARE, "Failed to post semaphore for manifold thread: %s",
          SDL_GetError());
+
+  shader_manifold_configure_vbo();
 }
 
 static void render_env_vmap_manifolds_impl(
@@ -939,6 +948,7 @@ static env_vmap_manifold_render_mhive* env_vmap_manifold_render_mhive_new(
     }
   }
 
+  glm_op.vao = &mhive->vao;
   glm_op.buffers = mhive->buffers;
   glm_op.vertex_data_size = num_vertices * sizeof(glvertices[0]);
   glm_op.vertex_data = glvertices;
@@ -964,6 +974,7 @@ static void env_vmap_manifold_render_mhive_delete_impl(
   env_vmap_manifold_render_mhive* this
 ) {
   glDeleteBuffers(2, this->buffers);
+  glDeleteVertexArrays(1, &this->vao);
   free(this);
 }
 
@@ -1035,8 +1046,7 @@ static void env_vmap_manifold_render_mhive_render_impl(
     uniform.camera_fractional[i] = effective_camera & 0x0000FFFF;
   }
 
-  glBindBuffer(GL_ARRAY_BUFFER, mhive->buffers[0]);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mhive->buffers[1]);
+  glBindVertexArray(mhive->vao);
 
   for (i = 0; i < mhive->num_operations; ++i) {
     uniform.noise_bias = mhive->operations[i].graphic->noise_bias / 65536.0f;
@@ -1053,7 +1063,9 @@ static void env_vmap_manifold_render_mhive_render_impl(
     glActiveTexture(GL_TEXTURE0);
 
     shader_manifold_activate(&uniform);
+    /*
     shader_manifold_configure_vbo();
+    */
     glDrawElements(GL_TRIANGLES, mhive->operations[i].length,
                    GL_UNSIGNED_SHORT,
                    (GLvoid*)(mhive->operations[i].offset * sizeof(unsigned short)));

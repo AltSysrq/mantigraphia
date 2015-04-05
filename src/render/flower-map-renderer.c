@@ -57,6 +57,10 @@ typedef struct {
    */
   unsigned fhive_index;
   /**
+   * The VAO configured to draw with the below buffers.
+   */
+  GLuint vao;
+  /**
    * The vertex and index buffers for this fhive.
    */
   GLuint buffers[2];
@@ -113,10 +117,14 @@ flower_map_renderer* flower_map_renderer_new(
 void flower_map_renderer_delete(flower_map_renderer* this) {
   unsigned i, j;
 
-  for (i = 0; i < lenof(this->hives); ++i)
-    for (j = 0; j < lenof(this->hives[i]); ++j)
-      if (~this->hives[i][j].fhive_index)
+  for (i = 0; i < lenof(this->hives); ++i) {
+    for (j = 0; j < lenof(this->hives[i]); ++j) {
+      if (~this->hives[i][j].fhive_index) {
         glDeleteBuffers(2, this->hives[i][j].buffers);
+        glDeleteVertexArrays(1, &this->hives[i][j].vao);
+      }
+    }
+  }
 
   free(this);
 }
@@ -184,8 +192,10 @@ static void flower_map_render_fhive_prepare(
   if (this->fhive_index == flower_map_fhive_offset(renderer->flowers, x, z))
     return;
 
-  if (!~this->fhive_index)
+  if (!~this->fhive_index) {
+    glGenVertexArrays(1, &this->vao);
     glGenBuffers(2, this->buffers);
+  }
 
   this->fhive_index = flower_map_fhive_offset(renderer->flowers, x, z);
   hive = renderer->flowers->hives + this->fhive_index;
@@ -244,6 +254,7 @@ static void flower_map_render_fhive_prepare(
   }
 
   this->length = count * 6;
+  glBindVertexArray(this->vao);
   glBindBuffer(GL_ARRAY_BUFFER, this->buffers[0]);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->buffers[1]);
   glBufferData(GL_ARRAY_BUFFER, count * sizeof(shader_flower_vertex) * 4,
@@ -251,6 +262,7 @@ static void flower_map_render_fhive_prepare(
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                count * sizeof(unsigned short) * 6,
                indices, GL_STATIC_DRAW);
+  shader_flower_configure_vbo();
 }
 
 static void flower_map_render_fhive_render(
@@ -296,9 +308,7 @@ static void flower_map_render_fhive_render(
   uniform.inv_max_distance = 1.0f /
     ((DRAW_DISTANCE-1) * FLOWER_FHIVE_SIZE * TILE_SZ);
 
-  glBindBuffer(GL_ARRAY_BUFFER, this->buffers[0]);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->buffers[1]);
+  glBindVertexArray(this->vao);
   shader_flower_activate(&uniform);
-  shader_flower_configure_vbo();
   glDrawElements(GL_TRIANGLES, this->length, GL_UNSIGNED_SHORT, (GLvoid*)0);
 }

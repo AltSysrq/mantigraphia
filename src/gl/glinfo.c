@@ -42,7 +42,7 @@ int can_draw_offscreen_points;
 
 void glinfo_detect(unsigned wh) {
   shader_solid_vertex vertex;
-  GLuint vbo;
+  GLuint vao, vbo;
   float point_size[2];
   unsigned pixel;
   int max_vertex_texture_image_units;
@@ -57,7 +57,9 @@ void glinfo_detect(unsigned wh) {
   glClearColor(0.0f,0.0f,0.0f,1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
 
+  glGenVertexArrays(1, &vao);
   glGenBuffers(1, &vbo);
+  glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   vertex.v[0] = -1.0f;
   vertex.v[1] = -1.0f;
@@ -72,6 +74,7 @@ void glinfo_detect(unsigned wh) {
   glPointSize(max_point_size);
   glDrawArrays(GL_POINTS, 0, 1);
   glDeleteBuffers(1, &vbo);
+  glDeleteVertexArrays(1, &vao);
 
   glReadPixels(0, wh-1, 1, 1, GL_RGB, GL_UNSIGNED_INT, &pixel);
   can_draw_offscreen_points = !!pixel;

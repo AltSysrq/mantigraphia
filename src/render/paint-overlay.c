@@ -53,7 +53,7 @@
 #define POINT_SIZE_MULT 3
 
 struct paint_overlay_s {
-  GLuint vbo, fbtex, brushtex_high, brushtex_low;
+  GLuint vao, vbo, fbtex, brushtex_high, brushtex_low;
   unsigned num_points;
   unsigned point_size;
   unsigned fbtex_dim[2];
@@ -115,11 +115,15 @@ paint_overlay* paint_overlay_new(const canvas* canv) {
   }
 
   glGenTextures(1, &this->fbtex);
+  glGenVertexArrays(1, &this->vao);
   glGenBuffers(1, &this->vbo);
+  glBindVertexArray(this->vao);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
   glBufferData(GL_ARRAY_BUFFER,
                pdr.num_points * sizeof(shader_paint_overlay_vertex),
                vertices, GL_STATIC_DRAW);
+  shader_paint_overlay_configure_vbo();
+
   free(vertices);
   poisson_disc_result_destroy(&pdr);
 
@@ -190,6 +194,7 @@ static void paint_overlay_create_texture(paint_overlay* this) {
 
 void paint_overlay_delete(paint_overlay* this) {
   glDeleteBuffers(1, &this->vbo);
+  glDeleteVertexArrays(1, &this->vao);
   glDeleteTextures(1, &this->fbtex);
   glDeleteTextures(1, &this->brushtex_high);
   glDeleteTextures(1, &this->brushtex_low);
@@ -255,10 +260,13 @@ static void paint_overlay_postprocess_impl(paint_overlay* this) {
   uniform.screen_off[1] = this->yoff;
   uniform.texture_freq = this->using_high_brushtex?
     1.0f : BRUSHTEX_SZ / BRUSHTEX_LOW_SZ;
+  glBindVertexArray(this->vao);
   shader_paint_overlay_activate(&uniform);
+  /*
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-  glPointSize(this->point_size * POINT_SIZE_MULT);
   shader_paint_overlay_configure_vbo();
+  */
+  glPointSize(this->point_size * POINT_SIZE_MULT);
   glDrawArrays(GL_POINTS, 0, this->num_points);
 
   glPopAttrib();

@@ -42,7 +42,7 @@
 
 struct skybox_s {
   GLuint clouds;
-  GLuint vbo;
+  GLuint vao, vbo;
 
   /* The size of the rectangle drawn by rendering the vbo, so that it can be
    * regenerated if the screen size changes.
@@ -70,6 +70,7 @@ skybox* skybox_new(unsigned seed) {
 
   free(texdata);
 
+  glGenVertexArrays(1, &this->vao);
   glGenBuffers(1, &this->vbo);
   this->rect_w = ~0u;
   this->rect_h = ~0u;
@@ -80,6 +81,7 @@ skybox* skybox_new(unsigned seed) {
 void skybox_delete(skybox* this) {
   glDeleteTextures(1, &this->clouds);
   glDeleteBuffers(1, &this->vbo);
+  glDeleteVertexArrays(1, &this->vao);
   free(this);
 }
 
@@ -121,7 +123,7 @@ static void skybox_do_render(skybox_render_op* op) {
   basic_cloud_offset -= context->month_integral;
   basic_cloud_offset /= 200.0f;
 
-  glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
+  glBindVertexArray(this->vao);
   if (dst->w != this->rect_w || dst->h != this->rect_h) {
     vertices[0].v[0] = 0.0f;
     vertices[0].v[1] = 0.0f;
@@ -135,7 +137,9 @@ static void skybox_do_render(skybox_render_op* op) {
     vertices[3].v[0] = dst->w;
     vertices[3].v[1] = dst->h;
     vertices[3].v[2] = 4095.0f * METRE;
+    glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+    shader_skybox_configure_vbo();
 
     this->rect_w = dst->w;
     this->rect_h = dst->h;
@@ -158,7 +162,6 @@ static void skybox_do_render(skybox_render_op* op) {
   uniform.clouds = 0;
 
   shader_skybox_activate(&uniform);
-  shader_skybox_configure_vbo();
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
   glPopAttrib();
