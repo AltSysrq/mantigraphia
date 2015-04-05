@@ -1,9 +1,15 @@
-varying float rel;
-varying vec2 screen_coords;
+out vec4 dst;
+
+in float rel;
+in vec2 screen_coords;
 uniform sampler2D hmap, tex;
 uniform float ty_below;
 uniform float line_thickness;
 uniform vec2 screen_size;
+
+in vec2 v_texcoord;
+in vec4 v_colour_a;
+in vec4 v_colour_b;
 
 void main() {
   float low, high;
@@ -13,15 +19,15 @@ void main() {
   float alpha = 0.50f;
   float angle;
 
-  if (gl_TexCoord[0].t > 1)
+  if (v_texcoord.t > 1)
     thickness = line_thickness;
   else
     thickness = max(1.0f, line_thickness/2.0f);
 
-  high = texture2D(hmap, gl_TexCoord[0].st).r * 65536;
-  if (gl_TexCoord[0].t > ty_below)
-    low = texture2D(hmap, vec2(gl_TexCoord[0].s,
-                               gl_TexCoord[0].t-ty_below)).r * 65536;
+  high = texture2D(hmap, v_texcoord).r * 65536;
+  if (v_texcoord.t > ty_below)
+    low = texture2D(hmap, vec2(v_texcoord.s,
+                               v_texcoord.t-ty_below)).r * 65536;
   else
     low = 65536;
 
@@ -36,7 +42,7 @@ void main() {
     /* Discard the lines if the alpha channel indicates that lines are
      * undesirable here.
      */
-    if (rel * gl_Color.a + (1.0f-rel) * gl_SecondaryColor.a > 0.25f)
+    if (rel * v_colour_a.a + (1.0f-rel) * v_colour_b.a > 0.25f)
       discard;
 
     alpha = 0.0f;
@@ -48,14 +54,14 @@ void main() {
     discard;
   }
 
-  angle = atan(texture2D(hmap, gl_TexCoord[0].st + vec2(0.01f,0.0f)).r*65536
+  angle = atan(texture2D(hmap, v_texcoord + vec2(0.01f,0.0f)).r*65536
                - high, 0.01f * screen_size.x);
   alpha += 0.125f - angle / (3.14159f * 8.0f);
 
   if (rel + value*5 > 3.5)
-    gl_FragColor.rgb = value * gl_SecondaryColor.rgb;
+    dst.rgb = value * v_colour_b.rgb;
   else
-    gl_FragColor.rgb = value * gl_Color.rgb;
+    dst.rgb = value * v_colour_a.rgb;
 
-  gl_FragColor.a = alpha;
+  dst.a = alpha;
 }

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 Jason Lingle
+ * Copyright (c) 2014, 2015 Jason Lingle
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,27 +30,23 @@
 
 #include <SDL_opengl.h>
 
+#include "../math/matrix.h"
+
+extern mat44fgl implicit_projection_matrix;
+
 typedef GLuint shader_type_tex2d;
 typedef float shader_type_float;
 typedef float shader_type_vec2[2];
 typedef float shader_type_vec3[3];
 
-#define shader_source(x) ;extern int dummy_decl
 #define shader(name)                                                    \
   ;typedef struct shader_##name##_uniform_s                             \
   shader_##name##_uniform;                                              \
   void shader_##name##_activate(const shader_##name##_uniform*);        \
   struct shader_##name##_uniform_s
 #define composed_of(x,y)
-/* Fixed-function shaders never have uniforms; add a member to suppress
- * empty-struct warnings.
- */
-#define fixed_function int dummy;
 #define uniform(type, name) shader_type_##type name;
 #define no_uniforms int dummy;
-#define with_texture_coordinates
-#define with_colour
-#define with_secondary_colour
 #define attrib(cnt,name)
 #define padding(cnt,name)
 extern int dummy_decl
@@ -58,12 +54,8 @@ extern int dummy_decl
 ;
 #undef padding
 #undef attrib
-#undef with_secondary_colour
-#undef with_colour
-#undef with_texture_coordinates
 #undef no_uniforms
 #undef uniform
-#undef fixed_function
 #undef composed_of
 #undef shader
 
@@ -72,13 +64,9 @@ extern int dummy_decl
   shader_##name##_vertex;                       \
   void shader_##name##_configure_vbo(void);     \
   struct shader_##name##_vertex_s
-#define fixed_function float v[3];
-#define composed_of(x,y) float v[3];
+#define composed_of(x,y)
 #define uniform(x,y)
 #define no_uniforms
-#define with_texture_coordinates float tc[2];
-#define with_colour float colour[4];
-#define with_secondary_colour float sec_colour[4];
 #define attrib(cnt,name) float name[cnt];
 #define padding(cnt,name) float name[cnt];
 extern int dummy_decl
@@ -86,15 +74,9 @@ extern int dummy_decl
 ;
 #undef padding
 #undef attrib
-#undef with_secondary_colour
-#undef with_colour
-#undef with_texture_coordinates
 #undef no_uniforms
 #undef uniform
-#undef fixed_function
 #undef composed_of
 #undef shader
-
-#undef shader_source
 
 #endif /* GL_SHADERS_H_ */

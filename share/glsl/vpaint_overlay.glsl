@@ -1,9 +1,13 @@
+uniform mat4 projection_matrix;
+in vec3 v;
+
 uniform vec2 screen_size;
 uniform sampler2D framebuffer;
 uniform float width;
-varying vec4 selected_colour;
-varying vec2 angv;
-varying vec2 lumtc_scale;
+
+out vec4 selected_colour;
+out vec2 angv;
+out vec2 lumtc_scale;
 
 const float SAMPLING = 3.0f;
 
@@ -16,7 +20,7 @@ void main() {
   float angle;
   float samples;
 
-  stroke_centre = gl_Vertex.xy / screen_size * vec2(1,-1) + vec2(0,+1);
+  stroke_centre = v.xy / screen_size * vec2(1,-1) + vec2(0,+1);
 
   selected = vec4(0.0f, 0.0f, 0.0f, 0.0f);
   samples = 0.0f;
@@ -43,5 +47,5 @@ void main() {
   }
 
   selected_colour = selected;
-  gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+  gl_Position = projection_matrix * vec4(v.x, v.y, v.z, 1.0f);
 }

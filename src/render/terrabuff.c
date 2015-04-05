@@ -502,8 +502,8 @@ static void render_rectangle_between(glm_slab* slab,
   vertices[2].side[0] = vertices[3].side[0] = 1.0f;
   for (i = 0; i < 4; ++i) {
     vertices[i].tc[1] = hmap_y;
-    canvas_pixel_to_gl4fv(vertices[i].colour, l->colour);
-    canvas_pixel_to_gl4fv(vertices[i].sec_colour, r->colour);
+    canvas_pixel_to_gl4fv(vertices[i].colour_a, l->colour);
+    canvas_pixel_to_gl4fv(vertices[i].colour_b, r->colour);
   }
   indices[0] = base + 0;
   indices[1] = base + 1;

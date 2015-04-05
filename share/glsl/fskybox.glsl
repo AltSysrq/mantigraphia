@@ -1,9 +1,12 @@
+out vec4 dst;
+
 uniform sampler2D clouds;
 uniform vec2 cloud_offset_1;
 uniform vec2 cloud_offset_2;
 uniform float cloudiness;
 
-varying vec3 ray;
+in vec4 sky_colour;
+in vec3 ray;
 
 const float METRE = 65536.0f;
 const float EARTH_RADIUS = 6378.1e3 * METRE;
@@ -16,7 +19,7 @@ void main() {
   vec3 norm_ray = normalize(ray);
 
   if (norm_ray.y <= 0.0f) {
-    gl_FragColor = gl_Color;
+    dst = sky_colour;
     return;
   }
 
@@ -41,11 +44,12 @@ void main() {
     : 0.0f;
 
   if (cloud < (1.0f - cloudiness))
-    gl_FragColor.rgb = gl_Color.rgb;
+    dst.rgb = sky_colour.rgb;
   else
-    gl_FragColor.rgb = mix(vec3(1.0f, 1.0f, 1.0f) *
-                           (1.0f - (cloud - (1.0f - cloudiness))*1.5f), gl_Color.rgb,
+    dst.rgb = mix(vec3(1.0f, 1.0f, 1.0f) *
+                           (1.0f - (cloud - (1.0f - cloudiness))*1.5f),
+                           sky_colour.rgb,
                            distance_to_intersect / CLOUD_VISIBILITY);
 
-  gl_FragColor.a = 1.0f;
+  dst.a = 1.0f;
 }

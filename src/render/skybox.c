@@ -42,6 +42,12 @@
 
 struct skybox_s {
   GLuint clouds;
+  GLuint vao, vbo;
+
+  /* The size of the rectangle drawn by rendering the vbo, so that it can be
+   * regenerated if the screen size changes.
+   */
+  unsigned rect_w, rect_h;
 };
 
 skybox* skybox_new(unsigned seed) {
@@ -64,11 +70,18 @@ skybox* skybox_new(unsigned seed) {
 
   free(texdata);
 
+  glGenVertexArrays(1, &this->vao);
+  glGenBuffers(1, &this->vbo);
+  this->rect_w = ~0u;
+  this->rect_h = ~0u;
+
   return this;
 }
 
 void skybox_delete(skybox* this) {
   glDeleteTextures(1, &this->clouds);
+  glDeleteBuffers(1, &this->vbo);
+  glDeleteVertexArrays(1, &this->vao);
   free(this);
 }
 
@@ -91,6 +104,7 @@ void skybox_render(canvas* dst, skybox* this,
 }
 
 static void skybox_do_render(skybox_render_op* op) {
+  shader_skybox_vertex vertices[4];
   canvas* dst = op->dst;
   skybox* this = op->this;
   const rendering_context*restrict ctxt = op->ctxt;
@@ -109,6 +123,28 @@ static void skybox_do_render(skybox_render_op* op) {
   basic_cloud_offset -= context->month_integral;
   basic_cloud_offset /= 200.0f;
 
+  glBindVertexArray(this->vao);
+  if (dst->w != this->rect_w || dst->h != this->rect_h) {
+    vertices[0].v[0] = 0.0f;
+    vertices[0].v[1] = 0.0f;
+    vertices[0].v[2] = 4095.0f * METRE;
+    vertices[1].v[0] = dst->w;
+    vertices[1].v[1] = 0.0f;
+    vertices[1].v[2] = 4095.0f * METRE;
+    vertices[2].v[0] = 0.0f;
+    vertices[2].v[1] = dst->h;
+    vertices[2].v[2] = 4095.0f * METRE;
+    vertices[3].v[0] = dst->w;
+    vertices[3].v[1] = dst->h;
+    vertices[3].v[2] = 4095.0f * METRE;
+    glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+    shader_skybox_configure_vbo();
+
+    this->rect_w = dst->w;
+    this->rect_h = dst->h;
+  }
+
   uniform.screen_size[0] = dst->w;
   uniform.screen_size[1] = dst->h;
   uniform.fov = context->proj->fov * 2.0f * 3.14159f / 65536.0f;
@@ -126,13 +162,7 @@ static void skybox_do_render(skybox_render_op* op) {
   uniform.clouds = 0;
 
   shader_skybox_activate(&uniform);
-  shader_skybox_configure_vbo();
-  glBegin(GL_QUADS);
-  glVertex3f(0.0f, 0.0f, 4095.0f * METRE);
-  glVertex3f(dst->w, 0.0f, 4095.0f * METRE);
-  glVertex3f(dst->w, dst->h, 4095.0f * METRE);
-  glVertex3f(0.0f, dst->h, 4095.0f * METRE);
-  glEnd();
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
   glPopAttrib();
 }

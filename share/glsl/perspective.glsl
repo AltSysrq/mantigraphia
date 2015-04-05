@@ -66,7 +66,7 @@ vec3 perspective_proj_rel(in vec3 src) {
   return vec3(soff.x + rtx.x, soff.y - rtx.y, -rtx.z);
 }
 
-vec4 perspective_proj(in vec4 src) {
-  vec3 r = perspective_proj_rel(perspective_xlate(src.xyz));
+vec4 perspective_proj(in vec3 src) {
+  vec3 r = perspective_proj_rel(perspective_xlate(src));
   return vec4(r.x, r.y, r.z, 1.0f);
 }

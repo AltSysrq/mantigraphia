@@ -26,52 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-shader_source(fflower)
-shader_source(fmanifold)
-shader_source(fpaint_overlay)
-shader_source(fpostprocess)
-shader_source(fskybox)
-shader_source(fterrabuff)
-shader_source(fvoxel)
-shader_source(gen_vflower)
-shader_source(vgenerictc)
-shader_source(gen_vmanifold)
-shader_source(vpaint_overlay)
-shader_source(vterrabuff)
-shader_source(vskybox)
-shader_source(gen_vvoxel)
-
-shader(fixed_texture) {
-  fixed_function
-  with_texture_coordinates
-}
-
 shader(solid) {
-  fixed_function
-  with_colour
+  composed_of(fsolid, vgenericc)
+  attrib(3, v)
+  attrib(4, colour)
+  no_uniforms
 }
 
 shader(terrabuff) {
   composed_of(fterrabuff, vterrabuff)
-  with_texture_coordinates
-  with_colour
-  with_secondary_colour
   uniform(tex2d, hmap)
   uniform(tex2d, tex)
   uniform(float, ty_below)
   uniform(float, line_thickness)
   uniform(float, xoff)
   uniform(vec2, screen_size)
+  attrib(3, v)
   attrib(1, side)
+  attrib(2, tc)
+  attrib(4, colour_a)
+  attrib(4, colour_b)
 }
 
 shader(postprocess) {
   composed_of(fpostprocess, vgenerictc)
-  with_texture_coordinates
   uniform(tex2d, framebuffer)
   uniform(float, pocket_size_px)
   uniform(vec2, pocket_size_scr)
   uniform(vec2, px_offset)
+  attrib(3, v)
+  attrib(2, tc)
 }
 
 shader(paint_overlay) {
@@ -81,11 +65,11 @@ shader(paint_overlay) {
   uniform(vec2, screen_size)
   uniform(vec2, screen_off)
   uniform(float, texture_freq)
+  attrib(3, v)
 }
 
 shader(voxel) {
   composed_of(fvoxel, gen_vvoxel)
-  with_texture_coordinates
   uniform(vec2, torus_sz)
   uniform(vec2, yrot)
   uniform(vec2, rxrot)
@@ -97,6 +81,8 @@ shader(voxel) {
   uniform(tex2d, control)
   uniform(vec2, texture_scale_s)
   uniform(vec2, texture_scale_t)
+  attrib(3, v)
+  attrib(2, tc)
 }
 
 shader(skybox) {
@@ -109,11 +95,11 @@ shader(skybox) {
   uniform(vec2, cloud_offset_1)
   uniform(vec2, cloud_offset_2)
   uniform(float, cloudiness)
+  attrib(3, v)
 }
 
 shader(manifold) {
   composed_of(fmanifold, gen_vmanifold)
-  attrib(1, lighting)
   uniform(vec2, torus_sz)
   uniform(vec2, yrot)
   uniform(vec2, rxrot)
@@ -127,11 +113,12 @@ shader(manifold) {
   uniform(tex2d, palette)
   uniform(float, palette_t)
   uniform(vec2, noise_freq)
+  attrib(3, v)
+  attrib(1, lighting)
 }
 
 shader(flower) {
   composed_of(fflower, gen_vflower)
-  with_colour
   uniform(vec2, torus_sz)
   uniform(vec2, yrot)
   uniform(vec2, rxrot)
@@ -141,6 +128,8 @@ shader(flower) {
   uniform(vec3, camera_fractional)
   uniform(float, date)
   uniform(float, inv_max_distance)
+  attrib(3, v)
+  attrib(4, colour)
   attrib(1, lifetime_centre)
   attrib(1, lifetime_scale)
   attrib(1, max_size)
