@@ -84,6 +84,9 @@ void glinfo_detect(unsigned wh) {
   max_vertex_texture_image_units = -1;
   glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &max_vertex_texture_image_units);
 
+  printf("OpenGL version: %s by %s on %s\n",
+         glGetString(GL_VERSION), glGetString(GL_VENDOR),
+         glGetString(GL_RENDERER));
   printf("GL info: max point size = %d; off screen point support = %s\n",
          max_point_size, can_draw_offscreen_points? "yes" : "no");
   printf("Max vertex texture image units: %d\n", max_vertex_texture_image_units);
