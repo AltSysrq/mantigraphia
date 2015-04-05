@@ -1,6 +1,7 @@
 uniform vec2 screen_size;
 uniform sampler2D framebuffer;
 uniform float width;
+
 varying vec4 selected_colour;
 varying vec2 angv;
 varying vec2 lumtc_scale;

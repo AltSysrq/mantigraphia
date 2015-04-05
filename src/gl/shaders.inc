@@ -43,9 +43,6 @@ shader_source(gen_vvoxel)
 
 shader(terrabuff) {
   composed_of(fterrabuff, vterrabuff)
-  with_texture_coordinates
-  with_colour
-  with_secondary_colour
   uniform(tex2d, hmap)
   uniform(tex2d, tex)
   uniform(float, ty_below)
@@ -53,15 +50,18 @@ shader(terrabuff) {
   uniform(float, xoff)
   uniform(vec2, screen_size)
   attrib(1, side)
+  attrib(2, tc)
+  attrib(4, colour_a)
+  attrib(4, colour_b)
 }
 
 shader(postprocess) {
   composed_of(fpostprocess, vgenerictc)
-  with_texture_coordinates
   uniform(tex2d, framebuffer)
   uniform(float, pocket_size_px)
   uniform(vec2, pocket_size_scr)
   uniform(vec2, px_offset)
+  attrib(2, tc)
 }
 
 shader(paint_overlay) {
@@ -75,7 +75,6 @@ shader(paint_overlay) {
 
 shader(voxel) {
   composed_of(fvoxel, gen_vvoxel)
-  with_texture_coordinates
   uniform(vec2, torus_sz)
   uniform(vec2, yrot)
   uniform(vec2, rxrot)
@@ -87,6 +86,7 @@ shader(voxel) {
   uniform(tex2d, control)
   uniform(vec2, texture_scale_s)
   uniform(vec2, texture_scale_t)
+  attrib(2, tc)
 }
 
 shader(skybox) {
@@ -121,7 +121,6 @@ shader(manifold) {
 
 shader(flower) {
   composed_of(fflower, gen_vflower)
-  with_colour
   uniform(vec2, torus_sz)
   uniform(vec2, yrot)
   uniform(vec2, rxrot)
@@ -131,6 +130,7 @@ shader(flower) {
   uniform(vec3, camera_fractional)
   uniform(float, date)
   uniform(float, inv_max_distance)
+  attrib(4, colour)
   attrib(1, lifetime_centre)
   attrib(1, lifetime_scale)
   attrib(1, max_size)

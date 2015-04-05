@@ -7,6 +7,7 @@ attribute float lighting;
 
 varying float scaled_noise_amplitude;
 varying float scaled_lighting;
+varying vec2 v_texcoord;
 
 void main() {
   vec4 proj;
@@ -18,7 +19,7 @@ void main() {
   texc.s += gl_Vertex.z / METRE / 4.0f;
   texc.t += cos(gl_Vertex.z / METRE / 16.0f * 3.14159f);
   texc *= noise_freq;
-  gl_TexCoord[0] = vec4(texc.s, texc.t, 0.0f, 1.0f);
+  v_texcoord = texc;
   scaled_noise_amplitude = noise_amplitude - noise_amplitude * clamp(
     abs(proj.z) / METRE / 256.0f, 0.0f, 1.0f);
   scaled_lighting = 0.6f + lighting * 0.4f / 65536.0f;

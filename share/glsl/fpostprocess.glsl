@@ -3,6 +3,8 @@ uniform float pocket_size_px;
 uniform vec2 pocket_size_scr;
 uniform vec2 px_offset;
 
+varying vec2 v_texcoord;
+
 float intensity(in vec4 colour) {
   return max(max(colour.r, colour.g), colour.b);
 }
@@ -15,7 +17,7 @@ void main() {
     / pocket_size_px;
   vec2 blur_size = pocket_size_scr * pocket_factor;
   int x, y;
-  vec4 colour = texture2D(framebuffer, gl_TexCoord[0].st);
+  vec4 colour = texture2D(framebuffer, v_texcoord);
   vec4 other = vec4(0.0f,0.0f,0.0f,0.0f);
   vec4 sample;
 
@@ -24,7 +26,7 @@ void main() {
   for (y = -2; y <= 2; ++y) {
     for (x = -2; x <= 2; ++x) {
       sample = texture2D(framebuffer,
-                         gl_TexCoord[0].st +
+                         v_texcoord +
                          vec2(float(x),float(y)) * 4.0f
                          * blur_size);
       if (intensity(sample) > intensity(other))

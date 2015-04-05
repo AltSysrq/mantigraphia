@@ -3,10 +3,14 @@
 uniform float date;
 uniform float inv_max_distance;
 
+attribute vec4 colour;
 attribute float lifetime_centre;
 attribute float lifetime_scale;
 attribute float max_size;
 attribute vec2 corner_offset;
+
+varying vec4 v_colour;
+varying vec2 v_position;
 
 void main() {
   float date_size_scale = 1.0f -
@@ -24,9 +28,8 @@ void main() {
   vec4 rel4 = vec4(rel.x, rel.y, rel.z, 1.0f);
   vec4 co4 = vec4(corner_offset.x, corner_offset.y, 0.0f, 0.0f);
 
-  gl_FrontColor = gl_Color;
+  v_colour = colour;
   gl_Position = gl_ModelViewProjectionMatrix *
     (rel4 + co4 * projected_size);
-  gl_TexCoord[0].st = corner_offset + vec2(0.5f, 0.5f);
-  gl_TexCoord[0].zw = vec2(0.0f, 1.0f);
+  v_position = corner_offset + vec2(0.5f, 0.5f);
 }

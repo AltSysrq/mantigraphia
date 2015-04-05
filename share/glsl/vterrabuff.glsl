@@ -1,18 +1,26 @@
-attribute float side;
-varying float rel;
-varying vec2 screen_coords;
 uniform float xoff;
 uniform vec2 screen_size;
 
+attribute vec4 colour_a;
+attribute vec4 colour_b;
+attribute vec2 tc;
+attribute float side;
+
+varying float rel;
+varying vec2 screen_coords;
+varying vec2 v_texcoord;
+varying vec4 v_colour_a;
+varying vec4 v_colour_b;
+
 void main() {
   gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-  gl_TexCoord[0] = gl_MultiTexCoord0;
-  gl_FrontColor = gl_Color;
-  gl_FrontSecondaryColor = gl_SecondaryColor;
+  v_texcoord = tc;
+  v_colour_a = colour_a;
+  v_colour_b = colour_b;
   screen_coords = vec2(gl_Vertex.x + xoff +
                        screen_size.x / 4 * 128 *
-                       (31 * gl_MultiTexCoord0.t +
-                        75 * gl_MultiTexCoord0.t * gl_MultiTexCoord0.t),
+                       (31 * tc.t +
+                        75 * tc.t * tc.t),
                        gl_Vertex.y);
   rel = side;
 }

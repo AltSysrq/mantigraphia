@@ -63,18 +63,12 @@ static inline void put_uniform_vec3(GLint ix, const float* f) {
 #define shader(name) ;struct shader_##name##_info
 #define composed_of(x,y) GLuint program;
 #define uniform(type,name) GLint name##_ix;
-#define with_texture_coordinates
-#define with_colour
-#define with_secondary_colour
 #define attrib(cnt,name) unsigned name##_va;
 #define padding(cnt,name)
 extern int dummy_decl
 #include "shaders.inc"
 ;
 #undef attrib
-#undef with_secondary_colour
-#undef with_colour
-#undef with_texture_coordinates
 #undef uniform
 #undef composed_of
 #undef shader
@@ -114,9 +108,6 @@ static char link_error_log[65536];
   if (-1 == info->name##_ix)                                    \
     errx(EX_SOFTWARE, "Failed to link uniform " #name           \
          " in shader, using %s", composition);
-#define with_texture_coordinates
-#define with_colour
-#define with_secondary_colour
 #define attrib(cnt, name)                                       \
   status = glGetAttribLocation(info->program, #name);           \
   if (-1 == status)                                             \
@@ -125,9 +116,6 @@ static char link_error_log[65536];
   info->name##_va = status;
 #include "shaders.inc"
 #undef attrib
-#undef with_secondary_colour
-#undef with_colour
-#undef with_texture_coordinates
 #undef uniform
 #undef composed_of
 #undef shader
@@ -142,15 +130,9 @@ static char link_error_log[65536];
   current_program = info->program;
 #define uniform(type, name)                             \
   put_uniform_##type(info->name##_ix, uniform->name);
-#define with_texture_coordinates
-#define with_colour
-#define with_secondary_colour
 #define attrib(cnt, name)
 #include "shaders.inc"
 #undef attrib
-#undef with_secondary_colour
-#undef with_colour
-#undef with_texture_coordinates
 #undef uniform
 #undef composed_of
 #undef shader
@@ -165,15 +147,9 @@ static char link_error_log[65536];
   } static inline void name##_dummy()
 #define composed_of(x,y)
 #define uniform(x,y)
-#define with_texture_coordinates
-#define with_colour
-#define with_secondary_colour
 #define attrib(cnt,name)
 #include "shaders.inc"
 #undef attrib
-#undef with_secondary_colour
-#undef with_colour
-#undef with_texture_coordinates
 #undef uniform
 #undef composed_of
 #undef shader
@@ -192,27 +168,10 @@ static char link_error_log[65536];
 #define composed_of(x,y)                                                \
   GLuint i;                                                             \
   glVertexPointer(3, GL_FLOAT, sizeof(*vertex_format), (GLvoid*)0);     \
-  /* Reset other array states */                                        \
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);                         \
-  glDisableClientState(GL_COLOR_ARRAY);                                 \
-  glDisableClientState(GL_SECONDARY_COLOR_ARRAY);                       \
   for (i = 0; i < num_vertex_attribs; ++i)                              \
     glDisableVertexAttribArray(i);                                      \
   num_vertex_attribs = 0;
 #define uniform(x,y)
-#define with_texture_coordinates                                \
-  glTexCoordPointer(2, GL_FLOAT, sizeof(*vertex_format),        \
-                    (GLvoid*)ptroffof(vertex_format, tc));      \
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-#define with_colour                                             \
-  glColorPointer(4, GL_FLOAT, sizeof(*vertex_format),           \
-                 (GLvoid*)ptroffof(vertex_format, colour));     \
-  glEnableClientState(GL_COLOR_ARRAY);
-#define with_secondary_colour                                           \
-  glSecondaryColorPointer(4, GL_FLOAT, sizeof(*vertex_format),          \
-                          (GLvoid*)ptroffof(vertex_format, sec_colour));\
-  glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
-
 #define attrib(cnt,name)                                                \
   glVertexAttribPointer(info->name##_va, cnt, GL_FLOAT, GL_FALSE,       \
                         sizeof(*vertex_format),                         \
@@ -222,7 +181,6 @@ static char link_error_log[65536];
     num_vertex_attribs = info->name##_va;
 #include "shaders.inc"
 #undef attrib
-#undef with_texture_coordinates
 #undef uniform
 #undef composed_of
 #undef shader

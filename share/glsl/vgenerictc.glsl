@@ -1,4 +1,8 @@
+attribute vec2 tc;
+
+varying vec2 v_texcoord;
+
 void main() {
   gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-  gl_TexCoord[0] = gl_MultiTexCoord0;
+  v_texcoord = tc;
 }

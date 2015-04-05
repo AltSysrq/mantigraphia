@@ -44,9 +44,6 @@ typedef float shader_type_vec3[3];
 #define composed_of(x,y)
 #define uniform(type, name) shader_type_##type name;
 #define no_uniforms int dummy;
-#define with_texture_coordinates
-#define with_colour
-#define with_secondary_colour
 #define attrib(cnt,name)
 #define padding(cnt,name)
 extern int dummy_decl
@@ -54,9 +51,6 @@ extern int dummy_decl
 ;
 #undef padding
 #undef attrib
-#undef with_secondary_colour
-#undef with_colour
-#undef with_texture_coordinates
 #undef no_uniforms
 #undef uniform
 #undef composed_of
@@ -70,9 +64,6 @@ extern int dummy_decl
 #define composed_of(x,y) float v[3];
 #define uniform(x,y)
 #define no_uniforms
-#define with_texture_coordinates float tc[2];
-#define with_colour float colour[4];
-#define with_secondary_colour float sec_colour[4];
 #define attrib(cnt,name) float name[cnt];
 #define padding(cnt,name) float name[cnt];
 extern int dummy_decl
@@ -80,9 +71,6 @@ extern int dummy_decl
 ;
 #undef padding
 #undef attrib
-#undef with_secondary_colour
-#undef with_colour
-#undef with_texture_coordinates
 #undef no_uniforms
 #undef uniform
 #undef composed_of

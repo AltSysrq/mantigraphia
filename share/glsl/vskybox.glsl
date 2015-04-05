@@ -6,6 +6,7 @@ uniform float cloudiness;
 
 varying float scale;
 varying vec3 ray;
+varying vec4 sky_colour;
 
 void main() {
   mat3 camera_y, camera_rx;
@@ -31,9 +32,9 @@ void main() {
     3.14159f / 2.0f;
 
   gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-  gl_FrontColor = vec4(0.1f + 0.4f*cloudiness*cloudiness,
-                       0.1f + 0.4f*cloudiness*cloudiness,
-                       0.4f, 1.0f) +
+  sky_colour = vec4(0.1f + 0.4f*cloudiness*cloudiness,
+                    0.1f + 0.4f*cloudiness*cloudiness,
+                    0.4f, 1.0f) +
     clamp(angle / 3.14159f, 0.0f, 1.0f) *
     vec4(0.6f, 0.6f, 0.6f, 0.0f);
 }
