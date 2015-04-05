@@ -34,12 +34,15 @@
 #include <glew.h>
 
 #include "../bsd.h"
+#include "shaders.h"
 #include "glinfo.h"
 
 unsigned max_point_size;
 int can_draw_offscreen_points;
 
 void glinfo_detect(unsigned wh) {
+  shader_solid_vertex vertex;
+  GLuint vbo;
   float point_size[2];
   unsigned pixel;
   int max_vertex_texture_image_units;
@@ -54,11 +57,21 @@ void glinfo_detect(unsigned wh) {
   glClearColor(0.0f,0.0f,0.0f,1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
 
+  glGenBuffers(1, &vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  vertex.v[0] = -1.0f;
+  vertex.v[1] = -1.0f;
+  vertex.v[2] = 0.0f;
+  vertex.colour[0] = 1.0f;
+  vertex.colour[1] = 1.0f;
+  vertex.colour[2] = 1.0f;
+  vertex.colour[3] = 1.0f;
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertex), &vertex, GL_STREAM_DRAW);
+  shader_solid_activate(NULL);
+  shader_solid_configure_vbo();
   glPointSize(max_point_size);
-  glColor3f(1.0f, 1.0f, 1.0f);
-  glBegin(GL_POINTS);
-  glVertex2f(-1.0f, -1.0f);
-  glEnd();
+  glDrawArrays(GL_POINTS, 0, 1);
+  glDeleteBuffers(1, &vbo);
 
   glReadPixels(0, wh-1, 1, 1, GL_RGB, GL_UNSIGNED_INT, &pixel);
   can_draw_offscreen_points = !!pixel;

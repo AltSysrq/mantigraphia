@@ -26,6 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+shader(solid) {
+  composed_of(fsolid, vgenericc)
+  attrib(4, colour)
+  no_uniforms
+}
+
 shader(terrabuff) {
   composed_of(fterrabuff, vterrabuff)
   uniform(tex2d, hmap)
